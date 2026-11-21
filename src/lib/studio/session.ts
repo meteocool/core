@@ -10,7 +10,7 @@ import { get } from "svelte/store";
 import { cloudStyle, peelLevel, peelManual } from "../../stores";
 import { isMapStyle, mapStyleOf } from "../cloudStyle";
 import { isHandheld } from "../gpuBudget";
-import { studioOpen } from "./store";
+import { flightRequest, studioOpen } from "./store";
 
 /** The peel as the reader had it before Studio took it. */
 let peelBefore: { manual: boolean; level: number } | null = null;
@@ -35,6 +35,8 @@ export function openStudio(): void {
 }
 
 export function closeStudio(): void {
+  // A flight asked for and not flown yet goes with Studio, and is not flown the next time it opens.
+  flightRequest.set(null);
   if (!get(studioOpen)) return;
   studioOpen.set(false);
   if (peelBefore) {

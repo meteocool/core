@@ -12,10 +12,11 @@
  * components/studio/flight/Preflight.svelte.
  */
 import type { CloudStyle } from "../../cloudStyle";
-import { indicatedFromTrue, machOf, speedOfSound } from "./atmosphere";
+import type { FlightStart } from "../flightLink";
+import { indicatedFromTrue, machOf, speedOfSound, trueFromIndicated } from "./atmosphere";
 import { freezingLevel, USUAL_BASE_KM } from "./cloudBase";
-import { bearingDeg, destination, distanceM, wrap180, wrap360 } from "./geo";
-import { approachTo, edgeKm, MOUNTAINS, START_TAS, SUN_BEARING } from "./spawn";
+import { bearingDeg, destination, distanceM, offsetM, wrap180, wrap360 } from "./geo";
+import { approachTo, edgeKm, MOUNTAINS, START_TAS, SUN_BEARING, terrainFloor } from "./spawn";
 import type { Approach, StormSystem, StormTile } from "./spawn";
 
 /** The aircraft there are to fly. One, so far; the page is laid out for more. */
@@ -50,8 +51,6 @@ export interface FlightPlan {
   view: "cockpit" | "outside";
   /** How the storms are drawn in it. */
   style: CloudStyle;
-  /** Whether the storms shake the aircraft. */
-  turbulence: boolean;
   /** Whether the radar's picture is painted on the ground under the storms. */
   radarOnGround: boolean;
   /** Whether the storms ahead carry a mark in the view. */
@@ -82,7 +81,6 @@ export function planFrom(approach: Approach, style: CloudStyle): FlightPlan {
     aimed: true,
     view: "cockpit",
     style,
-    turbulence: true,
     radarOnGround: false,
     marks: true,
   };
@@ -122,6 +120,150 @@ export function levelled(plan: FlightPlan, altitude: number): FlightPlan {
 
 export function atMach(plan: FlightPlan, mach: number): FlightPlan {
   return { ...plan, tas: clamp(mach, MACH_RANGE) * speedOfSound(plan.altitude) };
+}
+
+/* A flight from a place, chosen for the reader: from a point on the map
+   ("Fly from here"), or from a link that fixes some of it. */
+
+/** The weakest echo a flight is worth aiming at from outside it, dBZ: a shower; drizzle is not. */
+const SHOWER_DBZ = 35;
+
+/**
+ * The next storm from a place: the system it stands in, if any (the one
+ * whose core is nearest, where several overlap), or the one whose rain is
+ * nearest, of those worth flying at where there are any. Null with no
+ * weather on the radar.
+ *
+ * Standing in one is standing in one of its tiles, not inside the circle
+ * round it: a system can be a line of storms hundreds of kilometres long,
+ * and a place beside the line is not in it.
+ */
+export function nextStorm(lon: number, lat: number, systems: readonly StormSystem[]): StormSystem | null {
+  /* How far from its nearest tile, km, square as the tiles are; 0 or under in one. */
+  const gap = (system: StormSystem) => {
+    const [east, north] = offsetM(system.lon, system.lat, lon, lat).map((metres) => metres / 1000);
+    return Math.min(...system.extent.map((tile) => Math.max(Math.abs(east - tile.east), Math.abs(north - tile.north)) - tile.half));
+  };
+  const nearest = (pool: readonly StormSystem[], by: (system: StormSystem) => number) => (
+    pool.reduce<StormSystem | null>((best, system) => (!best || by(system) < by(best) ? system : best), null)
+  );
+  const around = systems.filter((system) => gap(system) <= 0);
+  if (around.length) return nearest(around, (system) => distanceM(lon, lat, system.lon, system.lat));
+  const worth = systems.filter((system) => system.peakDbz >= SHOWER_DBZ);
+  return nearest(worth.length ? worth : systems, gap);
+}
+
+/**
+ * The level a storm is worth flying through, metres: in its cloud, where its
+ * echo is.
+ *
+ * A shower's echo is shallow: its tops are four to six kilometres up, and
+ * its rain is the cloud between the base and the freezing level, so a
+ * flight into a weak one (35 dBZ and under) is low, at FL090, about 2.7 km.
+ * A thunderstorm's strongest echo, the rain and the hail held up in its
+ * updraft, stands at mid levels, five to eight kilometres up, under the
+ * anvil, whose own echo is faint; so a strong one (60 dBZ, hail) is flown at
+ * FL230, about 7 km, and those between on a straight line from one to the
+ * other: FL150 at 45 dBZ, FL200 at 55. To the thousand feet, as levels are
+ * flown. With no storm, FL100: low enough for the ground to read.
+ */
+export function stormLevel(peakDbz: number | null): number {
+  if (peakDbz === null) return 10_000 / FEET;
+  const strength = Math.min(Math.max((peakDbz - SHOWER_DBZ) / 25, 0), 1);
+  return (Math.round(9 + strength * (23 - 9)) * 1000) / FEET;
+}
+
+/**
+ * How fast a flight goes that the reader wants rather fast: 300 kt
+ * indicated low down, turning into Mach 0.78 higher up, where the same
+ * indicated speed would be ever more of the speed of sound; whichever is
+ * slower at the level, as an airliner's climb and cruise speeds are flown.
+ * They cross at about FL270. Both well short of the limits (350 kt, Mach
+ * 0.82), past which the airframe is strained (damage.ts), with room for the
+ * gusts in a storm.
+ */
+export const CRUISE_KNOTS = 300;
+export const CRUISE_MACH = 0.78;
+
+/** The true airspeed the cruise schedule flies at a level, m/s. */
+export function cruiseSpeed(altitude: number): number {
+  return Math.min(trueFromIndicated(CRUISE_KNOTS / KNOTS, altitude), CRUISE_MACH * speedOfSound(altitude));
+}
+
+/** Whether a level is flown by its indicated speed in knots, or above the crossing by its Mach number. */
+const flownInKnots = (altitude: number) => trueFromIndicated(CRUISE_KNOTS / KNOTS, altitude) <= CRUISE_MACH * speedOfSound(altitude);
+
+/** The most indicated speed a link may start a flight at, m/s: 340 kt, ten under the limit. */
+const MOST_INDICATED = 340 / KNOTS;
+
+/**
+ * The plan for a flight from a place, chosen for the reader where the start
+ * leaves it open (lib/studio/flightLink.ts): at the next storm, nose on its
+ * core, in its cloud at the level its strength asks for, and rather fast.
+ * `bearing` is the way the map looks, which a flight with no storm to aim
+ * at, or one starting in its very core, flies.
+ *
+ * The level chosen for a storm is raised over the ground ahead as an
+ * approach's is (spawn.ts, `terrainFloor`): 3,000 m over the highest of it
+ * in the first 60 km. Where the map has none of that ground loaded, over the
+ * highest summit of a range on the way, by the 2,000 ft a safe level keeps
+ * over mountains. A level the start names is the reader's, and kept.
+ */
+export function planHere(
+  start: FlightStart, systems: readonly StormSystem[], groundAt: (lon: number, lat: number) => number | null,
+  bearing: number, style: CloudStyle,
+): FlightPlan {
+  const { lon, lat } = start;
+  const target = nextStorm(lon, lat, systems);
+  // In its core already, the bearing to it is any way at all.
+  const onCore = target ? distanceM(lon, lat, target.lon, target.lat) < 2000 : true;
+  const heading = start.heading !== null ? wrap360(start.heading)
+    : target && !onCore ? bearingDeg(lon, lat, target.lon, target.lat) : wrap360(bearing);
+  let altitude: number;
+  if (start.altitude !== null) {
+    altitude = clamp(start.altitude, ALTITUDE_RANGE);
+  } else {
+    const floor = terrainFloor(lon, lat, heading, groundAt)
+      ?? ((highGround({ lon, lat, heading }, 60)?.summit ?? -Infinity) + TERRAIN_MARGIN_M);
+    // Up to the next thousand feet over the ground, as the level for the storm is.
+    const cleared = Math.ceil((floor * FEET) / 1000) * 1000 / FEET;
+    altitude = clamp(Math.max(stormLevel(target?.peakDbz ?? null), cleared), ALTITUDE_RANGE);
+  }
+  let tas = cruiseSpeed(altitude);
+  if (start.speed) {
+    tas = "mach" in start.speed ? start.speed.mach * speedOfSound(altitude) : trueFromIndicated(start.speed.knots / KNOTS, altitude);
+    tas = Math.min(tas, trueFromIndicated(MOST_INDICATED, altitude));
+  }
+  tas = clamp(machOf(tas, altitude), MACH_RANGE) * speedOfSound(altitude);
+  return {
+    aircraft: "a320", lon, lat, heading, altitude, tas, target,
+    aimed: start.heading === null && target !== null && !onCore,
+    view: start.view, style, radarOnGround: false, marks: true,
+  };
+}
+
+/** A system this near where the one aimed at stood is that one, in a newer list (a scan or two on, it has moved), km. */
+const SAME_STORM_KM = 30;
+
+/**
+ * A plan's start as a link has it. The heading is left out, as "at the next
+ * storm", where the plan's nose is on the storm a link opened there would
+ * aim at anyway (`systems` is the radar's list now: the storm will have
+ * moved on since the flight took off); written out where the reader has
+ * turned it or chosen another storm. The speed is said in knots or as a
+ * Mach number, whichever the level is flown by.
+ */
+export function startOf(plan: FlightPlan, systems: readonly StormSystem[]): FlightStart {
+  const next = plan.aimed && plan.target ? nextStorm(plan.lon, plan.lat, systems) : null;
+  const aimedAtNext = next !== null && plan.target !== null
+    && distanceM(next.lon, next.lat, plan.target.lon, plan.target.lat) < SAME_STORM_KM * 1000;
+  const speed = flownInKnots(plan.altitude)
+    ? { knots: Math.round(indicatedFromTrue(plan.tas, plan.altitude) * KNOTS) }
+    : { mach: Math.round(machOf(plan.tas, plan.altitude) * 100) / 100 };
+  return {
+    lat: plan.lat, lon: plan.lon, heading: aimedAtNext ? null : Math.round(wrap360(plan.heading)) % 360,
+    altitude: Math.round((plan.altitude * FEET) / 100) * 100 / FEET, speed, view: plan.view,
+  };
 }
 
 /** The level as a crew says it: FL240. */
@@ -242,9 +384,7 @@ export function briefing(
       + (base.stations ? "" : " · STD ATMOS"),
     caution: inIce,
   });
-  lines.push(plan.turbulence
-    ? { item: "inside", text: "IN ECHO: IMC, RAIN ON THE GLASS, TURB RISING WITH DBZ · SEAT BELTS", caution: Boolean(target) }
-    : { item: "inside", text: "IN ECHO: IMC, RAIN ON THE GLASS · TURB OFF" });
+  lines.push({ item: "inside", text: "IN ECHO: IMC, RAIN ON THE GLASS, TURB RISING WITH DBZ · SEAT BELTS", caution: Boolean(target) });
   const others = systems.filter((system) => system !== target
     && distanceM(plan.lon, plan.lat, system.lon, system.lat) <= 150 * NM);
   if (others.length) {

@@ -22,7 +22,9 @@
  *   rattles of what is loose in it;
  * - rain hissing and pattering on the windshield, and hail ticking on it;
  * - thunder: a crack that tears, and a long rumble that rolls;
- * - the cockpit's alerts and chimes, and the interface's clicks;
+ * - the cockpit's alerts and chimes: the master warning's continuous
+ *   repetitive chime and the caution's single one, the stall's cricket and
+ *   shaker, the terrain's whoops; and the interface's clicks;
  * - the end of a flight: the airframe breaking up (a crack of metal, its
  *   tearing and groaning, the air rushing in) and an explosion (a boom, its
  *   blast, a long low rumble and the fire crackling after it), heard the
@@ -53,6 +55,10 @@ const HAIL_RATE = 45;
 
 /** How the stall's cricket repeats, seconds. */
 const CRICKET_CYCLE_S = 1;
+
+/** The master warning's continuous repetitive chime: how often it strikes, seconds, and its pitch, Hz. */
+const CRC_PERIOD_S = 0.34;
+const CRC_HZ = 1320;
 
 type Color = "white" | "pink" | "brown";
 
@@ -139,7 +145,7 @@ function patterBuffer(context: BaseAudioContext, seconds: number, perSecond: num
   return buffer;
 }
 
-/** One click, rung at a frequency: a hailstone, the overspeed's clacker, a drop of the patter. */
+/** One click, rung at a frequency: a hailstone, a drop of the patter. */
 function clickBuffer(context: BaseAudioContext, seconds: number, ring: number, decay: number, period = seconds): AudioBuffer {
   const { sampleRate } = context;
   const length = Math.round(period * sampleRate);
@@ -149,6 +155,26 @@ function clickBuffer(context: BaseAudioContext, seconds: number, ring: number, d
     const t = i / sampleRate;
     const envelope = Math.exp(-t / decay) * Math.min(1, i / 8);
     data[i] = envelope * (0.55 * Math.sin(2 * Math.PI * ring * t) + 0.45 * (Math.random() * 2 - 1));
+  }
+  return buffer;
+}
+
+/**
+ * One strike of a chime, at the start of `period` seconds and rung out
+ * before its end: looped, the master warning's chime that repeats for as
+ * long as the warning lasts.
+ */
+function chimeBuffer(context: BaseAudioContext, period: number, hz: number): AudioBuffer {
+  const { sampleRate } = context;
+  const length = Math.round(period * sampleRate);
+  const buffer = context.createBuffer(1, length, sampleRate);
+  const data = buffer.getChannelData(0);
+  const partials: Array<[number, number, number]> = [[1, 1, 0.07], [2, 0.3, 0.04], [2.76, 0.22, 0.03]];
+  for (let i = 0; i < length; i++) {
+    const t = i / sampleRate;
+    // In without a click, and nothing left at the loop's seam.
+    const edges = Math.min(1, i / 40, (length - i) / 200);
+    data[i] = edges * partials.reduce((sum, [ratio, level, decay]) => sum + level * Math.exp(-t / decay) * Math.sin(2 * Math.PI * hz * ratio * t), 0);
   }
   return buffer;
 }
@@ -310,7 +336,7 @@ export class SoundGraph {
   private readonly rain: { hiss: GainNode; patter: GainNode; peak: BiquadFilterNode; patterFilter: BiquadFilterNode };
   private readonly warp: { gain: GainNode; filter: BiquadFilterNode; on: boolean };
   private readonly alerts: {
-    overspeed: GainNode; shaker: GainNode; cricket: GainNode; cricketGate: GainNode; terrain: GainNode;
+    chime: GainNode; shaker: GainNode; cricket: GainNode; cricketGate: GainNode; terrain: GainNode;
     cricketAt: number; terrainOn: boolean; terrainSources: AudioScheduledSourceNode[];
   };
   private readonly sources: AudioScheduledSourceNode[] = [];
@@ -447,8 +473,8 @@ export class SoundGraph {
 
     // The alerts that sound for as long as their warning lasts.
     const alerts = this.busses.alerts;
-    const overspeed = gain(0, alerts);
-    loop(clickBuffer(context, 0.02, 2300, 0.005, 1 / 11), filter("bandpass", 2300, 1.5, overspeed));
+    const chime = gain(0, alerts);
+    loop(chimeBuffer(context, CRC_PERIOD_S, CRC_HZ), chime);
     const shaker = gain(0, alerts);
     loop(shakerBuffer(context, 17), filter("lowpass", 600, 0.7, shaker));
     const cricketGate = gain(0, alerts);
@@ -458,7 +484,7 @@ export class SoundGraph {
     // Chirping: the tone switched on and off two dozen times a second.
     oscillator("square", 24, gain(0.5, chirp.gain));
     const terrain = gain(0, alerts);
-    this.alerts = { overspeed, shaker, cricket, cricketGate, terrain, cricketAt: 0, terrainOn: false, terrainSources: [] };
+    this.alerts = { chime, shaker, cricket, cricketGate, terrain, cricketAt: 0, terrainOn: false, terrainSources: [] };
   }
 
   /** Set the continuous sounds to a frame's mix; also keeps the repeating alerts and the hail going. */
@@ -526,6 +552,7 @@ export class SoundGraph {
       case "creak": this.creak(event.strength, t); break;
       case "rattle": this.rattle(event.strength, t); break;
       case "seatbelt": this.bell(t); break;
+      case "chime": this.bell(t, this.busses.alerts, 1.6); break;
       case "low":
         this.tone("sine", 740, t, 0.16, 0.5, this.busses.alerts);
         this.tone("sine", 988, t + 0.2, 0.2, 0.5, this.busses.alerts);
@@ -646,8 +673,8 @@ export class SoundGraph {
 
   /** Keep the repeating alerts going, a cycle ahead, while their warnings last. */
   private repeat(alerts: SoundLevels["alerts"], time: number): void {
-    const { overspeed, shaker, cricketGate, cricket } = this.alerts;
-    this.to(overspeed.gain, alerts.overspeed ? 1.4 : 0, time, 0.01);
+    const { chime, shaker, cricketGate, cricket } = this.alerts;
+    this.to(chime.gain, alerts.chime ? 0.9 : 0, time, 0.01);
     this.to(shaker.gain, alerts.stall ? 1 : 0, time, 0.01);
     this.to(cricketGate.gain, alerts.stall ? 0.35 : 0, time, 0.01);
     if (alerts.stall) {
@@ -1034,11 +1061,11 @@ export class SoundGraph {
     };
   }
 
-  /** The seat-belt sign's chime: one soft bell. */
-  private bell(t: number): void {
+  /** The seat-belt sign's chime: one soft bell; louder, and among the alerts, the master caution's single chime. */
+  private bell(t: number, to: AudioNode = this.busses.cabin, loudness = 1): void {
     const partials: Array<[number, number, number]> = [[1, 1, 0.9], [2, 0.2, 0.5], [2.76, 0.25, 0.4], [4.07, 0.07, 0.25]];
     for (const [ratio, level, decay] of partials) {
-      this.tone("sine", 1050 * ratio, t, decay * 4, level * 0.5, this.busses.cabin, undefined, decay);
+      this.tone("sine", 1050 * ratio, t, decay * 4, level * 0.5 * loudness, to, undefined, decay);
     }
   }
 

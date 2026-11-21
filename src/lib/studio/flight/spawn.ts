@@ -226,13 +226,24 @@ export function edgeKm(system: Pick<StormSystem, "extent" | "radiusKm">, bearing
 export function startAltitude(
   lon: number, lat: number, heading: number, groundAt: (lon: number, lat: number) => number | null,
 ): number {
-  let altitude = START_ALTITUDE_M;
+  return Math.max(START_ALTITUDE_M, terrainFloor(lon, lat, heading, groundAt) ?? 0);
+}
+
+/**
+ * The lowest a start may be: `TERRAIN_MARGIN_M` over the highest ground
+ * under the first stretch of the way, metres; null where the map has none
+ * of that ground loaded.
+ */
+export function terrainFloor(
+  lon: number, lat: number, heading: number, groundAt: (lon: number, lat: number) => number | null,
+): number | null {
+  let floor: number | null = null;
   for (let km = 0; km <= TERRAIN_CHECK_KM; km += 5) {
     const [x, y] = destination(lon, lat, heading, km * KM);
     const ground = groundAt(x, y);
-    if (ground !== null) altitude = Math.max(altitude, ground + TERRAIN_MARGIN_M);
+    if (ground !== null) floor = Math.max(floor ?? -Infinity, ground + TERRAIN_MARGIN_M);
   }
-  return altitude;
+  return floor;
 }
 
 /**

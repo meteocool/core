@@ -9,6 +9,7 @@ import { writable } from "svelte/store";
 import { DEFAULT_FOV, emptyScene } from "./scene";
 import type { Scene } from "./scene";
 import type { SectionPlane } from "./planes";
+import type { FlightStart } from "./flightLink";
 
 /**
  * The basemap Studio opens on: the imagery, which is what a picture of
@@ -59,11 +60,27 @@ export const studioFlying = writable<boolean>(false);
  */
 export const studioFlightOnly = writable<boolean>(false);
 
+/**
+ * A flight asked for from outside Studio, to start at once without its plan
+ * being shown: "Fly from here" on the map (components/PointMenu.svelte), or
+ * a flight's link (lib/studio/flightLink.ts). Set before Studio opens on the
+ * 3D map; Studio waits there for the radar's storms, plans the flight from
+ * the start (lib/studio/flight/plan.ts, `planHere`) and takes off, and puts
+ * the request away once it has. `back` is where the reader goes when that
+ * flight ends: the map they asked from; without it, wherever a flight ends
+ * on that page. Closing Studio drops a request it has not flown yet.
+ */
+export interface FlightRequest {
+  start: FlightStart;
+  back?: () => void;
+}
+export const flightRequest = writable<FlightRequest | null>(null);
+
 /** Where a flight is seen from: the cockpit, outside the aircraft, or with no aircraft and nothing over the view. */
 export type FlightView = "cockpit" | "outside" | "clean";
 
-/** The warnings a flight sounds, by name. */
-export type FlightWarning = "terrain" | "stall" | "overspeed" | "ice" | "gear" | "sink" | "bank";
+/** The warnings a flight sounds, by name; the flaps or the gear jammed where they are by too much air are two of them. */
+export type FlightWarning = "terrain" | "stall" | "overspeed" | "ice" | "gear" | "sink" | "bank" | "flapsJammed" | "gearJammed";
 
 /**
  * Why a flight ended on the ground and not on its wheels (lib/studio/flight/physics.ts),
@@ -72,6 +89,20 @@ export type FlightWarning = "terrain" | "stall" | "overspeed" | "ice" | "gear" |
  * the ground; or that it did not touch down at all, but flew into it.
  */
 export type FlightCrash = "terrain" | "gear" | "hard" | "attitude" | "fast" | "breakup" | "flutter" | "wing" | "impact";
+
+/**
+ * A surface that can flutter off the airframe well past its fastest speed
+ * and leave the flight going (lib/studio/flight/damage.ts): each aileron,
+ * each elevator, the rudder; each wing's outer spoiler panel, standing up as
+ * the speed brake; and each wing's outer flap and outer slat, where they are
+ * out.
+ */
+export type LostSurface =
+  | "leftAileron" | "rightAileron" | "leftElevator" | "rightElevator" | "rudder"
+  | "leftSpoiler" | "rightSpoiler" | "leftFlap" | "rightFlap" | "leftSlat" | "rightSlat";
+
+/** An alarm of the flight (lib/studio/flight/alarms.ts): one of its warnings, or a surface it has lost, one each. */
+export type FlightAlarm = FlightWarning | `lost.${LostSurface}`;
 
 /**
  * A landing as it was made: how fast it came down, m/s, and how fast it was
@@ -120,6 +151,16 @@ export interface FlightStatus {
   /** The last landing, until the aircraft flies again; and why the flight just ended, for a moment after it has. */
   landing: FlightLanding | null;
   crash: FlightCrash | null;
+  /** The surfaces that have come off in the air so far, in the order they went; the flight goes on without them. */
+  lost: LostSurface[];
+  /**
+   * The alarms raised now, the surfaces lost first, as the master lights and
+   * the chimes have them; none for what is left of an aircraft. And those of
+   * them the reader has silenced (MASTER WARN, Q): not heard, and their light
+   * out, until they clear.
+   */
+  alarms: FlightAlarm[];
+  silenced: FlightAlarm[];
   /** The radar's colours painted on the ground under the storms (O); and the flight held while the reader is asked whether to end it. */
   radarOnGround: boolean;
   leaving: boolean;
@@ -128,7 +169,7 @@ export interface FlightStatus {
 export const INITIAL_FLIGHT_STATUS: FlightStatus = {
   view: "cockpit", warnings: [], paused: false, recording: false, keys: true, autopilot: false, warp: false,
   clearSky: false, low: false, inspecting: null, gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false,
-  reverse: false, alphaFloor: false, landing: null, crash: null, radarOnGround: false, leaving: false,
+  reverse: false, alphaFloor: false, landing: null, crash: null, lost: [], alarms: [], silenced: [], radarOnGround: false, leaving: false,
 };
 
 export const flightStatus = writable<FlightStatus>(INITIAL_FLIGHT_STATUS);

@@ -6,7 +6,12 @@ import {
   spoolTowards, VOLUME,
 } from "../../src/lib/studio/flight/soundMix.ts";
 import type { Callout, CalloutKind, SoundEvent, SoundInput, SoundMemory, SoundStatus } from "../../src/lib/studio/flight/soundMix.ts";
-import { actionOf } from "../../src/lib/studio/flight/controls.ts";
+import { actionOf, gamepadActions } from "../../src/lib/studio/flight/controls.ts";
+import {
+  ALARM_CLEAR_S, alarmsOf, alarmStep, kindOf, masterLights, NO_ALARMS, silence, silencedOf,
+} from "../../src/lib/studio/flight/alarms.ts";
+import type { AlarmMemory } from "../../src/lib/studio/flight/alarms.ts";
+import type { FlightAlarm } from "../../src/lib/studio/store.ts";
 
 const near = (a: number, b: number, tolerance: number) => assert.ok(Math.abs(a - b) <= tolerance, `${a} is not ${b} ± ${tolerance}`);
 
@@ -14,7 +19,7 @@ const near = (a: number, b: number, tolerance: number) => assert.ok(Math.abs(a -
 const CRUISE: SoundInput = {
   throttle: 0.7, ias: 128, mach: 0.78, dbz: null, rain: 0, turbulence: 0, flash: 0, strike: false, brake: false, fade: 0, storm: null,
 };
-const STATUS: SoundStatus = { view: "cockpit", warnings: [], paused: false, autopilot: false, warp: false, low: false };
+const STATUS: SoundStatus = { view: "cockpit", warnings: [], alarms: [], silenced: [], paused: false, autopilot: false, warp: false, low: false };
 
 /** Dice that never fire: no irregular sound starts. */
 const never = () => 0.999999;
@@ -176,15 +181,15 @@ test("a strong storm nearby rumbles now and then, a weak or far one does not", (
 /* ---- alerts ---- */
 
 test("the warnings sound in the cockpit, and none outside", () => {
-  const warned = { ...STATUS, warnings: ["terrain", "stall", "overspeed"] as SoundStatus["warnings"] };
+  const warned = { ...STATUS, warnings: ["terrain", "stall", "overspeed"], alarms: ["terrain", "stall", "overspeed"] } as SoundStatus;
   const cockpit = fly(CRUISE, 0.1, { status: warned }).levels.alerts;
-  assert.deepEqual([cockpit.terrain, cockpit.stall, cockpit.overspeed], [true, true, true]);
+  assert.deepEqual([cockpit.terrain, cockpit.stall, cockpit.chime], [true, true, true]);
   assert.equal(cockpit.gain, 1);
   const stall = fly(CRUISE, 0.1, { status: { ...STATUS, warnings: ["stall"] } }).levels.alerts;
-  assert.deepEqual([stall.terrain, stall.stall, stall.overspeed], [false, true, false]);
+  assert.deepEqual([stall.terrain, stall.stall, stall.chime], [false, true, false]);
   for (const view of ["outside", "clean"] as const) {
     const outside = fly(CRUISE, 0.1, { status: { ...warned, view } }).levels.alerts;
-    assert.deepEqual([outside.terrain, outside.stall, outside.overspeed, outside.gain], [false, false, false, 0]);
+    assert.deepEqual([outside.terrain, outside.stall, outside.chime, outside.gain], [false, false, false, 0]);
   }
 });
 
@@ -522,4 +527,108 @@ test("muted or paused, the volume is nothing; through a cut to black the world q
 
 test("M mutes", () => {
   assert.equal(actionOf("KeyM"), "mute");
+});
+
+/* ---- the master warning and caution, and silencing them ---- */
+
+/** The alarms over a flight, a frame at a time, as the pilot keeps them: what is raised, and the master light pressed at times. */
+function alarmed(seconds: number, at: (t: number) => { alarms: FlightAlarm[]; press?: boolean }) {
+  let memory: AlarmMemory = NO_ALARMS;
+  const frames: Array<{ t: number; alarms: FlightAlarm[]; silenced: FlightAlarm[] }> = [];
+  for (let frame = 0; frame * FRAME < seconds; frame++) {
+    const t = frame * FRAME;
+    const { alarms, press } = at(t);
+    memory = alarmStep(memory, alarms, FRAME);
+    if (press) memory = silence(memory, alarms);
+    frames.push({ t, alarms, silenced: silencedOf(memory, alarms) });
+  }
+  return frames;
+}
+
+test("the alarms: the surfaces lost first, in the order they went, then the warnings; each at its level", () => {
+  assert.deepEqual(alarmsOf(["overspeed", "ice"], ["rudder", "leftAileron"]), ["lost.rudder", "lost.leftAileron", "overspeed", "ice"]);
+  assert.deepEqual(kindOf("lost.leftElevator"), { level: "warning", chime: "continuous" });
+  assert.deepEqual(kindOf("overspeed"), { level: "warning", chime: "continuous" });
+  assert.deepEqual(kindOf("gear"), { level: "warning", chime: "continuous" });
+  // The stall, the terrain and the sink rate light the master warning and sound as they always have; the bank angle is a voice only.
+  for (const own of ["stall", "terrain", "sink"]) assert.deepEqual(kindOf(own), { level: "warning", chime: null });
+  assert.deepEqual(kindOf("bank"), { level: null, chime: null });
+  for (const caution of ["ice", "flapsJammed", "gearJammed"]) assert.deepEqual(kindOf(caution), { level: "caution", chime: "single" });
+  assert.deepEqual(masterLights(["overspeed", "ice"], []), { warning: true, caution: true, sounding: true });
+  assert.deepEqual(masterLights(["overspeed", "ice"], ["overspeed"]), { warning: false, caution: true, sounding: true });
+  assert.deepEqual(masterLights(["bank"], []), { warning: false, caution: false, sounding: true });
+  assert.deepEqual(masterLights(["bank"], ["bank"]), { warning: false, caution: false, sounding: false });
+});
+
+test("pressed, the master light silences what is raised: until it clears, or a new alarm comes, which is heard", () => {
+  const frames = alarmed(12, (t) => ({
+    alarms: t < 6 ? ["overspeed"] : ["lost.leftAileron", "overspeed"],
+    press: Math.abs(t - 2) < FRAME / 2 || Math.abs(t - 8) < FRAME / 2,
+  }));
+  const at = (t: number) => frames.find((frame) => frame.t >= t - 1e-9)!;
+  assert.deepEqual(at(1).silenced, []);
+  assert.deepEqual(at(3).silenced, ["overspeed"]);
+  // The aileron gone is new: heard, its light lit, though the overspeed stays silenced.
+  assert.deepEqual(at(7).silenced, ["overspeed"]);
+  assert.deepEqual(masterLights(at(7).alarms, at(7).silenced).warning, true);
+  assert.deepEqual(at(9).silenced, ["lost.leftAileron", "overspeed"]);
+  assert.deepEqual(masterLights(at(9).alarms, at(9).silenced), { warning: false, caution: false, sounding: false });
+});
+
+test("a silenced alarm that clears and comes back is heard again; one that wavers about its limit is not", () => {
+  const wavering = alarmed(10, (t) => ({ alarms: t < 4 || Math.floor(t * 4) % 2 === 0 ? ["overspeed"] : [], press: Math.abs(t - 1) < FRAME / 2 }));
+  assert.ok(wavering.filter((frame) => frame.t > 1.1 && frame.alarms.length).every((frame) => frame.silenced.length === 1));
+  const back = alarmed(10, (t) => ({ alarms: t < 3 || t > 3 + ALARM_CLEAR_S + 0.5 ? ["overspeed"] : [], press: Math.abs(t - 1) < FRAME / 2 }));
+  assert.deepEqual(back.find((frame) => frame.t > 2)!.silenced, ["overspeed"]);
+  assert.deepEqual(back.at(-1)!.silenced, []);
+});
+
+test("the master warning's chime sounds while an alarm that has it is heard, in the cockpit; silenced, it stops", () => {
+  const raised = { ...STATUS, warnings: ["overspeed"], alarms: ["overspeed"] } as SoundStatus;
+  assert.equal(fly(CRUISE, 0.1, { status: raised }).levels.alerts.chime, true);
+  assert.equal(fly(CRUISE, 0.1, { status: { ...raised, silenced: ["overspeed"] } }).levels.alerts.chime, false);
+  const lost = { ...raised, alarms: ["lost.rudder", "overspeed"], silenced: ["overspeed"] } as SoundStatus;
+  assert.equal(fly(CRUISE, 0.1, { status: lost }).levels.alerts.chime, true);
+  assert.equal(fly(CRUISE, 0.1, { status: { ...lost, view: "outside" } }).levels.alerts.chime, false);
+  // The stall's own sounds go too.
+  const stalled = { ...STATUS, warnings: ["stall"], alarms: ["stall"] } as SoundStatus;
+  assert.equal(fly(CRUISE, 0.1, { status: stalled }).levels.alerts.stall, true);
+  assert.equal(fly(CRUISE, 0.1, { status: { ...stalled, silenced: ["stall"] } }).levels.alerts.stall, false);
+});
+
+test("a caution chimes once as it is raised: not again while it lasts, not silenced, not outside", () => {
+  const iced = (t: number) => ({ ...STATUS, warnings: t > 1 ? ["ice"] : [], alarms: t > 1 ? ["ice"] : [] } as SoundStatus);
+  const chimes = (status: (t: number) => SoundStatus) => {
+    let memory = initialMemory(CRUISE, STATUS);
+    let count = 0;
+    for (let t = 0; t < 6; t += FRAME) {
+      const out = mixSound(memory, CRUISE, status(t), false, FRAME, never);
+      memory = out.memory;
+      count += out.events.filter((event) => event.kind === "chime").length;
+    }
+    return count;
+  };
+  assert.equal(chimes(iced), 1);
+  assert.equal(chimes((t) => ({ ...iced(t), silenced: iced(t).alarms })), 0);
+  assert.equal(chimes((t) => ({ ...iced(t), view: "outside" })), 0);
+});
+
+test("silenced, the voice says no more: the bank angle, the pull-up's whoops and words, a caution being said is cut off", () => {
+  const bank = listen(12, (t) => ({ status: { warnings: ["bank"], alarms: ["bank"], silenced: t > 4 ? ["bank"] : [] } }));
+  assert.ok(words(bank.said, "Bank angle, bank angle").every((t) => t <= 4));
+  assert.ok(bank.quiet.some(([t, kind]) => kind === "bank" && t > 4 && t < 4.1));
+  const terrain = listen(12, (t) => ({ status: { warnings: ["terrain"], alarms: ["terrain"], silenced: t > 4 ? ["terrain"] : [] } }));
+  assert.ok(terrain.whoops.length > 0 && terrain.whoops.every((t) => t <= 4));
+  assert.ok(terrain.quiet.some(([t, kind]) => kind === "pullUp" && t > 4 && t < 4.1));
+  const gear = listen(6, (t) => ({ status: { warnings: ["gear"], alarms: ["gear"], silenced: t > 0.5 ? ["gear"] : [] } }));
+  assert.deepEqual(gear.said.map(([, one]) => one), ["Too low, gear"]);
+  assert.deepEqual(gear.quiet.filter(([, kind]) => kind === "caution").length, 1);
+  // Raised already silenced, nothing is said at all.
+  assert.deepEqual(listen(6, () => ({ status: { warnings: ["gear", "bank"], alarms: ["gear", "bank"], silenced: ["gear", "bank"] } })).said, []);
+});
+
+test("Q, the gamepad's middle button and the master lights silence", () => {
+  assert.equal(actionOf("KeyQ"), "silence");
+  const buttons = Array.from({ length: 17 }, (_unused, index) => ({ pressed: index === 16 }));
+  assert.deepEqual(gamepadActions(buttons, []), ["silence"]);
 });

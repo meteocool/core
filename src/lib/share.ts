@@ -50,11 +50,21 @@ export function shareLink(request: ShareRequest = {}): { url: string; title: str
 export async function share(request: ShareRequest = {}): Promise<void> {
   const link = shareLink(request);
   if (!link) return;
+  return sendLink(link, request.anchor);
+}
 
+/**
+ * Send a link through whichever way out this page has. `card: false` for
+ * one that is not to the map, such as a flight's (lib/studio/flightLink.ts):
+ * it does not unfurl as the map's card, so the dialog shows none.
+ */
+export async function sendLink(
+  link: { url: string; title: string }, anchor: Element | null = null, { card = true }: { card?: boolean } = {},
+): Promise<void> {
   if (dd.isApp()) {
     if (!nativeShare()) return;
     const message: NativeShare = { ...link };
-    const rect = request.anchor?.getBoundingClientRect();
+    const rect = anchor?.getBoundingClientRect();
     if (rect) Object.assign(message, { x: rect.x, y: rect.y, width: rect.width, height: rect.height });
     postToNative(`share:${JSON.stringify(message)}`);
     return;
@@ -63,7 +73,7 @@ export async function share(request: ShareRequest = {}): Promise<void> {
   // Written in the press that asked for it, before anything else is awaited:
   // Safari lets a page at the clipboard only that close to the gesture.
   const copied = copyLink(link.url);
-  shareDialog.set({ ...link, copied });
+  shareDialog.set({ ...link, copied, ...(card ? {} : { card: false }) });
 }
 
 /** Put `url` on the clipboard; whether it got there. */

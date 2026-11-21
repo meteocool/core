@@ -33,8 +33,11 @@
  *
  * What the airframe has been through comes in from outside, as the gusts
  * do: ice on the wing costs lift, stalls it sooner than the protections
- * believe, drags, weighs, and chokes the engines; a wing or the tail that
- * has come off (damage.ts) leaves what is left to fall as it would. A
+ * believe, drags, weighs, and chokes the engines; a surface that has
+ * fluttered off takes its share of the control of its axis with it, leaves
+ * the two sides unlike, and drops the fly-by-wire to a law with no
+ * protections; a wing or the tail that has come off (damage.ts) leaves what
+ * is left to fall as it would. A
  * flight that ends on the ground and not on its wheels is a wreck, which
  * slides to a stop.
  *
@@ -47,6 +50,7 @@
  * Deterministic: the turbulence comes in from outside as a gust, so the same
  * inputs always fly the same path, which is what the tests rely on.
  */
+import type { LostSurface } from "../store";
 import { density, indicatedFromTrue, machOf, SEA_LEVEL_DENSITY } from "./atmosphere";
 import { destination, wrap360 } from "./geo";
 import { apply, attitudeOf, multiply, rotation, transpose } from "./view";
@@ -223,6 +227,50 @@ const TAILLESS_TUCK = 28;
 const TAILLESS_SWING = 18;
 /** The fastest a stalled wing swings the nose back towards the air, degrees a second. */
 const TUMBLE_MOST = 60;
+/**
+ * What is left when surfaces have fluttered off (damage.ts), the wings and
+ * the tail still on. The roll: each aileron is half of what the stick gets;
+ * with neither, the spoiler of the wing going down still rolls it at this
+ * share, and with that gone too hardly anything does. An aileron gone
+ * leaves a gap and a stub on its wing, which lifts less and drags more:
+ * the aircraft rolls towards it, at this many degrees a second (as much as
+ * the air's pressure gives it, `felt`), and slips this far towards it. The
+ * pitch: each elevator is half of it; one alone twists the tailplane, which
+ * rolls the aircraft a little away from the side that has gone and lets the
+ * nose down. With neither, only the stabiliser's trim moves the nose: the
+ * stick turns it to an angle of attack, this many degrees a second, which
+ * the nose comes round to at this rate, following the path; at a held angle
+ * of attack the speed and the height trade back and forth, which nothing
+ * damps. Without the rudder the pedals do nothing and nothing damps the yaw:
+ * a gust sets the nose swinging and the wings rocking with it, a Dutch roll
+ * of this period, seconds, that dies away slowly. A spoiler gone with the
+ * speed brake out leaves its wing lifting more, a flap gone with the flaps
+ * out leaves it lifting less, which rolls it the one way or the other;
+ * each is this share of all the spoilers' or the flaps' lift; a slat gone
+ * stalls the wing this many degrees sooner. Each surface takes this much
+ * drag with it; and with any gone the fly-by-wire falls back to its
+ * alternate law, which protects nothing: the stick asks this many times as
+ * many g, up to these, and pulls the wing this far past its stall if it is
+ * held there.
+ */
+const SHED_ROLL_SPOILER = 0.3;
+const SHED_ROLL_BARE = 0.06;
+const SHED_AILERON_ROLL = 3;
+const SHED_AILERON_SLIP = 1.5;
+const SHED_ELEVATOR_ROLL = 1.2;
+const SHED_ELEVATOR_PITCH = 0.6;
+const TRIM_RATE = 0.5;
+const TRIM_GAIN = 0.8;
+const DUTCH_ROLL = { period: 5, damping: 0.06, gust: 0.4 };
+const SHED_SPOILER_ROLL = 8;
+const SHED_FLAP_ROLL = 8;
+const SHED_SPOILER_SHARE = 0.4;
+const SHED_FLAP_SHARE = 0.3;
+const SHED_SLAT_STALL = 1.5;
+const SHED_DRAG = 0.0015;
+const ALTERNATE_STICK = 2;
+const ALTERNATE_LOADS = [-2, 4] as const;
+const ALTERNATE_PAST_STALL = 4;
 
 /**
  * The stick, fully back and fully forward, in g: what it asks for is this
@@ -379,8 +427,9 @@ export interface AircraftState {
   loadFactor: number;
   stalled: boolean;
   alphaFloor: boolean;
-  /** How far the nose is slipped off the flight path, degrees, to the right of it positive. */
+  /** How far the nose is slipped off the flight path, degrees, to the right of it positive; and how fast that is changing, degrees a second. */
   slip: number;
+  slipRate?: number;
 }
 
 /** The stick, the rudder and the throttle lever, each -1 to 1. */
@@ -431,11 +480,16 @@ export interface Environment {
   flapsStuck?: boolean;
 }
 
-/** The parts an aircraft can lose and still be an aircraft of a kind: each wing, with its engine, and the tail. */
+/**
+ * The parts an aircraft can lose and still be an aircraft of a kind: each
+ * wing, with its engine, and the tail; and, short of that, the surfaces
+ * that have fluttered off, in the order they went.
+ */
 export interface Lost {
   leftWing?: boolean;
   rightWing?: boolean;
   tail?: boolean;
+  surfaces?: readonly LostSurface[];
 }
 
 export const STILL_AIR: Environment = { warp: 1, gust: CALM, autopilot: null };
@@ -470,21 +524,30 @@ interface Wing {
   induced: number;
 }
 
-function wingOf(flaps: number, spoilers: number, gear: number, mach: number, ice: number, share = 1): Wing {
+/** What surfaces gone from a wing that is still on cost it: the share of the flaps' lift left, degrees of stall, and drag. */
+interface Torn {
+  flaps: number;
+  slats: number;
+  drag: number;
+}
+
+const UNTORN: Torn = { flaps: 1, slats: 0, drag: 0 };
+
+function wingOf(flaps: number, spoilers: number, gear: number, mach: number, ice: number, share = 1, torn: Torn = UNTORN): Wing {
   const shut = clamp((mach - MACH_STALL_FROM) / MACH_STALL_SPAN, 0, 1) * MACH_STALL_LOSS;
   // Ice roughens the wing: less lift for its angle, less from the flaps, and a stall that comes sooner.
-  const liftZero = CL_ZERO + between(FLAP_LIFT, flaps) * (1 - ICE_FLAPS * ice);
+  const liftZero = CL_ZERO + between(FLAP_LIFT, flaps) * (1 - ICE_FLAPS * ice) * torn.flaps;
   const slope = CL_PER_DEG * (1 - ICE_SLOPE * ice);
   const least = -CL_NEGATIVE_MOST * (1 - shut) * (1 - ICE_STALL * ice);
   return {
     liftZero,
     slope,
-    stallAlpha: between(FLAP_STALL_ALPHA, flaps) * (1 - shut) * (1 - ICE_STALL * ice),
+    stallAlpha: between(FLAP_STALL_ALPHA, flaps) * (1 - shut) * (1 - ICE_STALL * ice) - torn.slats,
     lowAlpha: (least - liftZero) / slope,
     least,
     kept: (1 - SPOILER_LIFT_LOSS * spoilers * spoilers) * share,
     drag: between(FLAP_DRAG, flaps) + CD_GEAR * gear + SPOILER_DRAG[0] * spoilers + SPOILER_DRAG[1] * spoilers * spoilers
-      + CD_ZERO * ICE_DRAG * ice,
+      + CD_ZERO * ICE_DRAG * ice + torn.drag,
     induced: CD_INDUCED * (1 + ICE_INDUCED * ice),
   };
 }
@@ -644,7 +707,32 @@ export function turned(attitude: Mat3, rate: Vec3, h: number): Mat3 {
 /** What is left of the aircraft to fly with. */
 function airframeOf(lost: Lost | undefined) {
   const wings = (lost?.leftWing ? 0 : 1) + (lost?.rightWing ? 0 : 1);
+  const gone = new Set(lost?.surfaces ?? []);
+  /** How many of a pair are still on; and which side is not, -1 the left, 0 both or neither. */
+  const pair = (left: LostSurface, right: LostSurface) => (gone.has(left) ? 0 : 1) + (gone.has(right) ? 0 : 1);
+  const side = (left: LostSurface, right: LostSurface) => (gone.has(left) ? -1 : 0) + (gone.has(right) ? 1 : 0);
+  const ailerons = pair("leftAileron", "rightAileron");
+  // Rolling right, the right wing's spoiler stands up; rolling left, the left one's.
+  const rolls = (spoiler: LostSurface) => (ailerons ? ailerons / 2 : gone.has(spoiler) ? SHED_ROLL_BARE : SHED_ROLL_SPOILER);
   return {
+    /** What the surfaces still on give the stick: of the roll each way, of the pitch; and whether the pedals move anything. */
+    roll: { left: rolls("leftSpoiler"), right: rolls("rightSpoiler") },
+    pitch: pair("leftElevator", "rightElevator") / 2,
+    rudder: !gone.has("rudder"),
+    /** Which side has lost its aileron, its elevator, its spoiler, its flap: -1 the left. */
+    gap: {
+      aileron: side("leftAileron", "rightAileron"), elevator: side("leftElevator", "rightElevator"),
+      spoiler: side("leftSpoiler", "rightSpoiler"), flap: side("leftFlap", "rightFlap"),
+    },
+    /** The share of the spoilers' say left, and what the wing has lost. */
+    spoilers: 1 - SHED_SPOILER_SHARE * (2 - pair("leftSpoiler", "rightSpoiler")),
+    torn: {
+      flaps: 1 - SHED_FLAP_SHARE * (2 - pair("leftFlap", "rightFlap")),
+      slats: SHED_SLAT_STALL * (2 - pair("leftSlat", "rightSlat")),
+      drag: SHED_DRAG * gone.size,
+    },
+    /** Whether the fly-by-wire still has every surface it flies with, and so its protections. */
+    normal: gone.size === 0,
     /** The share of the wing's lift there still is; and of the engines' thrust, and the ailerons' say: each wing takes its own with it. */
     lift: wings === 0 ? HULL_LIFT : wings / 2,
     engines: wings / 2,
@@ -719,12 +807,13 @@ function fly(state: AircraftState, input: ControlInput, h: number, env: Environm
 
   // Near the stall the engines go to full thrust on their own, and stay there until the lever is moved. The stall the
   // protections know is a clean wing's: one with ice on it lets go sooner than they think.
-  const floor = left.whole && over > ALPHA_FLOOR_ABOVE_M && !state.stalled
+  // Not in the alternate law, which protects nothing.
+  const floor = left.whole && left.normal && over > ALPHA_FLOOR_ABOVE_M && !state.stalled
     && ((mach < ALPHA_FLOOR_MACH && state.alpha > wingOf(state.flaps, state.spoilers, gear, mach, 0).stallAlpha - ALPHA_FLOOR)
       || (state.alphaFloor && input.throttle === 0));
   const { throttle, reverse, spool, flaps, spoilers } = machinery(state, input, h, env, floor);
-  const wing = wingOf(flaps, spoilers, gear, mach, ice, left.lift);
-  const believed = wingOf(flaps, spoilers, gear, mach, 0, left.lift);
+  const wing = wingOf(flaps, spoilers * left.spoilers, gear, mach, ice, left.lift, left.torn);
+  const believed = wingOf(flaps, spoilers * left.spoilers, gear, mach, 0, left.lift, left.torn);
 
   // The air's own rise takes the aircraft along after a moment; until it has, it is a change in the angle of attack.
   const airUp = state.airUp + (env.gust.vertical - state.airUp) * lag(h, 1.5);
@@ -777,6 +866,10 @@ function fly(state: AircraftState, input: ControlInput, h: number, env: Environm
   if (!left.tail) {
     // No tail: nothing holds the nose up against the wing, and nothing the stick moves is there.
     pitchDemand = -TAILLESS_TUCK * clamp(q / Q_REFERENCE_PA, 0.3, 1.5);
+  } else if (!left.pitch) {
+    // No elevators: the stick turns the stabiliser's trim, which sets an angle of attack the nose comes round to, slowly.
+    alphaWanted = state.alphaWanted + (autopilot ? 0 : input.pitch) * TRIM_RATE * h;
+    pitchDemand = (alphaWanted - alphaHeld) * TRIM_GAIN + pathRate;
   } else if (!autopilot && gear > 0.5 && over < FLARE_M) {
     // The flare: the stick is the nose's own rate, and the nose sinks a little if it is not held.
     const authority = clamp(q / Q_REFERENCE_PA, 0.3, 1.2);
@@ -790,21 +883,28 @@ function fly(state: AircraftState, input: ControlInput, h: number, env: Environm
       const wantedPath = Math.asin(clamp(climb / speed, -0.3, 0.3));
       asked = Math.cos(path) + clamp((speed * (wantedPath - path)) / (G * AUTOPILOT_PATH_S), -0.3, 0.3);
     } else {
-      const stick = input.pitch > 0 ? input.pitch * STICK_UP_G : input.pitch * STICK_DOWN_G;
+      const stick = (input.pitch > 0 ? input.pitch * STICK_UP_G : input.pitch * STICK_DOWN_G) * (left.normal ? 1 : ALTERNATE_STICK);
       asked = turning + stick / (1 + C_STAR_MS / speed);
       // The nose stops at its limits: the pull, or the push, runs out as it nears them. Rolled well over, a pull no
-      // longer lifts the nose, and by knife edge the limits have let go altogether.
+      // longer lifts the nose, and by knife edge the limits have let go altogether. The alternate law has none.
       const loose = clamp((Math.abs(state.roll) - PITCH_LIMITS_TO) / (90 - PITCH_LIMITS_TO), 0, 1) * (LOAD_LIMITS.clean[1] - LOAD_LIMITS.clean[0]);
-      asked = Math.min(asked, turning + (PITCH_UP_LIMIT - state.pitch) * 0.12 + loose);
-      asked = Math.max(asked, turning - (state.pitch - PITCH_DOWN_LIMIT) * 0.12 - loose);
+      if (left.normal) {
+        asked = Math.min(asked, turning + (PITCH_UP_LIMIT - state.pitch) * 0.12 + loose);
+        asked = Math.max(asked, turning - (state.pitch - PITCH_DOWN_LIMIT) * 0.12 - loose);
+      }
     }
-    asked = clamp(asked, limits[0], limits[1]);
-    // Not into a stall: with the stick let go the wing stays well short of it, fully back just short.
-    const most = believed.stallAlpha - ALPHA_PROTECTED + Math.max(0, autopilot ? 0 : input.pitch) * (ALPHA_PROTECTED - ALPHA_MOST);
+    asked = left.normal ? clamp(asked, limits[0], limits[1]) : clamp(asked, ALTERNATE_LOADS[0], ALTERNATE_LOADS[1]);
+    // Not into a stall: with the stick let go the wing stays well short of it, fully back just short. In the alternate
+    // law the stick holds it wherever it is pulled, stalled or not.
+    const most = left.normal
+      ? believed.stallAlpha - ALPHA_PROTECTED + Math.max(0, autopilot ? 0 : input.pitch) * (ALPHA_PROTECTED - ALPHA_MOST)
+      : believed.stallAlpha + ALTERNATE_PAST_STALL;
+    const least = left.normal ? believed.lowAlpha + ALPHA_MOST : believed.lowAlpha - ALTERNATE_PAST_STALL;
     // What the thrust carries of the weight, tilted up as it is, the wing need not.
     const needed = alphaFor(wing, liftNeeded(asked - (thrust * Math.sin(alpha * RADIANS)) / weight, q, weight));
-    alphaWanted = Math.max(Math.min(needed, most), Math.min(believed.lowAlpha + ALPHA_MOST, most));
-    const authority = clamp(q / Q_REFERENCE_PA, 0.3, 1.3);
+    alphaWanted = Math.max(Math.min(needed, most), Math.min(least, most));
+    // An elevator gone, the other has only its own half of the say.
+    const authority = clamp(q / Q_REFERENCE_PA, 0.3, 1.3) * left.pitch;
     // Towards it, along with the flight path as it bends, and ahead of it as it moves: slowing down, it only ever grows.
     const lead = clamp((alphaWanted - state.alphaWanted) / h, -ALPHA_LEAD, ALPHA_LEAD);
     pitchDemand = clamp((alphaWanted - alphaHeld) * PITCH_GAIN + pathRate + lead, -PITCH_RATE * authority, PITCH_RATE * authority);
@@ -819,22 +919,39 @@ function fly(state: AircraftState, input: ControlInput, h: number, env: Environm
   // The roll: the stick's, for as long as it is held and as far round as it goes; a slip's; an iced wing letting go
   // first on the side that is already low; and one wing lifting with no other to answer it.
   const felt = clamp(q / Q_REFERENCE_PA, 0.3, 1.2);
+  const rolls = input.roll < 0 ? left.roll.left : left.roll.right;
   let rollDemand = autopilot
-    ? clamp(-state.roll * 0.6, -8, 8)
-    : input.roll * ROLL_RATE * clamp(q / Q_REFERENCE_PA, ROLL_LEAST, 1) * (1 - ICE_ROLL * ice) * left.ailerons;
+    ? clamp(-state.roll * 0.6, -8, 8) * rolls
+    : input.roll * ROLL_RATE * clamp(q / Q_REFERENCE_PA, ROLL_LEAST, 1) * (1 - ICE_ROLL * ice) * left.ailerons * rolls;
   rollDemand += SLIP_ROLL * slip * felt;
   rollDemand += ICE_ROLL_OFF * ice * clamp((alpha / wing.stallAlpha - ICE_ROLL_OFF_FROM) / (1.05 - ICE_ROLL_OFF_FROM), 0, 1) * (state.roll < 0 ? -1 : 1);
   rollDemand += left.lean * TORN_ROLL * clamp(lift / weight, -1.5, 1.5);
+  // What has fluttered off leaves the two sides unlike: a stub and a gap on one wing rolls it down, a tailplane with one
+  // elevator twists it the other way, a speed brake standing up on one side only lifts the other, flaps out on one side lift it.
+  const { gap } = left;
+  rollDemand += (gap.aileron * SHED_AILERON_ROLL - gap.elevator * SHED_ELEVATOR_ROLL - gap.spoiler * SHED_SPOILER_ROLL * spoilers
+    + gap.flap * SHED_FLAP_ROLL * between(FLAP_LIFT, flaps)) * felt;
+  // And one elevator alone lets the nose down a little, which the fly-by-wire only half takes back.
+  if (gap.elevator && left.tail) pitchDemand -= SHED_ELEVATOR_PITCH * felt;
   const rollRate = state.rollRate + (rollDemand - state.rollRate) * lag(h, ROLL_LAG_S);
   const pitchRate = state.pitchRate + (pitchDemand - state.pitchRate) * lag(h, PITCH_LAG_S);
 
   // The rudder slips the nose off the path, as far as it can hold it there; let go, the fin brings it back. A stump's
-  // drag holds it off to one side; with no fin it swings on round.
-  const pedals = autopilot ? 0 : input.yaw;
-  const wantedSlip = pedals * RUDDER_SLIP * Math.min(1, Q_BLOWDOWN_PA / q) - left.lean * TORN_SLIP;
-  const slipRate = left.tail
-    ? clamp(((wantedSlip - slip) / YAW_LAG_S) * clamp(q / Q_REFERENCE_PA, 0.35, 1), -YAW_RATE_MOST, YAW_RATE_MOST)
-    : TAILLESS_SWING * (slip < 0 ? -1 : 1);
+  // drag holds it off to one side, as an aileron's stub does a little; with no fin it swings on round. With no rudder
+  // the fin still brings it back, but past the path and on, the yaw damper gone with it: a gust sets it swinging.
+  const pedals = autopilot || !left.rudder ? 0 : input.yaw;
+  const wantedSlip = pedals * RUDDER_SLIP * Math.min(1, Q_BLOWDOWN_PA / q) - left.lean * TORN_SLIP + gap.aileron * SHED_AILERON_SLIP;
+  let slipRate: number;
+  if (!left.tail) {
+    slipRate = TAILLESS_SWING * (slip < 0 ? -1 : 1);
+  } else if (left.rudder) {
+    slipRate = clamp(((wantedSlip - slip) / YAW_LAG_S) * clamp(q / Q_REFERENCE_PA, 0.35, 1), -YAW_RATE_MOST, YAW_RATE_MOST);
+  } else {
+    const swing = ((2 * Math.PI) / DUTCH_ROLL.period) * Math.sqrt(clamp(q / Q_REFERENCE_PA, 0.35, 2));
+    const was = state.slipRate ?? 0;
+    const swung = -swing * swing * (slip - wantedSlip) - 2 * DUTCH_ROLL.damping * swing * was + env.gust.roll * DUTCH_ROLL.gust;
+    slipRate = clamp(was + swung * h, -YAW_RATE_MOST, YAW_RATE_MOST);
+  }
 
   // The nose rides round with the path as it bends, but for the turn about the wings' own line, which is the pitch
   // rate the controls have reached; the roll is about the path, and the slip about the lift. A turn that is also a
@@ -862,7 +979,7 @@ function fly(state: AircraftState, input: ControlInput, h: number, env: Environm
   const flown: AircraftState = {
     lon, lat, altitude, heading, pitch, roll: rolled, tas, flightPath, track, throttle, spool, reverse, rollRate, pitchRate, flaps,
     spoilers, airUp, alphaWanted, onGround: false, autobrake: false, touchdown: null, crash: null, verticalSpeed, alpha, loadFactor,
-    stalled, alphaFloor: floor, slip,
+    stalled, alphaFloor: floor, slip, slipRate,
   };
   if (ground === null || altitude > ground) return flown;
 
@@ -898,7 +1015,7 @@ function wreck(state: AircraftState, h: number, env: Environment): AircraftState
   const [lon, lat] = tas > 0 ? destination(state.lon, state.lat, state.track, tas * h) : [state.lon, state.lat];
   return {
     ...state, lon, lat, tas, altitude, heading: wrap360(state.heading + swing * h), pitch, roll: rolled, throttle: 0, reverse: 0,
-    spool, rollRate: 0, pitchRate: 0, flightPath: 0, verticalSpeed: 0, airUp: 0, alpha: 0, slip: 0, loadFactor: 1, stalled: false,
+    spool, rollRate: 0, pitchRate: 0, flightPath: 0, verticalSpeed: 0, airUp: 0, alpha: 0, slip: 0, slipRate: 0, loadFactor: 1, stalled: false,
     alphaFloor: false, autobrake: false, onGround: true,
   };
 }

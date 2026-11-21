@@ -11,7 +11,8 @@
  * flight is silent and nothing else changes.
  *
  * What it plays is the mix's (soundMix.ts) made audible by the graph
- * (soundGraph.ts). The cockpit's callouts ("bank angle", "pull up",
+ * (soundGraph.ts); what the reader has silenced (alarms.ts) the mix leaves
+ * out. The cockpit's callouts ("bank angle", "pull up",
  * "retard", the heights) are spoken with the browser's own voice, where it
  * has one: one at a time, in the order the mix's queue gives them, a
  * warning cutting a lesser callout off. Where it has none, each is a short
@@ -47,9 +48,9 @@ const SUSPEND_MS = 320;
 /** How long leaving fades out before the context is closed, ms. */
 const CLOSE_MS = 450;
 
-/** The interface's sound for an action, if it has one. */
+/** The interface's sound for an action, if it has one: a master light pressed clicks as a key does. */
 const CUES: Partial<Record<FlightAction, SoundCue>> = {
-  view: "view", style: "style", inspect: "style", next: "next", restart: "restart", help: "help",
+  view: "view", style: "style", inspect: "style", next: "next", restart: "restart", help: "help", silence: "help",
 };
 
 /** How long a tone in place of a callout takes, ms: the voice's turn passes on after it. */

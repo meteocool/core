@@ -262,8 +262,8 @@ const pedal = (left: number, right: number): Quad => [[15.62, left, 0.14], [15.6
  * captain's own stick and pedals; the first officer's are out of reach.
  */
 export const COCKPIT_CONTROLS = {
-  /** The flap lever's panel, right of the thrust levers: its scale runs from 0 forward to FULL aft. Forward half in a notch, aft half out. */
-  flaps: { faces: [{ corners: onPedestal(14.915, 14.82, 0.05, 0.19, PEDESTAL), height: 0.015 }], press: ["flapsIn", "flapsOut"] },
+  /** The flap lever's panel, right of the thrust levers, as high as its handle: its scale runs from 0 forward to FULL aft. Forward half in a notch, aft half out. */
+  flaps: { faces: [{ corners: onPedestal(14.915, 14.82, 0.05, 0.19, PEDESTAL), height: 0.045 }], press: ["flapsIn", "flapsOut"] },
   /** The speed brake's lever and panel, left of them. */
   speedBrake: { faces: [{ corners: onPedestal(14.93, 14.82, -0.19, -0.048, PEDESTAL), height: 0.05 }], press: "speedbrake" },
   /** The landing gear's lever, on the main panel right of the engine display. */
@@ -271,8 +271,8 @@ export const COCKPIT_CONTROLS = {
     faces: [{ corners: [[15.487, 0.124, -0.278], [15.487, 0.1825, -0.278], [15.4602, 0.1825, -0.18], [15.4602, 0.124, -0.18]], height: 0.055 }],
     press: "gear",
   },
-  /** The thrust levers' quadrant, between the trim wheels: dragged forward and back. */
-  thrust: { faces: [{ corners: onPedestal(15.21, 15.015, -0.076, 0.076, 0), height: 0.095 }], hold: "thrust" },
+  /** The thrust levers' quadrant, between the trim wheels, as high as their handles reach: dragged forward and back. */
+  thrust: { faces: [{ corners: onPedestal(15.21, 15.015, -0.076, 0.076, 0), height: 0.175 }], hold: "thrust" },
   /** The captain's sidestick, on the console left of the seat: the ailerons and the elevator. */
   sidestick: { faces: [{ corners: onPedestal(15.24, 15.07, -0.91, -0.81, -0.12), height: 0.21 }], hold: "stick" },
   /** The captain's rudder pedals, under the main panel. */
@@ -290,6 +290,13 @@ export const COCKPIT_CONTROLS = {
   },
   /** AP1, on the glareshield. */
   autopilot: { faces: [{ corners: button(AP1), height: 0.004 }], press: "autopilot" },
+  /** MASTER WARN and MASTER CAUT on the glareshield, in front of each pilot: lights, and buttons that silence what they light for. */
+  masterWarning: {
+    faces: [MASTER_WARN, mirrored(MASTER_WARN)].map((corners) => ({ corners: button(corners), height: 0.004 })), press: "silence",
+  },
+  masterCaution: {
+    faces: [MASTER_CAUT, mirrored(MASTER_CAUT)].map((corners) => ({ corners: button(corners), height: 0.004 })), press: "silence",
+  },
   /** The autobrake's MED, beside the gear's lights. */
   autobrake: { faces: [{ corners: button(AUTO_BRAKE_MED), height: 0.004 }], press: "autobrake" },
   /** The parking brake's handle, at the pedestal's aft end. */

@@ -163,7 +163,7 @@ export class CockpitScreens {
 
     const gear = (telemetry as { gear?: number }).gear ?? 0;
     const ecam = ecamOf({
-      warnings: status.warnings, brake: telemetry.brake, throttle: state.throttle, turbulence: telemetry.turbulence,
+      warnings: status.alarms, silenced: status.silenced, brake: telemetry.brake, throttle: state.throttle, turbulence: telemetry.turbulence,
       altitude: state.altitude, radarAltitude: telemetry.radarAltitude, gear,
       autopilotLost: telemetry.time - this.autopilotLostAt < AP_OFF_S,
       flaps: status.flaps, groundSpoilers: status.spoilers === "ground", reverse: status.reverse, alphaFloor: status.alphaFloor,
@@ -181,10 +181,11 @@ export class CockpitScreens {
     const engine: EngineReadout = {
       n1: n1Of(state.spool), command: n1Of(state.throttle), egt: egtOf(n1Of(state.spool)), fuelFlow: flow,
     };
-    // A warning's appearing, or its flash, is drawn at once, not at the page's next turn.
-    const upperKey = `${ecam.warnings.map((line) => line.text).join()}|${ecam.memo.map((line) => line.text + line.colour).join()}|${flashing}`;
+    // A warning's appearing, or its flash, is drawn at once, not at the page's next turn. Silenced, its title stops flashing with the light.
+    const titleShown = flashing || !ecam.masterWarning;
+    const upperKey = `${ecam.warnings.map((line) => line.text).join()}|${ecam.memo.map((line) => line.text + line.colour).join()}|${titleShown}`;
     this.redraw("upper", telemetry.time, (context, { width, height }) => (
-      drawUpperEcam(context, width, height, [engine, engine], ecam.warnings, ecam.memo, flashing)), { key: upperKey, urgent: true });
+      drawUpperEcam(context, width, height, [engine, engine], ecam.warnings, ecam.memo, titleShown)), { key: upperKey, urgent: true });
 
     const { sat, tat } = airTemperatures(state.altitude, telemetry.mach);
     const cabin = cabinOf(state.altitude, state.verticalSpeed);

@@ -43,11 +43,13 @@ import type { Attitude as FlightAttitude, Eye, Look } from "./view";
 import { VERTICAL_SCALE } from "../../../layers/terrain";
 import { toggleFullscreen } from "../../fullscreen";
 import { airAt, noise, roughAir } from "./weather";
-import { advance, BLAST_FROM, broken, intact, shown } from "./damage";
+import { advance, BLAST_FROM, broken, harmed, intact, shown, shudder, surfacesLost } from "./damage";
 import type { Damage } from "./damage";
 import { boltPaths, FLASH_S, flicker, glare, thunderDelay } from "./lightning";
 import type { Bolt } from "../../../layers/weatherPass";
 import { FlightSound } from "./sound";
+import { alarmsOf, alarmStep, NO_ALARMS, silence, silencedOf } from "./alarms";
+import type { AlarmMemory } from "./alarms";
 import type { AircraftScreen } from "../../../layers/aircraftLayer";
 import { COCKPIT_CONTROLS, controlAlong } from "./cockpit";
 import type { CockpitControl, CockpitPick } from "./cockpit";
@@ -55,6 +57,8 @@ import { merged } from "./controls";
 import { NO_INPUT } from "./physics";
 import type { ControlInput } from "./physics";
 import { lookedAlong } from "./view";
+import { easeLevers, leverTargets, LEVERS_AT_REST } from "./levers";
+import type { Levers } from "./levers";
 
 /** A marked storm's lightning: the strikes this near it, km, in this long, ms. */
 const STRIKES_ROUND_KM = 14;
@@ -323,6 +327,8 @@ export class Pilot {
   private fov = FLIGHT_FOV;
   /** What the surfaces the stick and pedals move stand at, -1 to 1: they follow what is asked of them at their own pace. */
   private surfaces = { ailerons: 0, elevator: 0, rudder: 0 };
+  /** Where the flight deck's stick, levers, pedals and handles stand; see `moveLevers`. */
+  private levers: Levers = { ...LEVERS_AT_REST };
   /** The stick, pedals and lever as last read. */
   private input: ReturnType<Keys["read"]> | null = null;
   /** The cockpit's live screens, which the deck draws; see `setScreens`. */
@@ -333,6 +339,8 @@ export class Pilot {
   private inspected: { mark: StormMark; mode: InspectMode } | null = null;
   /** What the flight sounds like (sound.ts); from take-off to landing. */
   private sound: FlightSound | null = null;
+  /** The alarms the reader has silenced (alarms.ts), from frame to frame. */
+  private alarms: AlarmMemory = NO_ALARMS;
 
   constructor(
     private readonly stage: Stage,
@@ -552,6 +560,13 @@ export class Pilot {
         this.keysTimer = null;
         this.status({ keys: !get(flightStatus).keys });
         break;
+      case "silence": {
+        // What is raised now goes quiet and its light out, paused or not; what is raised after sounds.
+        const { alarms } = get(flightStatus);
+        this.alarms = silence(this.alarms, alarms);
+        this.status({ silenced: silencedOf(this.alarms, alarms) });
+        break;
+      }
     }
     // Its click, and a pause's or a recording's sound; after leaving, there is none.
     this.sound?.act(action, get(flightStatus));
@@ -699,6 +714,7 @@ export class Pilot {
     const control = pick && (COCKPIT_CONTROLS[pick.name] as CockpitControl);
     if (!pick || !control?.hold) return false;
     this.hand = { hold: control.hold, input: { ...NO_INPUT, yaw: control.faces[pick.face].push ?? 0 } };
+    this.handOn = pick.name;
     return true;
   }
 
@@ -719,6 +735,7 @@ export class Pilot {
   /** Let go of the control held: the stick and the pedals spring back, the levers stay where they were put. */
   release(): void {
     this.hand = null;
+    this.handOn = null;
   }
 
   /** The brakes a hand sets and no readout shows, for the deck to say and to light: the autobrake armed, the parking brake set. */
@@ -830,18 +847,21 @@ export class Pilot {
       lon + east / (perDegree * Math.cos((lat * Math.PI) / 180)), lat + north / perDegree, altitude + up,
     ), altitude, this.baseKm * 1000, this.warmer);
     const dbz = air.dbz;
-    const rough = this.flightPlan.turbulence;
-    const turbulence = rough ? air.turbulence : 0;
-    const severity = rough ? air.severity : 0;
+    const { turbulence, severity } = air;
     const ground = this.stage.groundElevation(lon, lat);
     // Over the sea the terrain may be drawn below it; the water is the floor.
     const floor = Math.max(ground ?? 0, 0);
     const low = altitude - floor < SLOPE_BELOW_M;
     // Time runs faster only well clear of the ground, never on it, and not for an aircraft coming apart.
-    const warp = input.warp && altitude - floor > WARP_ABOVE_M && !broken(this.damage) ? WARP : 1;
+    const warp = input.warp && altitude - floor > WARP_ABOVE_M && !harmed(this.damage) ? WARP : 1;
+    // The rough air, and what the damage adds to it: a surface's jolt as it goes, and the buffet of what is left.
+    const rough = roughAir(telemetry.time, turbulence, air.draft, severity);
+    const shaken = shudder(this.damage);
     const env: Environment = {
       warp,
-      gust: state.onGround ? { roll: 0, pitch: 0, vertical: 0 } : roughAir(telemetry.time, turbulence, rough ? air.draft : 0, severity),
+      gust: state.onGround
+        ? { roll: 0, pitch: 0, vertical: 0 }
+        : { roll: rough.roll + shaken.roll, pitch: rough.pitch + shaken.pitch, vertical: rough.vertical + shaken.vertical },
       autopilot: this.autopilot, gear: telemetry.gear, flapLever: telemetry.flapLever, speedbrake: this.speedbrake,
       // A wreck lies on its belly, not on its wheels.
       ground: floor + (state.crash ? BELLY_BELOW_M / VERTICAL_SCALE : STAND_M),
@@ -851,8 +871,8 @@ export class Pilot {
     const before = state;
     for (let left = dt; left > 1e-6; left -= MAX_DT) state = step(state, input, Math.min(left, MAX_DT), env);
     this.strain(state, floor, dt);
-    // An autopilot does not fly a stall, nor a landing, nor what is left of an aircraft.
-    if ((state.stalled || state.onGround || broken(this.damage)) && this.autopilot !== null) this.act("autopilot");
+    // An autopilot does not fly a stall, nor a landing, nor an aircraft that has lost anything.
+    if ((state.stalled || state.onGround || harmed(this.damage)) && this.autopilot !== null) this.act("autopilot");
     this.landed(before, state, dt);
 
     telemetry.state = state;
@@ -879,7 +899,7 @@ export class Pilot {
     telemetry.rain += (air.rain - telemetry.rain) * (1 - Math.exp(-dt / 0.3));
     telemetry.hail += (air.hail - telemetry.hail) * (1 - Math.exp(-dt / 0.3));
     telemetry.ice += (air.ice - telemetry.ice) * (1 - Math.exp(-dt / 0.6));
-    telemetry.draft = rough ? air.draft : 0;
+    telemetry.draft = air.draft;
     telemetry.temperature = air.temperature;
     // Ice takes a couple of minutes to cover the glass, and goes nearly as slowly once the aircraft is out of what made it.
     telemetry.frost = Math.min(1, Math.max(0, telemetry.frost + (air.icing > 0.05 ? air.icing / 150 : -1 / 110) * dt));
@@ -903,15 +923,23 @@ export class Pilot {
     if (state.stalled) warnings.push("stall");
     if (overspeed(state, telemetry.ias, telemetry.gear)) warnings.push("overspeed");
     if (telemetry.frost > 0.35) warnings.push("ice");
+    if (this.damage.flapsStuck) warnings.push("flapsJammed");
+    if (this.damage.gearStuck) warnings.push("gearJammed");
     // What is left of an aircraft has nothing more to be warned of: why it is so is already said.
-    if (state.crash || broken(this.damage)) warnings.length = 0;
-    this.status({ warnings, warp: warp > 1, low: telemetry.radarAltitude < LOW_M });
+    const ended = Boolean(state.crash) || broken(this.damage);
+    if (ended) warnings.length = 0;
+    // The alarms: the surfaces lost and the warnings, each heard until it clears or the reader silences it.
+    const alarms = alarmsOf(warnings, ended ? [] : get(flightStatus).lost);
+    this.alarms = alarmStep(this.alarms, alarms, dt);
+    this.status({ warnings, alarms, silenced: silencedOf(this.alarms, alarms), warp: warp > 1, low: telemetry.radarAltitude < LOW_M });
   }
 
   /**
    * What the flight just did to the airframe (damage.ts), and the noise of
-   * it: a piece tearing off, the flaps or the gear jamming, a blast. An
-   * aircraft that has lost a part in the air says why from then on.
+   * it: a surface fluttering off, a piece tearing off, the flaps or the gear
+   * jamming, a blast. The surfaces lost so far are the status's; an
+   * aircraft that has lost a wing or the tail in the air says why from then
+   * on.
    */
   private strain(state: AircraftState, floor: number, dt: number): void {
     const flight = {
@@ -927,9 +955,11 @@ export class Pilot {
       this.sound?.breakup(Math.min(1, 0.35 + 2 * damage.violence));
     }
     for (const event of events) {
-      if (event.kind === "blast") this.sound?.explosion(event.strength);
+      if (event.kind === "blast" || event.kind === "shed") this.sound?.explosion(event.strength);
       else this.sound?.breakup(event.strength);
     }
+    const lost = surfacesLost(damage);
+    if (lost.length !== get(flightStatus).lost.length) this.status({ lost: [...lost] });
     if (damage.cause && !state.crash && events.some((event) => event.kind === "torn")) {
       this.crashUntil = Infinity;
       this.status({ crash: this.ended(state) });
@@ -1041,6 +1071,7 @@ export class Pilot {
       // A new aircraft: whole, with no ice on it, and nothing of the last one's end left to watch.
       this.flights += 1;
       this.damage = intact(this.flights);
+      this.status({ lost: [] });
       this.wreck = null;
       this.telemetry.frost = 0;
       this.crashUntil = Math.min(this.crashUntil, this.telemetry.time + CRASH_SHOWN_S);
@@ -1053,7 +1084,8 @@ export class Pilot {
       this.telemetry.flapLever = 0;
       this.telemetry.rolled = 0;
       this.status({ gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false, reverse: false, alphaFloor: false, landing: null });
-      this.status({ autopilot: false, warnings: [], clearSky: this.approach.target === null });
+      this.alarms = NO_ALARMS;
+      this.status({ autopilot: false, warnings: [], alarms: [], silenced: [], clearSky: this.approach.target === null });
     }
     this.telemetry.fade = fading.at < FADE_OUT_S
       ? fading.at / FADE_OUT_S
@@ -1240,9 +1272,10 @@ export class Pilot {
     this.fov = view === "cockpit" ? this.zoomed : FLIGHT_FOV;
     if (get(studioFov) !== this.fov) studioFov.set(this.fov);
     this.moveSurfaces();
-    // Rough air shakes the seat, and so does rolling fast over open ground.
+    this.moveLevers();
+    // Rough air shakes the seat, and so does rolling fast over open ground, and an airframe shaking or losing its surfaces.
     const rumble = state.onGround ? ROLL_SHAKE * Math.min(1, state.tas / ROLL_SHAKE_MS) : 0;
-    const shake = this.reducedMotion || outside ? 0 : Math.max(turbulence, rumble);
+    const shake = this.reducedMotion || outside ? 0 : Math.max(turbulence, rumble, shudder(this.damage).shake);
     const shaken = {
       heading: state.heading + noise(time * 11, 4) * 0.4 * shake,
       pitch: state.pitch + noise(time * 13, 5) * 0.6 * shake,
@@ -1274,6 +1307,7 @@ export class Pilot {
       flaps: state.flaps / FLAPS_MOST,
       spoilers: state.spoilers,
       ...this.surfaces,
+      cockpit: this.levers,
       ...wrecked,
     }, outside ? [] : this.screens);
     this.telemetry.marks = view === "clean" ? [] : this.seen(eye, view === "cockpit");
@@ -1300,6 +1334,29 @@ export class Pilot {
       // Trails form where the air is cold enough to freeze the exhaust at once, and show against clear sky.
       trails: { from: EXHAUSTS, strength: Math.min(1, Math.max(0, (-38 - this.telemetry.temperature) / 6)) * (1 - cloud) },
     }, this.reducedMotion ? null : lightning.glow);
+  }
+
+  /** Which control the hand on the flight deck holds: the rudder's pedals and its trim knob move the rudder alike, and only one of them turns. */
+  private handOn: CockpitPick["name"] | null = null;
+
+  /**
+   * The flight deck's controls, as the frame draws them (levers.ts): the
+   * stick and the pedals where the keys, a gamepad, a finger or the mouse
+   * put them, the thrust levers where the throttle is, the flap, gear and
+   * speed brake levers and the parking brake where they were put.
+   */
+  private moveLevers(): void {
+    const { state, flapLever } = this.telemetry;
+    const input = this.input ?? NO_INPUT;
+    const trim = this.handOn === "rudderTrim" ? this.hand?.input.yaw ?? 0 : 0;
+    const target = leverTargets({
+      pitch: input.pitch, roll: input.roll, yaw: trim ? 0 : input.yaw, trim,
+      throttle: state.throttle, reverse: state.reverse, alphaFloor: state.alphaFloor,
+      flapLever, gearDown: this.gearDown,
+      // Held in the air, the speed brake's key is its lever pulled for as long.
+      speedBrake: this.speedbrake || (input.brake && !state.onGround), parkingBrake: this.parkingBrake,
+    }, this.levers);
+    this.levers = easeLevers(this.levers, target, this.dt);
   }
 
   /**

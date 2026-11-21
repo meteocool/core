@@ -166,6 +166,51 @@ test.describe("on a desktop", () => {
     expect(outside.handlers).toEqual(outside.handlers.map(() => true));
   });
 
+  test("Fly from here on the map's menu takes off from that place without the plan, and ending it is that map again", async ({ page }) => {
+    test.slow();
+    // The menu's heading asks where it is; nowhere, here.
+    await page.route("**/geocoding/**", (route) => route.fulfill({ status: 404, json: {} }));
+    await page.route("https://api.bigdatacloud.net/**", (route) => route.fulfill({ status: 404, json: {} }));
+    const VIEW = "50.50000,9.50000,7.00";
+    await page.goto(`/?latLonZ=${VIEW}`);
+    const map = page.locator("#map");
+    await expect(map.locator("canvas").first()).toBeVisible({ timeout: 30_000 });
+    // The middle of the map's element, which is where its view stands.
+    const box = (await map.boundingBox())!;
+    const entry = page.getByRole("menuitem", { name: /Fly from here with meteoair/ });
+    // Again until the map takes it: on a busy machine its first seconds go to bringing it up.
+    await expect(async () => {
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { button: "right" });
+      await expect(entry).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 30_000 });
+    await entry.click();
+    await expect(deck(page)).toBeVisible({ timeout: 120_000 });
+    // No plan on the way, and none of Studio's tools.
+    await expect(flightPlan(page)).toHaveCount(0);
+    await expect(panel(page)).toHaveCount(0);
+    const plan = await page.evaluate(() => {
+      const { flightPlan: flown } = (window as any).flightPilot;
+      return { lat: flown.lat, lon: flown.lon, feet: flown.altitude * 3.28084, tas: flown.tas, view: flown.view };
+    });
+    // From where it was asked, at a level for a storm and rather fast.
+    expect(Math.abs(plan.lat - 50.5)).toBeLessThan(0.05);
+    expect(Math.abs(plan.lon - 9.5)).toBeLessThan(0.05);
+    expect(plan.feet).toBeGreaterThanOrEqual(8000);
+    expect(plan.feet).toBeLessThanOrEqual(41_000);
+    expect(plan.tas).toBeGreaterThan(150);
+    expect(plan.view).toBe("cockpit");
+    // Asked whether to end it, the way back is said to be the map; with a link to give meanwhile.
+    await page.keyboard.press("Escape");
+    await expect(leaveAsk(page)).toContainText("back to the map");
+    await expect(leaveAsk(page).getByRole("button", { name: "Share this flight's start" })).toBeVisible();
+    await page.keyboard.press("Enter");
+    // Ended: the flat map, where it was looking, and not Studio.
+    await expect(deck(page)).toBeHidden();
+    await expect(panel(page)).toHaveCount(0);
+    await expect.poll(() => page.evaluate(() => (window as any).lm.currentCap)).toBe("radar");
+    await expect.poll(() => new URL(page.url()).searchParams.get("latLonZ")).toBe(VIEW);
+  });
+
   test("the flight starts over the plain map; O and the plan paint the radar on the ground, J sets the flaps, and landing puts it back", async ({ page }) => {
     test.slow();
     await page.goto(MAP_3D);

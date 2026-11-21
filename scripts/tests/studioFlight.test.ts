@@ -626,10 +626,11 @@ test("the one-press keys, and which keys the flight keeps from the page", () => 
   assert.equal(actionOf("KeyL"), "autopilot");
   assert.equal(actionOf("Backspace"), "restart");
   assert.equal(actionOf("Digit7", "?"), "help");
-  assert.equal(actionOf("KeyQ"), null);
+  assert.equal(actionOf("KeyQ"), "silence");
+  assert.equal(actionOf("KeyE"), null);
   assert.ok(isFlightKey("Space"));
   assert.ok(isFlightKey("ArrowDown"));
-  assert.ok(!isFlightKey("KeyQ"));
+  assert.ok(!isFlightKey("KeyE"));
 });
 
 test("a gamepad flies with its left stick, triggers and bumpers, past a dead zone", () => {
@@ -779,7 +780,6 @@ test("a plan starts as the approach the flight would choose, and reads back as o
   assert.deepEqual(approachOf(plan), approach);
   assert.equal(plan.aimed, true);
   assert.equal(plan.view, "cockpit");
-  assert.equal(plan.turbulence, true);
 });
 
 test("a start moved keeps its nose on the storm, until the reader turns it; handed back, it is on the storm again", () => {
@@ -854,10 +854,10 @@ test("high ground on the way is named, and a level under it minded", () => {
 
 test("with no weather the briefing says so, and what a storm's echo means is graded by its strength", () => {
   const plan = planFrom({ lon: 10, lat: 53, heading: 90, altitude: 7300, target: null }, "sky");
-  const lines = briefing({ ...plan, turbulence: false }, [], null);
+  const lines = briefing(plan, [], null);
   assert.match(lines[0].text, /NO DESTINATION/);
   assert.match(lines.find((each) => each.item === "weather")!.text, /NIL SIG WX/);
-  assert.match(lines.find((each) => each.item === "inside")!.text, /TURB OFF/);
+  assert.match(lines.find((each) => each.item === "inside")!.text, /TURB RISING/);
   assert.equal(weatherOf(60).severe, true);
   assert.equal(weatherOf(38).severe, false);
   assert.match(weatherOf(20).text, /LGT/);

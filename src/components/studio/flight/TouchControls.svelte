@@ -7,7 +7,8 @@
  * throttle lever, which stays where it is put, the rudder under it, and
  * beside it the brake and the faster clock, each while held. Low in the
  * middle a strip of buttons does what the other keys do, a press at a time
- * (`Pilot.act`), and opens for the rarer ones. The phone itself can be the
+ * (`Pilot.act`), and opens for the rarer ones; while an alarm sounds, the
+ * master light's button is on it too, to silence it. The phone itself can be the
  * yoke, from how it is held when that is switched on. The arithmetic of all
  * of it is lib/studio/flight/touch.ts.
  *
@@ -45,6 +46,7 @@ import { faVolumeHigh } from "@fortawesome/free-solid-svg-icons/faVolumeHigh";
 import { faVolumeXmark } from "@fortawesome/free-solid-svg-icons/faVolumeXmark";
 import Icon from "../../Icon.svelte";
 import { fullscreen, fullscreenSupported, toggleFullscreen } from "../../../lib/fullscreen";
+import { masterLights } from "../../../lib/studio/flight/alarms";
 import type { FlightAction } from "../../../lib/studio/flight/controls";
 import { FLAPS_MOST } from "../../../lib/studio/flight/physics";
 import type { Pilot, Telemetry } from "../../../lib/studio/flight/pilot";
@@ -60,6 +62,8 @@ export let pilot: Pilot;
 
 $: status = $flightStatus;
 $: clean = status.view === "clean";
+/** The master lights, and whether anything sounds that the master light's button would silence. */
+$: lights = masterLights(status.alarms, status.silenced);
 
 let root: HTMLDivElement | null = null;
 
@@ -516,6 +520,14 @@ onDestroy(() => {
             </button>
           </div>
         {/if}
+        {#if lights.sounding}
+          <div class="row">
+            <button type="button" class="key master" class:caution={!lights.warning} tabindex="-1" title={$_("studio.flight.touch.silence_title")}
+              aria-label={$_("studio.flight.touch.silence_title")} on:click={act("silence")}>
+              <b>{$_(lights.warning ? "studio.flight.touch.master_warning" : lights.caution ? "studio.flight.touch.master_caution" : "studio.flight.touch.silence")}</b>
+            </button>
+          </div>
+        {/if}
         <div class="row">
           <button type="button" class="key word" class:lit={status.gear === "down"} class:moving={status.gear === "moving"}
             tabindex="-1" aria-pressed={status.gear !== "up"} on:click={act("gear")}>
@@ -788,6 +800,13 @@ onDestroy(() => {
   .key.word.lit { background: rgba(61, 220, 132, 0.2); color: #3ddc84; }
   .key.word.moving { background: rgba(255, 69, 58, 0.2); color: #ff6259; }
   .key.toggle { min-width: 40px; color: var(--mc-text-2); }
+  /* The master light's button, as the glareshield's: red and flashing for a warning, amber for a caution. */
+  .key.master { flex: 1; background: rgba(255, 69, 58, 0.24); color: #ff6259; animation: master 0.5s steps(2, start) infinite; }
+  .key.master.caution { background: rgba(255, 179, 64, 0.22); color: #ffb340; animation: none; }
+  @keyframes master { to { background: rgba(255, 69, 58, 0.08); } }
+  @media (prefers-reduced-motion: reduce) {
+    .key.master { animation: none; }
+  }
   /* The flaps: in a step, where the lever is, out a step. */
   .flaps { display: flex; align-items: center; border-radius: 14px; background: var(--mc-tint); color: var(--mc-text); }
   .flaps > span { display: grid; justify-items: center; gap: 4px; min-width: 38px; }

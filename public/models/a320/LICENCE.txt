@@ -23,10 +23,19 @@ the hull's mesh, are taken out of it as parts too
 (scripts/models/control_surfaces.py), each turning about the middle of its
 own rounded nose. No triangle is changed.
 
+The flight deck's controls are made to move the same way
+(scripts/models/cockpit_controls.py): the captain's sidestick, the speed
+brake's lever, the landing gear's lever, both pairs of rudder pedals, the
+parking brake's handle and the rudder trim's knob are taken out of the
+cockpit's meshes as parts, each turning about a pivot of its own (the
+pedals sliding). The thrust levers and the flap lever, which the model has
+slots for but not levers, are added: plain grey blocks, a shaft and a
+handle each.
+
 The outside is repainted: the airline's livery, titles and marks removed and
 the hull left white; "meteowings" titles along both sides; the meteocool logo
 on both sides of the fin and of each engine, in place of the engine maker's
 name; and stripes in the radar's colours up the rear fuselage and the fin,
 round each engine's intake and up each wingtip. A few small parts whose
 texture was a stretch of the hull's painted elsewhere are drawn in the colour
-of the hull round them. The inside is unchanged.
+of the hull round them. Inside, nothing else is changed.

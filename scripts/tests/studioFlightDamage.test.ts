@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { indicatedFromTrue, machOf, speedOfSound, trueFromIndicated } from "../../src/lib/studio/flight/atmosphere.ts";
 import {
-  advance, BLAST_FROM, broken, FIN_LIMIT_G, FLUTTER_CERTAIN_MS, FLUTTER_MACH, FLUTTER_MS, FLUTTER_S, fluttering, intact, JAM_FROM,
+  advance, BLAST_FROM, broken, BREAKUP_MS, FIN_LIMIT_G, FLUTTER_CERTAIN_MS, FLUTTER_MACH, FLUTTER_MS, FLUTTER_S, fluttering, harmed, intact, JAM_FROM,
   LOAD_LIMIT, LOAD_ULTIMATE, overload, OVERSTRESS_S, shown, struck, violenceOf,
 } from "../../src/lib/studio/flight/damage.ts";
 import type { Damage, DamageEvent, Flight } from "../../src/lib/studio/flight/damage.ts";
@@ -105,24 +105,27 @@ test("the same flight breaks the same way every time, and another may break the 
   assert.equal(sides.size, 2);
 });
 
-test("past its flutter speed something comes off after a few seconds, far past it at once; slowed down in time, nothing does", () => {
+test("past its flutter speed a surface comes off after a few seconds, far past it at once; slowed down in time, nothing does", () => {
   const speeds = (ias: number): Flight => ({ ias, mach: 0.6, gear: 0, over: null });
   const edge = FLUTTER_MS + 0.5;
   const before = held(cruise, FLUTTER_S - 0.5, speeds(edge));
-  assert.ok(!broken(before.damage) && before.damage.flutter > 0.7);
+  assert.ok(!harmed(before.damage) && before.damage.flutter > 0.7);
   const after = first(cruise, speeds(edge));
   near(after.seconds, FLUTTER_S, 0.2);
-  assert.equal(after.damage.cause, "flutter");
+  assert.deepEqual(after.events.map((event) => event.kind), ["shed"]);
+  assert.ok(!broken(after.damage) && after.damage.cause === null, "a surface, not the flight's end");
   assert.ok(first(cruise, speeds(FLUTTER_CERTAIN_MS + 5)).seconds < 0.3);
   near(first(cruise, { ias: 150, mach: FLUTTER_MACH + 0.002, gear: 0, over: null }).seconds, FLUTTER_S, 0.3);
   // The shaking dies away again.
   const saved = held(cruise, 6, speeds(VMO_MS), before.damage);
   assert.equal(saved.damage.flutter, 0);
-  assert.ok(!broken(saved.damage));
-  // It takes the tail as often as a wing, near enough.
+  assert.ok(!harmed(saved.damage));
+  // Far beyond, the airframe itself: the tail as often as a wing, near enough, and that ends the flight.
   const pieces = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((seed) => {
-    const { lost } = first(cruise, speeds(FLUTTER_CERTAIN_MS + 5), intact(seed)).damage;
-    return lost.tail ? "tail" : "wing";
+    const { damage, events } = held(cruise, 1, speeds(BREAKUP_MS + 2), intact(seed));
+    assert.equal(damage.cause, "flutter");
+    const torn = events.find((event) => event.kind === "torn");
+    return torn?.kind === "torn" && torn.piece === "tail" ? "tail" : "wing";
   }));
   assert.equal(pieces.size, 2);
 });

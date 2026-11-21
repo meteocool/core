@@ -39,8 +39,9 @@ export const BLAST_S = 8;
 const FRAGMENT_S = 3.2;
 /** How long a blast takes to swell: 95% of its size at three times this, seconds. */
 const SWELL_S = 0.13;
-/** How long its flash lasts, seconds. */
+/** How long its flash lasts, seconds; and how large across one has to be, metres, to light the aircraft with all of it. */
 const FLASH_S = 0.3;
+const GLARE_FULL_M = 15;
 const GRAVITY = 9.81;
 
 const clamp = (value: number, low = 0, high = 1) => Math.min(Math.max(value, low), high);
@@ -68,13 +69,17 @@ export function blastHeat(age: number): number {
   return 1.1 * (1 - clamp((age - 0.35) / 1.8)) ** 1.5;
 }
 
-/** How brightly the blasts light what is round them at this moment, 0 to 1: each for its flash's length; not at all where the effects are to be calm. */
+/**
+ * How brightly the blasts light what is round them at this moment, 0 to 1:
+ * each for its flash's length, a small one (a surface torn off) only
+ * dimly; not at all where the effects are to be calm.
+ */
 export function blastGlare(effects: AircraftEffects): number {
   if (effects.calm) return 0;
   let glare = 0;
-  for (const { born } of effects.blasts) {
+  for (const { born, size } of effects.blasts) {
     const age = effects.time - born;
-    if (age >= 0 && age < FLASH_S) glare = Math.max(glare, (1 - age / FLASH_S) ** 2);
+    if (age >= 0 && age < FLASH_S) glare = Math.max(glare, (1 - age / FLASH_S) ** 2 * Math.min(1, size / GLARE_FULL_M));
   }
   return glare;
 }

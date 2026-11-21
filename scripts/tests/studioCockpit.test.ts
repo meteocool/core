@@ -91,6 +91,33 @@ test("ice, or a warning the display does not know, is a caution: amber, and the 
   assert.equal(ecam.masterCaution, true);
 });
 
+test("a surface lost is a flight control warning, first, one title for both sides of one; the jams are cautions; the bank angle is not written", () => {
+  const ecam = ecamOf({ ...calm, warnings: ["lost.leftElevator", "lost.rudder", "lost.rightElevator", "lost.leftSpoiler", "overspeed"] });
+  assert.deepEqual(ecam.warnings.slice(0, 4).map((line) => line.text), [
+    "F/CTL L+R ELEV LOST", "F/CTL RUD LOST", "F/CTL L SPLR LOST", "OVER SPEED",
+  ]);
+  assert.ok(ecam.warnings.slice(0, 4).every((line) => line.colour === "red"));
+  assert.equal(ecam.masterWarning, true);
+  const jammed = ecamOf({ ...calm, warnings: ["flapsJammed", "gearJammed"], gear: 0.4 });
+  assert.deepEqual(jammed.warnings.map((line) => [line.text, line.colour]), [
+    ["F/CTL FLAPS LOCKED", "amber"], ["L/G GEAR NOT DOWNLOCKED", "amber"],
+  ]);
+  assert.deepEqual([jammed.masterWarning, jammed.masterCaution], [false, true]);
+  const bank = ecamOf({ ...calm, warnings: ["bank"] });
+  assert.deepEqual([bank.warnings, bank.masterWarning, bank.masterCaution], [[], false, false]);
+});
+
+test("silenced, a title stays and its master light goes out; one not silenced keeps it lit", () => {
+  const all = ["lost.rudder", "overspeed", "ice"];
+  const silenced = ecamOf({ ...calm, warnings: all, silenced: all });
+  assert.equal(silenced.warnings.length, 4);
+  assert.deepEqual([silenced.masterWarning, silenced.masterCaution], [false, false]);
+  const fresh = ecamOf({ ...calm, warnings: ["lost.leftAileron", ...all], silenced: all });
+  assert.deepEqual([fresh.masterWarning, fresh.masterCaution], [true, false]);
+  // The autopilot's loss is the light's for its moment, whatever is silenced.
+  assert.equal(ecamOf({ ...calm, autopilotLost: true, silenced: all }).masterWarning, true);
+});
+
 test("memos: the seat belts in rough air and low down, the speed brake amber with thrust on, the gear when landing", () => {
   assert.ok(ecamOf({ ...calm, turbulence: 0.5 }).memo.some((line) => line.text === "SEAT BELTS"));
   assert.ok(ecamOf({ ...calm, altitude: 2000 }).memo.some((line) => line.text === "SEAT BELTS"));
@@ -255,6 +282,21 @@ test("a control is picked where it is drawn: a point of the picture, looked alon
   }
 });
 
+test("MASTER WARN and MASTER CAUT in front of each pilot are where their lights are, and pressed, silence", () => {
+  for (const name of ["masterWarning", "masterCaution"] as const) {
+    const control = COCKPIT_CONTROLS[name] as CockpitControl;
+    assert.equal(control.press, "silence");
+    assert.equal(control.faces.length, 2);
+    control.faces.forEach((face, index) => {
+      const light = COCKPIT_LIGHTS[name][index].corners;
+      const middle = (quad: Quad) => partOf(quad, 0.5, 0.5, 0.5, 0.5)[0];
+      middle(face.corners).forEach((value, i) => near(value, middle(light)[i], 0.002));
+    });
+    // The captain's on the left, the first officer's on the right.
+    assert.ok(control.faces[0].corners[0][1] < 0 && control.faces[1].corners[0][1] > 0);
+  }
+});
+
 test("where on a face it is pointed at: the flap lever's forward half and its aft half, a pedal for each foot", () => {
   const [flaps] = COCKPIT_CONTROLS.flaps.faces;
   const forward = controlAlong(SEAT, from(pointOf(flaps, 0.3, 0.2, 0)))!;
@@ -285,7 +327,7 @@ test("no control is met out of the windows, from behind, or by a look past its e
 /* ---- the same by a key and by a gamepad ---- */
 
 test("whatever a control of the flight deck is clicked for, a key does and a gamepad's button does", () => {
-  const KEYS = ["KeyU", "KeyJ", "KeyB", "KeyG", "KeyL", "KeyX", "KeyK", "KeyO"];
+  const KEYS = ["KeyU", "KeyJ", "KeyB", "KeyG", "KeyL", "KeyX", "KeyK", "KeyO", "KeyQ"];
   const byKey = new Set(KEYS.map((code) => actionOf(code)));
   const buttons = Array.from({ length: 17 }, () => ({ pressed: true }));
   const byPad = new Set(gamepadActions(buttons, []));

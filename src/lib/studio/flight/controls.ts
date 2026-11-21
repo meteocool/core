@@ -21,7 +21,9 @@ import type { ControlInput } from "./physics";
 /** What a press does, once. */
 export type FlightAction =
   | "autopilot" | "next" | "restart" | "view" | "style" | "inspect" | "record" | "pause" | "mute" | "help" | "leave"
-  | "gear" | "fullscreen" | "flapsOut" | "flapsIn" | "speedbrake" | "radar" | "confirm" | "autobrake" | "parkingBrake";
+  | "gear" | "fullscreen" | "flapsOut" | "flapsIn" | "speedbrake" | "radar" | "confirm" | "autobrake" | "parkingBrake"
+  /** The master warning or caution light pressed: the alarms raised now are silenced. */
+  | "silence";
 
 const HELD: Record<string, true> = {
   KeyW: true, KeyS: true, KeyA: true, KeyD: true,
@@ -49,6 +51,8 @@ const ACTIONS: Record<string, FlightAction> = {
   KeyX: "autobrake",
   KeyK: "parkingBrake",
   KeyO: "radar",
+  // Q for quiet: the master lights' own button.
+  KeyQ: "silence",
   Enter: "confirm",
   KeyH: "help",
   Slash: "help",
@@ -107,11 +111,12 @@ export function gamepadInput(pad: { axes: readonly number[]; buttons: ReadonlyAr
  * brakes to set on its left and right, the speed brake and the gear on the
  * two face buttons flying leaves free, and the autopilot and the view under
  * the sticks. The button time runs faster by also answers yes where the
- * flight asks whether to end, which the back button asks.
+ * flight asks whether to end, which the back button asks. The pad's own
+ * button in its middle, where the browser passes it on, silences the alarms.
  */
 const PAD_ACTIONS: Record<number, FlightAction> = {
   0: "confirm", 2: "speedbrake", 3: "gear", 8: "leave", 9: "pause", 10: "autopilot", 11: "view",
-  12: "flapsIn", 13: "flapsOut", 14: "autobrake", 15: "parkingBrake",
+  12: "flapsIn", 13: "flapsOut", 14: "autobrake", 15: "parkingBrake", 16: "silence",
 };
 
 /**
@@ -145,10 +150,14 @@ export function merged(a: ControlInput, b: ControlInput): ControlInput {
   };
 }
 
-/** Whether a key went to something being typed in, which keeps its keys. */
+/**
+ * Whether a key went to something being typed in, which keeps its keys; or
+ * to a dialog of the page's over the flight (the share dialog for its link),
+ * whose Enter and Escape are its own, not the flight's.
+ */
 function typing(target: EventTarget | null): boolean {
   const element = target as HTMLElement | null;
-  return Boolean(element?.closest?.("input, select, textarea, [contenteditable]"));
+  return Boolean(element?.closest?.("input, select, textarea, [contenteditable], [role='dialog']"));
 }
 
 /**

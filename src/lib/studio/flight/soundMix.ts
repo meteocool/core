@@ -4,7 +4,9 @@
  * frequencies the sound graph (soundGraph.ts) is set to, and the one-off
  * sounds a frame starts (a thump, a creak, thunder, a chime), and what the
  * cockpit's voice says in it and when: the heights on the way down, "retard",
- * "bank angle", and "pull up" between the terrain warning's whoops. Saying
+ * "bank angle", and "pull up" between the terrain warning's whoops; and the
+ * master warning's and caution's chimes (alarms.ts), none of it for what the
+ * reader has silenced. Saying
  * them is the flight's sound's (sound.ts); which of them gets to be heard
  * when several are due is `CalloutQueue`'s, here too.
  *
@@ -19,7 +21,8 @@
  * of the panels) are clear; from outside the engines and the wind are full
  * and there are no cockpit sounds; the clean view is outside's, gentler.
  */
-import type { FlightStatus, FlightView } from "../store";
+import type { FlightAlarm, FlightStatus, FlightView } from "../store";
+import { kindOf } from "./alarms";
 import { FLAP_NOTCH_S, GEAR_S, MMO, VMO_MS } from "./physics";
 
 /** What of the telemetry the sound follows. */
@@ -58,7 +61,7 @@ export interface SoundInput {
   onGround?: boolean;
 }
 
-export type SoundStatus = Pick<FlightStatus, "view" | "warnings" | "paused" | "autopilot" | "warp" | "low">;
+export type SoundStatus = Pick<FlightStatus, "view" | "warnings" | "alarms" | "silenced" | "paused" | "autopilot" | "warp" | "low">;
 
 /** What the mix carries from one frame to the next. */
 export interface SoundMemory {
@@ -78,6 +81,8 @@ export interface SoundMemory {
   /** Where the flaps were a frame ago, and for how long their motor has been heard since it was last started, seconds. */
   flaps: number;
   flapsFor: number;
+  /** The alarms heard a frame ago: raised, and not silenced. */
+  heard: FlightAlarm[];
   voice: VoiceMemory;
 }
 
@@ -123,6 +128,8 @@ export type SoundEvent =
   | { kind: "creak"; strength: number }
   | { kind: "rattle"; strength: number }
   | { kind: "seatbelt" | "low" | "apOff" | "apOn" | "detent" }
+  /** The master caution's single chime, as a caution is raised. */
+  | { kind: "chime" }
   /** The gear's hydraulics running for as long as it has left to travel, seconds; and its lock at either end. */
   | { kind: "gearMotor"; seconds: number }
   | { kind: "gearLock"; strength: number }
@@ -173,7 +180,8 @@ export interface SoundLevels {
   cabin: number;
   /** The airflow's whoosh while time runs faster. */
   warp: number;
-  alerts: { gain: number; terrain: boolean; stall: boolean; overspeed: boolean };
+  /** The pull-up warning, the stall's cricket and shaker, and the master warning's continuous repetitive chime. */
+  alerts: { gain: number; terrain: boolean; stall: boolean; chime: boolean };
 }
 
 /** The loudness everything is played at unmuted, against full scale: well under it. */
@@ -277,7 +285,7 @@ const ramp = (value: number, low: number, high: number) => clamp01((value - low)
 export function initialMemory(input: Pick<SoundInput, "throttle">, status: Pick<SoundStatus, "autopilot" | "low">): SoundMemory {
   return {
     spool: input.throttle, throttle: input.throttle, flash: 0, autopilot: status.autopilot, low: status.low, seatbelt: false, thunderQuiet: 4,
-    gear: 0, gearGoing: 0, flaps: 0, flapsFor: Infinity,
+    gear: 0, gearGoing: 0, flaps: 0, flapsFor: Infinity, heard: [],
     voice: {
       height: NaN, warned: [], banking: false, bankIn: 0, pulling: false, pullFor: 0, landing: false, retarding: false, retardIn: 0,
       groundFor: 0,
@@ -309,7 +317,8 @@ const fires = (rate: number, dt: number, random: () => number) => rate > 0 && ra
  *   sounds nothing else is said: the whoops would be talked over.
  *
  * All of it in the cockpit only, as the alerts are; through a cut to black
- * nothing is said and what was under way is forgotten.
+ * nothing is said and what was under way is forgotten. A warning the reader
+ * has silenced says nothing more; what it was saying is cut off.
  */
 function voice(memory: VoiceMemory, input: SoundInput, status: SoundStatus, dt: number, cutting: boolean): {
   callouts: Callout[]; quiet: CalloutKind[]; whoops: boolean; memory: VoiceMemory;
@@ -323,12 +332,13 @@ function voice(memory: VoiceMemory, input: SoundInput, status: SoundStatus, dt: 
   const sink = input.sink ?? 0;
   const lever = input.lever ?? input.throttle;
   const gearDown = (input.gear ?? 0) >= 1;
+  const heard = (warning: FlightStatus["warnings"][number]) => status.warnings.includes(warning) && !status.silenced.includes(warning);
   // Passed on the way down, and flown through: not jumped over by a new start.
   const passed = (metres: number) => before > metres && height <= metres && before - height < HEIGHT_JUMP_M;
 
   // The pull-up warning: the ground ahead, or sinking faster than the height left allows. It lets go a little later than it took hold.
-  const sinking = status.warnings.includes("sink") && height < pullUpBelow(sink) * (memory.pulling ? 1.15 : 1);
-  const pulling = cockpit && (status.warnings.includes("terrain") || sinking);
+  const sinking = heard("sink") && height < pullUpBelow(sink) * (memory.pulling ? 1.15 : 1);
+  const pulling = cockpit && (heard("terrain") || sinking);
   let pullFor = 0;
   let whoops = false;
   if (pulling) {
@@ -363,7 +373,7 @@ function voice(memory: VoiceMemory, input: SoundInput, status: SoundStatus, dt: 
   if (!retarding && memory.retarding) quiet.push("retard");
 
   // "Bank angle": at once, then every few seconds; a bank that comes straight back waits out the rest of them.
-  const banking = free && status.warnings.includes("bank");
+  const banking = free && heard("bank");
   let bankIn = Math.max(0, memory.bankIn - dt);
   if (banking && bankIn === 0) {
     callouts.push(callout("bank", "Bank angle, bank angle"));
@@ -374,7 +384,7 @@ function voice(memory: VoiceMemory, input: SoundInput, status: SoundStatus, dt: 
   // What a warning says as it starts; not "sink rate" where it is "pull up" at once.
   if (free) {
     for (const [warning, words] of CAUTIONS) {
-      if (status.warnings.includes(warning) && !memory.warned.includes(warning)) callouts.push(callout("caution", words));
+      if (heard(warning) && !memory.warned.includes(warning)) callouts.push(callout("caution", words));
     }
   }
 
@@ -505,8 +515,16 @@ export function mixSound(
 
   const said = voice(memory.voice, input, status, dt, cutting);
   if (said.whoops) events.push({ kind: "whoops" });
+  // Silenced as it is said, a warning's words are cut off.
+  const hushed = memory.heard.filter((alarm) => status.silenced.includes(alarm));
+  if (CAUTIONS.some(([warning]) => hushed.includes(warning)) && !said.quiet.includes("caution")) said.quiet.push("caution");
 
-  const has = (warning: FlightStatus["warnings"][number]) => cockpit && status.warnings.includes(warning);
+  const has = (warning: FlightStatus["warnings"][number]) => cockpit && status.warnings.includes(warning) && !status.silenced.includes(warning);
+  // The master warning's chime for as long as an alarm that has it is heard; the caution's once, as one is raised.
+  const heard = status.alarms.filter((alarm) => !status.silenced.includes(alarm));
+  if (cockpit && !cutting && heard.some((alarm) => !memory.heard.includes(alarm) && kindOf(alarm).chime === "single")) {
+    events.push({ kind: "chime" });
+  }
   const levels: SoundLevels = {
     volume: muted || status.paused ? 0 : VOLUME,
     world: 1 - 0.85 * clamp01(input.fade),
@@ -519,7 +537,10 @@ export function mixSound(
     thunder: { gain: view.thunder, cutoff: view.thunderCutoff },
     cabin: view.cabin,
     warp: status.warp ? 1 : 0,
-    alerts: { gain: cockpit ? 1 : 0, terrain: said.memory.pulling, stall: has("stall"), overspeed: has("overspeed") },
+    alerts: {
+      gain: cockpit ? 1 : 0, terrain: said.memory.pulling, stall: has("stall"),
+      chime: cockpit && heard.some((alarm) => kindOf(alarm).chime === "continuous"),
+    },
   };
   return {
     levels,
@@ -528,7 +549,7 @@ export function mixSound(
     quiet: said.quiet,
     memory: {
       spool, throttle: input.throttle, flash: input.flash, autopilot: status.autopilot, low: status.low, seatbelt, thunderQuiet,
-      gear, gearGoing, flaps, flapsFor, voice: said.memory,
+      gear, gearGoing, flaps, flapsFor, heard, voice: said.memory,
     },
   };
 }

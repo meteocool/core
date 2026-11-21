@@ -11,10 +11,11 @@
  * bits. Positions are metres in the aircraft's frame: forward, right, down.
  *
  * Some chunks belong to a part that moves: the landing gear's legs and
- * doors, the wings' flaps, slats and spoilers, and the ailerons, the
- * elevators and the rudder. Each part turns about a hinge of its own as
- * what drives it moves (`partPose`). A file without parts is an aircraft on
- * which nothing does.
+ * doors, the wings' flaps, slats and spoilers, the ailerons, the elevators
+ * and the rudder, and the flight deck's stick, levers and pedals. Each part
+ * turns about a hinge of its own as what drives it moves (`partPose`), or
+ * slides along it; a part may ride on another, which moves it too. A file
+ * without parts is an aircraft on which nothing does.
  *
  * An aircraft that has broken up is drawn in pieces, each a part of the
  * same meshes: which piece a point of the model is of is said here too
@@ -52,9 +53,23 @@ export type TravelDrive = "gear" | "flaps" | "spoilers";
 /** What a part is deflected by, either way from its middle: the stick's two axes and the pedals. */
 export type ControlDrive = "ailerons" | "elevator" | "rudder";
 
-export type PartDrive = TravelDrive | ControlDrive;
+/**
+ * What a control of the flight deck is moved by, as `CockpitPose` has it
+ * (`cockpitDrives`): the stick's two axes, the thrust levers, the flap
+ * lever, the speed brake's lever and its arming, the gear's lever, the
+ * pedals, the parking brake's handle and the rudder trim's knob.
+ */
+export type CockpitDrive =
+  | "stickPitch" | "stickRoll" | "thrustLevers" | "flapLever" | "speedBrakeLever" | "spoilersArmed"
+  | "gearLever" | "pedals" | "parkingBrake" | "rudderTrim";
 
-const CONTROLS: ReadonlySet<PartDrive> = new Set<PartDrive>(["ailerons", "elevator", "rudder"]);
+export type PartDrive = TravelDrive | ControlDrive | CockpitDrive;
+
+/** What a part follows straight from key to key: a hand's controls, and the surfaces they move. Smoothing them is the hand's (or the pilot's). */
+const STRAIGHT: ReadonlySet<PartDrive> = new Set<PartDrive>([
+  "ailerons", "elevator", "rudder",
+  "stickPitch", "stickRoll", "thrustLevers", "flapLever", "speedBrakeLever", "spoilersArmed", "gearLever", "pedals", "parkingBrake", "rudderTrim",
+]);
 
 /**
  * Where each of those is. What travels, 0 to 1: the gear up to down, the
@@ -63,7 +78,7 @@ const CONTROLS: ReadonlySet<PartDrive> = new Set<PartDrive>(["ailerons", "elevat
  * `ailerons` right wing down, `elevator` nose up, `rudder` nose right; in
  * the middle where not said.
  */
-export type PartPositions = Record<TravelDrive, number> & Partial<Record<ControlDrive, number>>;
+export type PartPositions = Record<TravelDrive, number> & Partial<Record<ControlDrive | CockpitDrive, number>>;
 
 /**
  * A part that turns as what drives it moves: about `axis` (a unit vector,
@@ -72,12 +87,19 @@ export type PartPositions = Record<TravelDrive, number> & Partial<Record<Control
  * eased between each two keys, as a leg swings; what is deflected follows
  * them straight, as a surface follows the stick. Driven by the gear where
  * the file does not say.
+ *
+ * A part that `slide`s goes along `axis` instead, by metres that follow the
+ * keys. A part with a `parent` is carried by that part: it moves as its
+ * parent does, and turns or slides on it as well, as a stick that rolls is
+ * carried by its gimbal that pitches. A parent may have nothing drawn.
  */
 export interface ModelPart {
   pivot: Vec3;
   axis: Vec3;
   keys: Array<[number, number]>;
   drive?: PartDrive;
+  slide?: boolean;
+  parent?: string;
 }
 
 export interface AircraftModel {
@@ -138,12 +160,12 @@ export function parseModel(buffer: ArrayBuffer): AircraftModel {
 
 const smooth = (t: number) => t * t * (3 - 2 * t);
 
-/** A part's angle, degrees, with what drives it at `position`: held at its first key before it, and at its last past it. */
+/** A part's angle, degrees (metres for one that slides), with what drives it at `position`: held at its first key before it, and at its last past it. */
 export function partAngle(part: ModelPart, position: number): number {
   const { keys } = part;
   if (!keys.length) return 0;
   if (!(position > keys[0][0])) return keys[0][1];
-  const straight = CONTROLS.has(part.drive ?? "gear");
+  const straight = STRAIGHT.has(part.drive ?? "gear");
   for (let i = 1; i < keys.length; i++) {
     const [to, angle] = keys[i];
     if (position <= to) {
@@ -163,7 +185,11 @@ export function partAngle(part: ModelPart, position: number): number {
  */
 export function partPose(part: ModelPart, position: number): { matrix: number[]; turn: [Vec3, Vec3, Vec3] } | null {
   const angle = partAngle(part, position);
-  if (Math.abs(angle) < 1e-4) return null;
+  if (Math.abs(angle) < (part.slide ? 1e-6 : 1e-4)) return null;
+  if (part.slide) {
+    const [x, y, z] = part.axis;
+    return { matrix: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, x * angle, y * angle, z * angle, 1], turn: [[1, 0, 0], [0, 1, 0], [0, 0, 1]] };
+  }
   const radians = (angle * Math.PI) / 180;
   const [x, y, z] = part.axis;
   const c = Math.cos(radians);
@@ -187,6 +213,21 @@ export function partPose(part: ModelPart, position: number): { matrix: number[];
   return { matrix, turn };
 }
 
+/** A part's place with `positions`, its parents' moves and its own (as `partPose` has it); null where that is where the model has it. */
+function carried(
+  parts: Record<string, ModelPart>, name: string, positions: PartPositions, depth = 0,
+): { matrix: number[]; turn: [Vec3, Vec3, Vec3] } | null {
+  const part = parts[name];
+  const own = partPose(part, positions[part.drive ?? "gear"] ?? 0);
+  // A parent the file does not have, or a loop of them, carries nothing.
+  const parent = part.parent && parts[part.parent] && depth < 8 ? carried(parts, part.parent, positions, depth + 1) : null;
+  if (!parent || !own) return parent ?? own;
+  const turn = [0, 1, 2].map((row) => [0, 1, 2].map((column) => (
+    parent.turn[row][0] * own.turn[0][column] + parent.turn[row][1] * own.turn[1][column] + parent.turn[row][2] * own.turn[2][column]
+  ))) as [Vec3, Vec3, Vec3];
+  return { matrix: multiply4(parent.matrix, own.matrix), turn };
+}
+
 /**
  * Every part's place with the gear, the flaps, the spoilers and the
  * controls where `positions` has them, for a frame seen through `modelView`: the
@@ -198,8 +239,8 @@ export function posedParts(
   parts: Record<string, ModelPart>, positions: PartPositions, modelView: ArrayLike<number>, light: Vec3,
 ): Map<string, { modelView: Float32Array; light: Vec3 }> {
   const posed = new Map<string, { modelView: Float32Array; light: Vec3 }>();
-  for (const [name, part] of Object.entries(parts)) {
-    const pose = partPose(part, positions[part.drive ?? "gear"] ?? 0);
+  for (const name of Object.keys(parts)) {
+    const pose = carried(parts, name, positions);
     if (!pose) continue;
     const { turn } = pose;
     posed.set(name, {
@@ -208,6 +249,49 @@ export function posedParts(
     });
   }
   return posed;
+}
+
+/**
+ * Where the flight deck's controls are this frame. Each is where the model
+ * has it where not said: the stick upright, the levers at idle, retracted,
+ * flaps 0 and gear up, the pedals level, the brake off.
+ */
+export interface CockpitPose {
+  /** The captain's sidestick, -1 to 1 each: `pitch` pulled back (nose up) positive, `roll` to the right positive. */
+  stickPitch?: number;
+  stickRoll?: number;
+  /**
+   * The thrust levers, both together: 0 at idle to 1 at TOGA, through the
+   * climb detent (`THRUST_DETENTS.climb`) and the maximum continuous one;
+   * below 0, to -1, pulled back into full reverse.
+   */
+  thrust?: number;
+  /** The flap lever, 0 (up) to 4 (FULL) in its detents; between them on its way. It moves at once, the flaps follow it later. */
+  flapLever?: number;
+  /** The speed brake's lever, 0 retracted to 1 full; and how far it is pulled up out of its notch, 0 to 1: the ground spoilers armed. */
+  speedBrake?: number;
+  groundSpoilersArmed?: number;
+  /** The landing gear's lever, 0 up to 1 down. */
+  gearLever?: number;
+  /** The rudder pedals, -1 to 1: the right one pushed forward (nose right) positive, the left one back as far. Both pilots' move together. */
+  pedals?: number;
+  /** The parking brake's handle, 0 off to 1 turned on. */
+  parkingBrake?: number;
+  /** The rudder trim's knob, -1 to 1, turned right positive. */
+  rudderTrim?: number;
+}
+
+/** The thrust levers' detents on the quadrant, as `CockpitPose.thrust` has them: idle, climb, maximum continuous (flex), take-off/go-around, and full reverse. */
+export const THRUST_DETENTS = { reverse: -1, idle: 0, climb: 25 / 45, maxContinuous: 35 / 45, toga: 1 } as const;
+
+/** What a pose of the flight deck drives, by drive: what `posedParts` takes for its controls. */
+export function cockpitDrives(pose: CockpitPose | undefined): Partial<Record<CockpitDrive, number>> {
+  if (!pose) return {};
+  return {
+    stickPitch: pose.stickPitch ?? 0, stickRoll: pose.stickRoll ?? 0, thrustLevers: pose.thrust ?? 0, flapLever: pose.flapLever ?? 0,
+    speedBrakeLever: pose.speedBrake ?? 0, spoilersArmed: pose.groundSpoilersArmed ?? 0, gearLever: pose.gearLever ?? 0,
+    pedals: pose.pedals ?? 0, parkingBrake: pose.parkingBrake ?? 0, rudderTrim: pose.rudderTrim ?? 0,
+  };
 }
 
 /** Two 4x4s, columns first: `a` after `b`. */

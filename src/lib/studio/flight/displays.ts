@@ -11,6 +11,7 @@
  */
 import { MMO, VMO_MS } from "./physics";
 import { pressureRatio, temperatureK } from "./atmosphere";
+import { kindOf, lostSurface } from "./alarms";
 
 const KNOTS = 1.943844;
 const FEET = 3.28084;
@@ -68,12 +69,15 @@ export type EcamColour = "red" | "amber" | "green" | "cyan" | "white";
 export interface EcamLine {
   text: string;
   colour: EcamColour;
+  /** The alarms a warning's or a caution's title is for (`FlightStatus.alarms`): what silencing them puts its master light out. */
+  alarms?: string[];
 }
 
 /** What the warnings are made of: the flight's own, and what of the moment calls for a memo. */
 export interface EcamInput {
-  /** The flight's warnings by name (`FlightStatus.warnings`). */
+  /** The flight's alarms by name (`FlightStatus.alarms`): its warnings, and each surface lost; and those of them silenced. */
   warnings: readonly string[];
+  silenced?: readonly string[];
   /** The speed brake out, and where the thrust levers are, 0 to 1. */
   brake: boolean;
   throttle: number;
@@ -113,35 +117,76 @@ const BELTS_BELOW_M = 3048;
 /** Below this over the ground the landing memo shows, m: 2,000 ft. */
 const LANDING_MEMO_M = 610;
 
+/**
+ * A lost surface's place in a flight control title, and its side: the
+ * display's own short names, "L AIL", "R ELEV", "RUD". The two sides of
+ * one surface gone are one title, "L+R ELEV".
+ */
+const SURFACES: Record<string, string> = {
+  Aileron: "AIL", Elevator: "ELEV", rudder: "RUD", Spoiler: "SPLR", Flap: "FLAP", Slat: "SLAT",
+};
+function surfaceTitles(lost: string[]): EcamLine[] {
+  const titles = new Map<string, { sides: string[]; alarms: string[] }>();
+  for (const alarm of lost) {
+    const surface = lostSurface(alarm) ?? "";
+    const [, side, part] = /^(left|right)?(.*)$/.exec(surface)!;
+    const name = SURFACES[part] ?? part.toUpperCase();
+    const title = titles.get(name) ?? { sides: [], alarms: [] };
+    if (side) title.sides.push(side === "left" ? "L" : "R");
+    title.alarms.push(alarm);
+    titles.set(name, title);
+  }
+  return [...titles].map(([name, { sides, alarms }]) => {
+    const side = sides.length === 2 ? "L+R " : sides.length === 1 ? `${sides[0]} ` : "";
+    return { text: `F/CTL ${side}${name} LOST`, colour: "red", alarms };
+  });
+}
+
 /** The engine and warning display's lower part for a moment of the flight. */
 export function ecamOf(input: EcamInput): Ecam {
   const warnings: EcamLine[] = [];
   const cautions: EcamLine[] = [];
   if (input.autopilotLost) warnings.push({ text: "AUTO FLT AP OFF", colour: "red" });
+  // The surfaces gone first: what the rest of the flight has to do without.
+  warnings.push(...surfaceTitles(input.warnings.filter((alarm) => lostSurface(alarm) !== null)));
   for (const warning of input.warnings) {
+    // A title, in the colour of the alarm's level, for that alarm.
+    const title = (text: string) => {
+      const red = kindOf(warning).level === "warning";
+      (red ? warnings : cautions).push({ text, colour: red ? "red" : "amber", alarms: [warning] });
+    };
     switch (warning) {
       case "stall":
-        warnings.push({ text: "STALL", colour: "red" });
+        title("STALL");
         break;
       case "overspeed":
-        warnings.push({ text: "OVER SPEED", colour: "red" });
+        title("OVER SPEED");
         warnings.push({ text: `-VMO/MMO......${Math.round(VMO_MS * KNOTS)}/.${Math.round(MMO * 100)}`, colour: "white" });
         break;
       case "terrain":
-        warnings.push({ text: "GPWS TERRAIN AHEAD", colour: "red" });
+        title("GPWS TERRAIN AHEAD");
         warnings.push({ text: "-PULL UP", colour: "white" });
         break;
       case "ice":
-        cautions.push({ text: "A.ICE SEVERE ICE DETECTED", colour: "amber" });
+        title("A.ICE SEVERE ICE DETECTED");
         break;
       case "gear":
-        warnings.push({ text: "L/G GEAR NOT DOWN", colour: "red" });
+        title("L/G GEAR NOT DOWN");
         break;
       case "sink":
-        warnings.push({ text: "GPWS SINK RATE", colour: "red" });
+        title("GPWS SINK RATE");
+        break;
+      case "flapsJammed":
+        title("F/CTL FLAPS LOCKED");
+        break;
+      case "gearJammed":
+        title(input.gear >= 1 ? "L/G GEAR NOT UPLOCKED" : "L/G GEAR NOT DOWNLOCKED");
+        break;
+      // The bank angle is called out, and not written.
+      case "bank":
         break;
       default:
-        cautions.push({ text: warning.toUpperCase(), colour: "amber" });
+        if (lostSurface(warning) === null) title(warning.toUpperCase());
     }
   }
   if (input.alphaFloor) cautions.push({ text: "A.FLOOR", colour: "amber" });
@@ -161,11 +206,13 @@ export function ecamOf(input: EcamInput): Ecam {
   memo.push({ text: "NO SMOKING", colour: "green" });
   // The speed brake with thrust on is a waste the display points out.
   if (input.brake && !input.groundSpoilers) memo.push({ text: "SPEED BRK", colour: input.throttle > 0.1 ? "amber" : "green" });
+  const silenced = (line: EcamLine) => Boolean(line.alarms?.length) && line.alarms!.every((alarm) => input.silenced?.includes(alarm));
   return {
     warnings: [...warnings, ...cautions],
     memo,
-    masterWarning: warnings.some((line) => line.colour === "red"),
-    masterCaution: cautions.length > 0,
+    // Each master light for a title of its colour, but for one whose alarms are all silenced; A.FLOOR is the thrust's mode, no caution.
+    masterWarning: warnings.some((line) => line.colour === "red" && !silenced(line)),
+    masterCaution: cautions.some((line) => line.alarms !== undefined && !silenced(line)),
   };
 }
 

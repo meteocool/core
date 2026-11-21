@@ -40,6 +40,8 @@ export let url: string;
 export let title: string;
 /** Whether lib/share.ts got the link onto the clipboard as the dialog opened. */
 export let copied: Promise<boolean>;
+/** Whether the link unfurls as the map's card: not a flight's, which has no card to show, send or save. */
+export let card = true;
 
 /**
  * How long the card may take before the wait is given up. A cold render is a
@@ -185,7 +187,7 @@ function preselect(node: HTMLInputElement) {
 onMount(() => {
   // Refused by the Clipboard API: the old way, from the selected field.
   void copied.then((ok) => { linkCopied ||= ok || (keyboard && copySelection()); });
-  void loadPreview();
+  if (card) void loadPreview();
 });
 
 onDestroy(() => {
@@ -198,6 +200,7 @@ onDestroy(() => {
 
 <GlassPanel title={$_("share.share")} on:close>
   <div class="share">
+    {#if card}
     <figure class="card" style="aspect-ratio: {PREVIEW_WIDTH} / {PREVIEW_HEIGHT}" aria-busy={preview === "loading"}>
       {#if preview === "ready" && previewUrl}
         <img src={previewUrl} alt={$_("share.preview_alt")} class:shown
@@ -215,6 +218,7 @@ onDestroy(() => {
         </div>
       {/if}
     </figure>
+    {/if}
 
     <div class="link">
       <input bind:this={field} use:preselect class="url" type="text" readonly value={url}
@@ -243,24 +247,28 @@ onDestroy(() => {
           </a>
         </li>
       {/each}
+      {#if card}
       <li>
         <button type="button" class="target" disabled={preview !== "ready"} on:click={instagram}>
           <span class="badge instagram"><Icon icon={faInstagram} /></span>
           <span class="name">Instagram</span>
         </button>
       </li>
+      {/if}
       <li>
         <a class="target" href={targetUrl("email", { url, title })}>
           <span class="badge plain"><Icon icon={faEnvelope} /></span>
           <span class="name">{$_("share.email")}</span>
         </a>
       </li>
+      {#if card}
       <li>
         <button type="button" class="target" disabled={preview !== "ready"} on:click={saveImage}>
           <span class="badge plain"><Icon icon={faDownload} /></span>
           <span class="name">{$_("share.save")}</span>
         </button>
       </li>
+      {/if}
       {#if sheet}
         <li>
           <button type="button" class="target" on:click={more}>

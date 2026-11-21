@@ -8,6 +8,12 @@
  * The button puts the page on the 3D map in Studio, which on this page opens
  * straight on the plan (components/studio/Studio.svelte); the plan put away,
  * the page is back on the radar and these words.
+ *
+ * A flight's link (`?fly=`, lib/studio/flightLink.ts) skips both: the page
+ * goes straight onto the 3D map at the link's start, and Studio takes off
+ * from there as soon as the storms are in, with nothing of these words or of
+ * the plan on the way. Once that flight is over, its part of the address
+ * goes, so a reload is this page again rather than the same flight.
  */
 import { onDestroy, onMount } from "svelte";
 import { get } from "svelte/store";
@@ -25,10 +31,15 @@ import type { LayerManager } from "../../lib/LayerManager";
 import { fullscreen, fullscreenSupported, toggleFullscreen } from "../../lib/fullscreen";
 import { closeStudio, openStudio } from "../../lib/studio/session";
 import { touchFirst } from "../../lib/studio/flight/touch";
-import { studioOpen } from "../../lib/studio/store";
+import { flightRequest, studioFlying, studioOpen } from "../../lib/studio/store";
+import { withoutFlightLink } from "../../lib/studio/flightLink";
+import type { FlightStart } from "../../lib/studio/flightLink";
+import type Cells3DCapability from "../../caps/Cells3DCapability";
 import { cells3dFailed, sharedActiveCap } from "../../stores";
 
 export let layerManager: LayerManager;
+/** The flight the page's link asks for, if it asks for one. */
+export let link: FlightStart | null = null;
 
 /** The element every map is drawn into; see Map.svelte. */
 const MAP_TARGET = "map";
@@ -53,16 +64,44 @@ function board(): void {
   if (offered) layerManager.setTarget("cells3d", MAP_TARGET);
 }
 
+/** Whether the page is on its link's flight: from opening until that flight is over, or never got off. */
+let linked = Boolean(link && offered);
+
+/** The link's part of the address taken off, now that its flight is over. */
+function unlink(): void {
+  if (!linked) return;
+  linked = false;
+  const search = withoutFlightLink(window.location.search);
+  if (search !== window.location.search) {
+    history.replaceState(history.state, "", `${window.location.pathname}${search}${window.location.hash}`);
+  }
+}
+
+if (link && linked) {
+  // The 3D map comes up looking at the start, and Studio flies from it.
+  flightRequest.set({ start: link });
+  (layerManager.getCapability("cells3d") as Cells3DCapability | undefined)
+    ?.setCamera({ lat: link.lat, lon: link.lon, zoom: 8, pitch: 60, bearing: 0 });
+  board();
+}
+
 /* On this page the 3D map is the flight's and nothing else: it comes up in
    Studio, whichever way the page got onto it, and goes when Studio does. */
 onDestroy(sharedActiveCap.subscribe((cap) => {
   if (cap === "cells3d") openStudio();
 }));
 onDestroy(studioOpen.subscribe((open) => {
-  if (!open && get(sharedActiveCap) === "cells3d") layerManager.setTarget("radar", MAP_TARGET);
+  if (open) return;
+  unlink();
+  if (get(sharedActiveCap) === "cells3d") layerManager.setTarget("radar", MAP_TARGET);
+}));
+let flew = false;
+onDestroy(studioFlying.subscribe((flying) => {
+  if (flying) flew = true;
+  else if (flew) unlink();
 }));
 
-$: aloft = $sharedActiveCap === "cells3d";
+$: aloft = $sharedActiveCap === "cells3d" || linked;
 
 const FEATURES = [
   { icon: faBolt, title: "live", text: "live_text" },

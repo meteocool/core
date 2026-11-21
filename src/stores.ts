@@ -278,6 +278,8 @@ export const shareDialog = writable<{
   title: string;
   /** Whether the link made it onto the clipboard, which it is put on as the dialog opens. */
   copied: Promise<boolean>;
+  /** Whether the link unfurls as the map's card, which the dialog shows; not a flight's (lib/studio/flightLink.ts). */
+  card?: boolean;
 } | null>(null);
 /**
  * The open radar's own page (RadarInfo) is open, from the "i" in its tray.

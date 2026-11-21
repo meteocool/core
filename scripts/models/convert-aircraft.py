@@ -21,7 +21,9 @@ which the flight animates. So are the wings' flaps, slats and spoilers and
 the fairings under the flaps (`SURFACES`), which the model has as meshes of
 their own: each with a hinge worked out from its own shape. The ailerons,
 the elevators and the rudder the model has only as meshes of the hull: they
-are taken out of it as parts once the file is written (`control_surfaces.py`).
+are taken out of it as parts once the file is written (`control_surfaces.py`),
+and so are the flight deck's levers, stick and pedals, with the thrust levers
+and the flap lever the model lacks made for it (`cockpit_controls.py`).
 
 The outside is repainted on the way (`livery`): the airline's colours, titles
 and marks come off, the hull is left white, and ours go on: "meteowings"
@@ -31,7 +33,7 @@ the engines' intakes and up the wingtips. Each is placed on the aircraft in
 metres, not on the texture: every pixel of a texture is first traced to the
 point of the hull it is drawn on (`texel_map`), so a title reads the right
 way round on either side whatever way its texture was laid out. The inside
-is as its author made it.
+is as its author made it, but for the controls that move.
 """
 import io
 import json
@@ -45,6 +47,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
 from pxr import Usd, UsdGeom, UsdShade
 
+from cockpit_controls import lift_file
 from control_surfaces import cut_file
 
 LENGTH_M = 37.57
@@ -819,6 +822,7 @@ def main(scene: str, textures: str, out: str, logo_svg: str) -> None:
     print(f"{len(chunks)} chunks, {sum(c['vertices'] for c in chunks)} vertices, "
           f"{sum(c['indices'] for c in chunks) // 3} triangles, {(len(body) + len(header)) / 1e6:.1f} MB, scale {scale:.4f}")
     cut_file(str(out_dir / "a320.bin"))
+    lift_file(str(out_dir / "a320.bin"))
 
 
 if __name__ == "__main__":

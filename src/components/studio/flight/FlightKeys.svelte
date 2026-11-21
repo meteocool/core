@@ -27,6 +27,7 @@ const ROWS: Array<[string[], string]> = [
   [["X"], "autobrake"],
   [["K"], "parking"],
   [["L"], "autopilot"],
+  [["Q"], "silence"],
   [["N", "⌫"], "next"],
   [["V"], "view"],
   [["Drag"], "look"],
@@ -60,6 +61,7 @@ const PAD: Array<[string[], string]> = [
   [["R3"], "view"],
   [["Start"], "pause"],
   [["Back"], "pad.leave"],
+  [["Home"], "silence"],
 ];
 
 /** Whether a gamepad is plugged in, as the flight reads one (lib/studio/flight/controls.ts). */

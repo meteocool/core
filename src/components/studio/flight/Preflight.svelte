@@ -44,7 +44,11 @@ import type { FlightPlan } from "../../../lib/studio/flight/plan";
 import { approachTo, clearSkyStart, rankSystems, stormSystems } from "../../../lib/studio/flight/spawn";
 import type { StormSystem } from "../../../lib/studio/flight/spawn";
 import { STUDIO_BASEMAP } from "../../../lib/studio/store";
-import { cloudsTime, mapBaseLayer, terrain3dVisible } from "../../../stores";
+import { flightLinkUrl } from "../../../lib/studio/flightLink";
+import { startOf } from "../../../lib/studio/flight/plan";
+import { sendLink } from "../../../lib/share";
+import { shareAvailable, shareIcon } from "../../../lib/shareSupport";
+import { cloudsTime, mapBaseLayer, shareDialog } from "../../../stores";
 
 /** The 3D map: where the reader was looking, and the storms on the radar. */
 export let stage: Stage;
@@ -145,8 +149,9 @@ function setTarget(event: Event): void {
 }
 
 /* The map's layers, as the flight will draw them. The basemap is Studio's
-   own setting and the relief the 3D map's, both kept as the reader leaves
-   them here; the storms' style is the flight's alone. */
+   own setting, kept as the reader leaves it here; the storms' style is the
+   flight's alone. The ground's relief is always under a flight, and rough
+   air always in its storms. */
 const BASEMAPS = ["system", ...BASE_LAYERS.filter((name) => name !== "topographic")];
 const chosenBasemap = (_resolved?: string) => window.settings.getString<string>("studioBaseLayer", STUDIO_BASEMAP);
 let basemap = chosenBasemap();
@@ -252,6 +257,8 @@ onDestroy(() => {
 });
 
 function keydown(event: KeyboardEvent): void {
+  // The plan's link being shared: the keys are that dialog's.
+  if (get(shareDialog)) return;
   if (event.key === "Escape") {
     event.stopPropagation();
     oncancel();
@@ -338,12 +345,6 @@ function keydown(event: KeyboardEvent): void {
         <Segmented compact stretch label={$_("studio.flight.plan.view")}
           options={VIEWS.map((view) => ({ value: view, label: $_(`studio.flight.plan.${view}`) }))}
           value={plan.view} on:change={(event) => change({ ...plan, view: event.detail })} />
-
-        <span class="label">{$_("studio.flight.plan.air")}</span>
-        <label class="check">
-          <input type="checkbox" checked={plan.turbulence} on:change={(event) => change({ ...plan, turbulence: event.currentTarget.checked })} />
-          {$_("studio.flight.plan.turbulence")}
-        </label>
       </div>
 
       <h3>{$_("studio.flight.plan.layers")}</h3>
@@ -361,12 +362,6 @@ function keydown(event: KeyboardEvent): void {
         <Segmented compact stretch label={$_("style_3d.title")}
           options={STYLES.map((style) => ({ value: style, label: $_(`style_3d.${style}`) }))}
           value={plan.style} on:change={(event) => change({ ...plan, style: event.detail })} />
-
-        <span class="label">{$_("studio.flight.plan.ground")}</span>
-        <label class="check">
-          <input type="checkbox" checked={$terrain3dVisible} on:change={(event) => window.settings.set("layer3dTerrain", event.currentTarget.checked)} />
-          {$_("studio.flight.plan.relief")}
-        </label>
 
         <span class="label">{$_("studio.flight.plan.radar")}</span>
         <label class="check">
@@ -394,6 +389,16 @@ function keydown(event: KeyboardEvent): void {
 
     <footer>
       <p class="credit">{$_("studio.flight.model_credit")}</p>
+      {#if $shareAvailable}
+        <!-- A link that takes off from this plan, over the weather of whenever it is opened. -->
+        <button type="button" class="chip" title={$_("studio.flight.share.plan_title")}
+          on:click={(event) => sendLink(
+            { url: flightLinkUrl(window.location.origin, startOf(plan, systems)), title: $_("studio.flight.share.title") },
+            event.currentTarget, { card: false },
+          )}>
+          <Icon icon={shareIcon()} /> {$_("studio.flight.share.plan")}
+        </button>
+      {/if}
       <button type="button" class="chip" on:click={oncancel}>{$_("studio.flight.plan.cancel")}</button>
       <button type="button" class="chip go" on:click={() => ontakeoff(plan)}>
         <Icon icon={faPlaneDeparture} /> {$_("studio.flight.plan.takeoff")}

@@ -73,7 +73,11 @@ test("the model has its flaps, slats, spoilers and flap fairings on both wings, 
   for (const name of [...named("flap"), ...named("slat"), ...named("fairing")]) assert.equal(model.parts[name].drive, "flaps", name);
   for (const name of named("spoiler")) assert.equal(model.parts[name].drive, "spoilers", name);
   for (const name of named("gear")) assert.equal(model.parts[name].drive ?? "gear", "gear", name);
-  for (const name of Object.keys(model.parts)) assert.ok(model.chunks.some((chunk) => chunk.part === name), `${name} has nothing drawn`);
+  // But for a part that only carries another (the stick's pitch, which carries its roll).
+  const carrying = new Set(Object.values(model.parts).map((part) => part.parent));
+  for (const name of Object.keys(model.parts).filter((one) => !carrying.has(one))) {
+    assert.ok(model.chunks.some((chunk) => chunk.part === name), `${name} has nothing drawn`);
+  }
 });
 
 test("every surface is on the wing its name says, and its hinge points to the right", () => {

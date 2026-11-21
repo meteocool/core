@@ -226,11 +226,7 @@
         "view": "Seen from",
         "cockpit": "Cockpit",
         "outside": "Outside",
-        "air": "Rough air",
-        "turbulence": "Storms shake the aircraft",
         "layers": "Map",
-        "ground": "Ground",
-        "relief": "Mountains raised",
         "radar": "Radar",
         "radar_on_ground": "Painted on the ground under the storms",
         "marks": "Storms",
@@ -279,6 +275,14 @@
       "leave": "Leave",
       "leave_title": "End the flight, back to Studio (Esc)",
       "leave_title_plan": "End the flight, back to its plan (Esc)",
+      "leave_title_map": "End the flight, back to the map (Esc)",
+      "boarding": "Finding the storms…",
+      "share": {
+        "flight": "Share this flight's start",
+        "plan": "Share",
+        "plan_title": "Copy a link that takes off from this plan: the start, heading, level, speed and view, over the weather of the moment it is opened",
+        "title": "A flight through live clouds on meteoair"
+      },
       "fullscreen": "Full screen (F)",
       "fullscreen_exit": "Leave full screen (F)",
       "paused": "Paused · P resumes",
@@ -333,6 +337,7 @@
         "parking": "Parking brake, on the ground",
         "click": "Move a lever or push a button of the flight deck",
         "zoom": "Look closer at the flight deck",
+        "silence": "Silence the alarms sounding now",
         "pad": {
           "title": "Gamepad",
           "stick": "Nose down / up, roll left / right",
@@ -396,6 +401,14 @@
           "air": "Holds the wheels on the ground only",
           "set": "Set"
         },
+        "masterWarning": {
+          "name": "Master warning",
+          "lit": "Lit",
+          "hint": "Click: silence the alarms sounding now · Q"
+        },
+        "masterCaution": {
+          "name": "Master caution"
+        },
         "weatherRadar": {
           "name": "Radar on the ground",
           "hint": "Click: paint the radar's colours on the ground, or not · O"
@@ -419,6 +432,10 @@
         "flaps_out": "Flaps out a step",
         "speedbrake": "Spd brk",
         "autopilot": "A/P",
+        "master_warning": "Master warn",
+        "master_caution": "Master caut",
+        "silence": "Silence",
+        "silence_title": "Silence the alarms sounding now",
         "more": "More controls",
         "less": "Fewer controls",
         "view": "View",
@@ -448,6 +465,14 @@
       "gear_low": "TOO LOW  GEAR",
       "sink": "SINK RATE",
       "bank": "BANK ANGLE",
+      "lost": {
+        "title": "LOST: {parts}",
+        "leftAileron": "L AILERON", "rightAileron": "R AILERON", "leftElevator": "L ELEVATOR", "rightElevator": "R ELEVATOR",
+        "rudder": "RUDDER", "leftSpoiler": "L SPOILER", "rightSpoiler": "R SPOILER", "leftFlap": "L FLAP", "rightFlap": "R FLAP",
+        "leftSlat": "L SLAT", "rightSlat": "R SLAT"
+      },
+      "flaps_jammed": "FLAPS JAMMED",
+      "gear_jammed": "GEAR JAMMED",
       "alpha_floor": "A.FLOOR · full thrust",
       "crash": {
         "terrain": "Ground too steep to land on",
@@ -485,7 +510,8 @@
         "text": "The flight is held while you decide. Ending it goes back to Studio.",
         "stay": "Keep flying",
         "end": "End flight",
-        "text_plan": "The flight is held while you decide. Ending it goes back to the flight plan."
+        "text_plan": "The flight is held while you decide. Ending it goes back to the flight plan.",
+        "text_map": "The flight is held while you decide. Ending it goes back to the map."
       }
     }
   },
@@ -502,6 +528,8 @@
   "point_menu_forecast_sub": "21 weather models compared",
   "point_menu_share": "Share",
   "point_menu_share_sub": "Send a link to this place",
+  "point_menu_fly": "Fly from here with meteoair",
+  "point_menu_fly_sub": "Straight towards the next storm, in 3D",
   "dry_outlook_title_week": "No Rain in Sight · Next 7 Days",
   "dry_outlook_title_hours": "{hours, plural, =0 {Rain Likely Within the Hour} one {Rain Likely in # Hour} other {Rain Likely in # Hours}}",
   "dry_outlook_title_days": "{days, plural, one {Rain Likely in # Day} other {Rain Likely in # Days}}",

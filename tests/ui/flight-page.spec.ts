@@ -49,6 +49,47 @@ test("the button opens the flight's plan, and the plan put away is the page agai
   expect(await page.evaluate(() => (window as any).lm.currentCap)).toBe("radar");
 });
 
+test("a flight's link takes off at once from where it says, and once it is over the page is its own again", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
+  test.setTimeout(150_000);
+  await noGeocoder(page);
+  // Without the aircraft's model: a software renderer draws it a frame every few seconds.
+  await page.route("**/models/a320/**", (route) => route.abort());
+  await page.goto(`/meteoair.html?${VIEW}&fly=50.4000,9.6000&hdg=090&alt=FL120&spd=280kt&view=outside`);
+  const deck = page.getByRole("region", { name: "Flight deck" });
+  // The storms waited for, with a word meanwhile; then in the air.
+  await expect(page.getByRole("status").filter({ hasText: "Finding the storms" })).toBeVisible({ timeout: 90_000 });
+  await expect(deck).toBeVisible({ timeout: 30_000 });
+  // Neither the page's words nor the plan on the way.
+  await expect(landing(page)).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Flight plan" })).toHaveCount(0);
+  await expect(deck).toHaveClass(/view-outside/);
+  const plan = await page.evaluate(() => {
+    const { flightPlan } = (window as any).flightPilot;
+    return { lat: flightPlan.lat, lon: flightPlan.lon, heading: flightPlan.heading, feet: flightPlan.altitude * 3.28084, aimed: flightPlan.aimed };
+  });
+  expect(plan.lat).toBeCloseTo(50.4, 6);
+  expect(plan.lon).toBeCloseTo(9.6, 6);
+  expect(plan.heading).toBe(90);
+  expect(plan.aimed).toBe(false);
+  expect(Math.round(plan.feet)).toBe(12_000);
+  // The link stays while it flies: a reload is the same flight.
+  expect(new URL(page.url()).searchParams.get("fly")).toBe("50.4000,9.6000");
+  // Over, it comes down on the page's plan, and the address is the page's own again.
+  await page.keyboard.press("Escape");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("region", { name: "Flight plan" })).toBeVisible({ timeout: 30_000 });
+  expect(new URL(page.url()).search).toBe(`?${VIEW}`);
+  // And the plan on screen has a link of its own to give.
+  await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
+});
+
+test("a link that asks for no flight anyone can fly is the page as ever", async ({ page }) => {
+  await page.goto(`/meteoair.html?${VIEW}&fly=here`);
+  await expect(landing(page)).toBeVisible({ timeout: 30_000 });
+  await expect(board(page)).toBeVisible();
+});
+
 test("a hash that starts asking for the flight's page loads it", async ({ page }) => {
   await page.goto(`/?${VIEW}`);
   await expect(page.locator("#map canvas").first()).toBeVisible({ timeout: 30_000 });

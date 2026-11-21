@@ -11,6 +11,7 @@
 import { mount } from "svelte";
 import type { LayerManager } from "../LayerManager";
 import { studioFlightOnly } from "./store";
+import { readFlightLink } from "./flightLink";
 
 export const FLIGHT_PAGE_HASH = "#meteoair";
 
@@ -31,10 +32,15 @@ export function enterFlightPage(): void {
   document.title = TITLE;
 }
 
-/** The page's words, over the map the app has made. */
+/**
+ * The page's words, over the map the app has made; or, for a flight's link
+ * (`?fly=`, lib/studio/flightLink.ts), that flight, straight away. Read
+ * here, on the page's own address: nothing on this page writes to it.
+ */
 export async function showFlightPage(layerManager: LayerManager): Promise<void> {
+  const link = readFlightLink(window.location.search);
   const { default: Landing } = await import("../../components/meteoair/Landing.svelte");
-  mount(Landing, { target: document.body, props: { layerManager } });
+  mount(Landing, { target: document.body, props: { layerManager, link } });
 }
 
 /**

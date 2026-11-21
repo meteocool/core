@@ -36,15 +36,21 @@ import { cloudsTime } from "../../../stores";
 import { MARKS_SHOWN } from "../../../lib/studio/flight/marks";
 import type { Pilot, Telemetry } from "../../../lib/studio/flight/pilot";
 import { COCKPIT_CONTROLS } from "../../../lib/studio/flight/cockpit";
+import { kindOf, masterLights } from "../../../lib/studio/flight/alarms";
 import type { CockpitControl, CockpitPick } from "../../../lib/studio/flight/cockpit";
 import { flightStatus, studioFlightOnly } from "../../../lib/studio/store";
 import { fullscreen, fullscreenSupported } from "../../../lib/fullscreen";
+import { shareAvailable, shareIcon } from "../../../lib/shareSupport";
 import { flightMuted } from "../../../lib/studio/flight/sound";
 import { touchCapable, touchControls } from "../../../lib/studio/flight/touch";
 
 export let pilot: Pilot;
 /** The credits the map shows, which the deck shows in its place. */
 export let credits: () => string;
+/** Send the link to this flight's start, from the control asked with; none where there is no way to. */
+export let share: ((anchor: Element | null) => void) | null = null;
+/** Whether ending the flight goes back to the map it was asked from ("Fly from here"), not to Studio or the plan. */
+export let endsOnMap = false;
 
 /* The cockpit's screens and lights: never in the page, only on the model. */
 const cockpit = new CockpitScreens();
@@ -264,6 +270,11 @@ function told(pick: CockpitPick): [string | null, string] {
     case "autopilot": return [onOff(status.autopilot), t(status.onGround ? "autopilot.ground" : "autopilot.hint")];
     case "autobrake": return [pilot.brakes.autobrake ? t("autobrake.armed") : t("off"), t("autobrake.hint")];
     case "parkingBrake": return [pilot.brakes.parking ? t("parkingBrake.set") : t("off"), t(status.onGround ? "parkingBrake.hint" : "parkingBrake.air")];
+    case "masterWarning":
+    case "masterCaution": {
+      const lit = masterLights(status.alarms, status.silenced)[pick.name === "masterWarning" ? "warning" : "caution"];
+      return [lit ? t("masterWarning.lit") : t("off"), t("masterWarning.hint")];
+    }
     default: return [onOff(status.radarOnGround), t("weatherRadar.hint")];
   }
 }
@@ -300,6 +311,7 @@ onDestroy(() => {
 const WARNINGS = {
   terrain: "studio.flight.terrain", stall: "studio.flight.stall", overspeed: "studio.flight.overspeed", ice: "studio.flight.ice",
   gear: "studio.flight.gear_low", sink: "studio.flight.sink", bank: "studio.flight.bank",
+  flapsJammed: "studio.flight.flaps_jammed", gearJammed: "studio.flight.gear_jammed",
 } as const;
 </script>
 
@@ -370,8 +382,15 @@ const WARNINGS = {
     {#if status.crash}
       <p class="warning steady">{$_(`studio.flight.crash.${status.crash}`)}</p>
     {/if}
+    {#if status.lost.length && !status.crash}
+      <!-- What has come off the aircraft, in the order it went: outside, the one place it is said besides the cockpit's alarms. -->
+      <p class="warning" class:silenced={status.lost.every((part) => status.silenced.includes(`lost.${part}`))}>
+        {$_("studio.flight.lost.title", { values: { parts: status.lost.map((part) => $_(`studio.flight.lost.${part}`)).join(", ") } })}
+      </p>
+    {/if}
     {#each status.warnings as warning (warning)}
-      <p class="warning">{$_(WARNINGS[warning])}</p>
+      <!-- A caution in amber; one the reader has silenced stays, dimmed and still. -->
+      <p class="warning" class:caution={kindOf(warning).level === "caution"} class:silenced={status.silenced.includes(warning)}>{$_(WARNINGS[warning])}</p>
     {/each}
     {#if status.alphaFloor && status.view !== "clean"}
       <p class="note caution">{$_("studio.flight.alpha_floor")}</p>
@@ -418,7 +437,7 @@ const WARNINGS = {
         </button>
       {/if}
       <button type="button" class="leave glass glass-pill" on:click={() => pilot.act("leave")}
-        title={$_($studioFlightOnly ? "studio.flight.leave_title_plan" : "studio.flight.leave_title")}>
+        title={$_(endsOnMap ? "studio.flight.leave_title_map" : $studioFlightOnly ? "studio.flight.leave_title_plan" : "studio.flight.leave_title")}>
         <Icon icon={faRightFromBracket} /> {$_("studio.flight.leave")}
       </button>
     </div>
@@ -446,11 +465,17 @@ const WARNINGS = {
     <div class="ask" role="alertdialog" aria-modal="true" aria-labelledby="flight-leave-title">
       <section class="glass glass-tray">
         <h2 id="flight-leave-title">{$_("studio.flight.leave_ask.title")}</h2>
-        <p>{$_($studioFlightOnly ? "studio.flight.leave_ask.text_plan" : "studio.flight.leave_ask.text")}</p>
+        <p>{$_(endsOnMap ? "studio.flight.leave_ask.text_map" : $studioFlightOnly ? "studio.flight.leave_ask.text_plan" : "studio.flight.leave_ask.text")}</p>
         <div class="choices">
           <button type="button" class="glass-pill" on:click={() => pilot.stay()}>{$_("studio.flight.leave_ask.stay")} <kbd>Esc</kbd></button>
           <button type="button" class="glass-pill end" on:click={() => pilot.leave()}>{$_("studio.flight.leave_ask.end")} <kbd>↵</kbd></button>
         </div>
+        {#if share && $shareAvailable}
+          <!-- The link to where this flight began, while it is held: the start it took off from, not where it has got to. -->
+          <button type="button" class="share" on:click={(event) => share?.(event.currentTarget)}>
+            <Icon icon={shareIcon()} /> {$_("studio.flight.share.flight")}
+          </button>
+        {/if}
       </section>
     </div>
   {/if}
@@ -730,7 +755,13 @@ const WARNINGS = {
   .ask button.end { border-color: transparent; background: var(--mc-accent); color: #fff; }
   .ask button:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .ask kbd { opacity: 0.7; font: 600 11px/1 var(--mc-font); }
+  /* Quieter than the answers: a link-like line under them. */
+  .ask button.share { margin: 12px auto 0; height: auto; padding: 4px 8px; border: 0; color: var(--mc-text-2); font-size: 12px; }
+  .ask button.share:hover { color: var(--mc-text); }
+  .ask button.share :global(svg) { width: 11px; height: 11px; }
   .warning.steady { animation: none; letter-spacing: 0.02em; white-space: normal; }
+  .warning.caution { border-color: #ffb340; background: rgba(10, 6, 0, 0.6); color: #ffb340; }
+  .warning.silenced { opacity: 0.45; animation: none; }
   .note.caution { color: #ffb340; font-weight: 700; }
   @keyframes blink { to { visibility: hidden; } }
   @media (prefers-reduced-motion: reduce) {

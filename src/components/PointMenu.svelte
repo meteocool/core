@@ -1,7 +1,8 @@
 <script lang="ts">
 /**
  * What a long press on the radar map offers: the precipitation at that point,
- * the forecast for it, or a link to it to send someone.
+ * the forecast for it, a flight from it towards the next storm, or a link to
+ * it to send someone.
  *
  * The model comparison asks about a point too, and the hold is the map's one
  * "tell me about here" gesture, so the hold asks which question was meant: a
@@ -25,9 +26,16 @@ import { unByKey } from "ol/Observable";
 import type { EventsKey } from "ol/events";
 import { faDroplet } from "@fortawesome/free-solid-svg-icons/faDroplet";
 import { faChartLine } from "@fortawesome/free-solid-svg-icons/faChartLine";
+import { faPlaneDeparture } from "@fortawesome/free-solid-svg-icons/faPlaneDeparture";
 import Icon from "./Icon.svelte";
 import { share, shareAvailable, shareIcon } from "../lib/share";
-import { inspectLatLon, mapView, pointMenuAt, selectedStorm, sharedActiveCap, siteMode } from "../stores";
+import {
+  archiveWindow, cells3dFailed, inspectLatLon, mapView, pointMenuAt, selectedStorm, sharedActiveCap, siteMode,
+} from "../stores";
+import { mapInWindow } from "../lib/archive";
+import { openStudio } from "../lib/studio/session";
+import { flightRequest } from "../lib/studio/store";
+import type Cells3DCapability from "../caps/Cells3DCapability";
 import { readSiteAt } from "../lib/SiteSweepManager";
 import { describeReading } from "../lib/siteSweeps";
 import { openModelCompare } from "../lib/modelCompare";
@@ -40,8 +48,14 @@ export let layerManager: LayerManager;
 /** Room the menu needs above the point, and to either side of it, in px. */
 const NEEDS_ABOVE = 170;
 const NEEDS_SIDE = 120;
-/** More above it for the share entry, where there is one: an entry's height. */
+/** More above it for the share entry, where there is one: an entry's height. And for the flight's. */
 const SHARE_ENTRY = 56;
+const FLY_ENTRY = 56;
+
+/** The element every map is drawn into; see Map.svelte. */
+const MAP_TARGET = "map";
+/** The zoom the 3D map looks at a flight's start from while its storms come in. */
+const FLY_ZOOM = 8;
 /**
  * How far into the menu the notch sits when the menu leans to one side: clear
  * of the 20px corner, so the notch comes off a straight edge rather than out
@@ -82,6 +96,16 @@ let keys: EventsKey[] = [];
 
 const map = () => layerManager.getCapability("radar")?.getMap();
 
+/**
+ * The 3D map, which a flight flies over; none in a build without it. The
+ * flight is offered wherever that map can come up: not after it has failed
+ * to, nor in a past window, which has none (lib/archive.ts). On a phone as
+ * well: Studio's tools are a desktop's, but a flight has controls for a
+ * touch screen (components/meteoair/Landing.svelte offers it alike).
+ */
+const cells3d = layerManager.getCapability("cells3d") as Cells3DCapability | undefined;
+$: flyable = Boolean(cells3d) && !$cells3dFailed && mapInWindow("cells3d", $archiveWindow);
+
 onMount(() => {
   const radar = map();
   if (!radar) return undefined;
@@ -105,7 +129,7 @@ function place(point: [number, number] | null) {
   const coordinate = fromLonLat([point[1], point[0]]);
   const pixel = radar.getPixelFromCoordinate(coordinate);
   const width = radar.getSize()?.[0] ?? 0;
-  below = !!pixel && pixel[1] < NEEDS_ABOVE + (get(shareAvailable) ? SHARE_ENTRY : 0);
+  below = !!pixel && pixel[1] < NEEDS_ABOVE + (get(shareAvailable) ? SHARE_ENTRY : 0) + (flyable ? FLY_ENTRY : 0);
   side = !pixel ? "center"
     : pixel[0] < NEEDS_SIDE ? "left"
       : pixel[0] > width - NEEDS_SIDE ? "right" : "center";
@@ -170,6 +194,35 @@ function sendPoint(event: MouseEvent) {
   close();
 }
 
+/**
+ * Fly from the point: on the 3D map looking at it, into Studio, which takes
+ * off from there at once without the flight's plan (`flightRequest`;
+ * components/studio/Studio.svelte waits for the storms and chooses the rest).
+ * The flight's code is Studio's and comes with it. When the flight ends, the
+ * reader is back on this map, looking where they were.
+ */
+function flyFromHere() {
+  const point = $pointMenuAt;
+  close();
+  if (!point || !cells3d) return;
+  const from = layerManager.currentCap ?? "radar";
+  const was = get(mapView);
+  flightRequest.set({
+    start: { lat: point[0], lon: point[1], heading: null, altitude: null, speed: null, view: "cockpit" },
+    back: () => {
+      // Somewhere else by then (Back went there, say), which is where the reader is.
+      if (get(sharedActiveCap) !== "cells3d") return;
+      // The 3D map's camera first: the switch hands it to the flat map, and so
+      // does any move of it still to be reported, such as the landing's.
+      if (was) cells3d.setCamera({ lat: was.lat, lon: was.lon, zoom: was.zoom });
+      layerManager.setTarget(from, MAP_TARGET);
+    },
+  });
+  cells3d.setCamera({ lat: point[0], lon: point[1], zoom: FLY_ZOOM, pitch: 60, bearing: 0 });
+  layerManager.setTarget("cells3d", MAP_TARGET);
+  openStudio();
+}
+
 /* A tap anywhere else puts it away, as a context menu does. Capture phase,
    so it is seen before whatever the tap lands on. */
 function onOutside(event: PointerEvent) {
@@ -221,6 +274,15 @@ onDestroy(() => {
           <span class="sub">{$_("point_menu_forecast_sub")}</span>
         </span>
       </button>
+      {#if flyable}
+        <button type="button" role="menuitem" on:click={flyFromHere}>
+          <span class="icon"><Icon icon={faPlaneDeparture} /></span>
+          <span class="text">
+            <span class="label">{$_("point_menu_fly")}</span>
+            <span class="sub">{$_("point_menu_fly_sub")}</span>
+          </span>
+        </button>
+      {/if}
       {#if $shareAvailable}
         <button type="button" role="menuitem" on:click={sendPoint}>
           <span class="icon"><Icon icon={shareIcon()} /></span>

@@ -10,6 +10,13 @@
  * with its engine, or the tail. The physics is told what is missing
  * (`Damage.lost`, physics.ts) and flies what is left, which is a fall.
  *
+ * Too fast, it comes apart by degrees: first what hangs on hinges, the
+ * ailerons, the elevators, the rudder and whatever stands out in the air,
+ * one at a time with a bang and a jolt, and the aircraft flies on without
+ * them, worse in the axis each one moved (`Lost.surfaces`); only a good
+ * deal faster still, or held there with little left on it, do the wings
+ * and the tail go.
+ *
  * A piece that has come off has a motion of its own: the air slows it far
  * faster than the aircraft it left, it tumbles, and it falls. Where the
  * flight ends on the ground and not on its wheels, how hard it came down
@@ -27,6 +34,7 @@
  * and down of the hull.
  */
 import type { AircraftEffects, AircraftPiece } from "../../../layers/aircraftRenderer";
+import type { LostSurface } from "../store";
 import { BREAKS } from "./model";
 import { dynamicPressure, FLAP_LIMIT_MS, G, GEAR_LIMIT_MS, turned, VMO_MS, WEIGHT_N, WING_M2 } from "./physics";
 import type { AircraftState, Lost } from "./physics";
@@ -48,9 +56,14 @@ const BOTH_WINGS_FROM = 1.6;
 
 /**
  * Flutter. Well past the fastest it may be flown (25 kt, or Mach 0.89)
- * the wings and tail begin to shake: there, something comes off after
- * `FLUTTER_S`; by 60 kt past, or Mach 0.96, at once. Slowed down again in
- * time, the shaking dies away.
+ * what hangs on hinges begins to shake: there, a surface comes off after
+ * `FLUTTER_S`; by 60 kt past, or Mach 0.96, at once. Then another, and
+ * another, each over `SURFACE_AGAIN_S` at the onset and quicker the faster
+ * it goes, but never all at once: up to `SURFACE_AGAIN` of the build-up is
+ * left over from the last, as chance draws it, and the order is chance's
+ * too. The aircraft flies on without them, and the reader has a moment
+ * between each to slow down. Slowed down again in time, the shaking dies
+ * away.
  */
 export const FLUTTER_MS = VMO_MS + 12.9;
 export const FLUTTER_MACH = 0.89;
@@ -59,8 +72,74 @@ export const FLUTTER_CERTAIN_MACH = 0.96;
 export const FLUTTER_S = 4;
 const FLUTTER_FASTER = 15;
 const FLUTTER_DIES_S = 2;
+const SURFACE_AGAIN = 0.5;
+const SURFACE_AGAIN_S = 6;
+const SURFACE_AGAIN_FASTER = 4;
+/**
+ * The wing's and the tail's own boxes are far stiffer than what hangs on
+ * them. An airliner is shown free of flutter up to 15% past its design
+ * diving speed, itself some 30 kt past the fastest it may be flown: about
+ * 90 kt past that, which is where they go at once (`BREAKUP_MS`), as they do
+ * at Mach 0.98, where the shock waves on the wing shake it as hard. Between
+ * flutter being certain and that, they last as long as there is still
+ * something on them to take the shaking: over `AIRFRAME_S` times what is
+ * left of the way, quicker with the surfaces gone (`bare`, the share of the
+ * ailerons, elevators and rudder that are), so a large overspeed held
+ * with most of them gone takes the airframe in seconds, and slowed down
+ * again, the shaking dies away.
+ */
+export const BREAKUP_MS = VMO_MS + 46.3;
+export const BREAKUP_MACH = 0.98;
+const AIRFRAME_S = 6;
+const AIRFRAME_AT_ONCE_S = 0.25;
 /** How often it is the tail that flutter takes, and not a wing. */
 const FLUTTER_TAIL = 0.45;
+
+/**
+ * Each surface that can flutter off (`LostSurface`): its part on the model
+ * (model.ts, by the name the model's file gives it), which the renderer
+ * stops drawing on the airframe; about where its middle is, which it
+ * tumbles round; which side it is on (-1 left), and whether it is only in
+ * the air's way when it is out: the spoilers standing up, the flaps and the
+ * slats let down.
+ */
+export const SURFACES: Record<LostSurface, { part: string; centre: Vec3; side: -1 | 0 | 1; out?: "spoilers" | "flaps" }> = {
+  leftAileron: { part: "aileron.left", centre: [-3.8, -14.8, -0.35], side: -1 },
+  rightAileron: { part: "aileron.right", centre: [-3.8, 14.8, -0.35], side: 1 },
+  leftElevator: { part: "elevator.left", centre: [-18.3, -3.6, -1.3], side: -1 },
+  rightElevator: { part: "elevator.right", centre: [-18.3, 3.6, -1.3], side: 1 },
+  rudder: { part: "rudder", centre: [-18, 0, -5], side: 0 },
+  leftSpoiler: { part: "spoiler.leftOuter", centre: [-1.9, -9.9, 0.05], side: -1, out: "spoilers" },
+  rightSpoiler: { part: "spoiler.rightOuter", centre: [-1.9, 9.9, 0.05], side: 1, out: "spoilers" },
+  leftFlap: { part: "flap.leftOuter", centre: [-2.1, -9.8, 0.2], side: -1, out: "flaps" },
+  rightFlap: { part: "flap.rightOuter", centre: [-2.1, 9.8, 0.2], side: 1, out: "flaps" },
+  leftSlat: { part: "slat.leftOuter", centre: [-0.4, -11.2, 0], side: -1, out: "flaps" },
+  rightSlat: { part: "slat.rightOuter", centre: [-0.4, 11.2, 0], side: 1, out: "flaps" },
+};
+const EVERY_SURFACE = Object.keys(SURFACES) as LostSurface[];
+/** The surfaces the controls move: with these gone the airframe has nothing left to take its shaking. */
+const PRIMARY: readonly LostSurface[] = ["leftAileron", "rightAileron", "leftElevator", "rightElevator", "rudder"];
+/**
+ * A surface leaving: a bang this large, metres across, where it was, and a
+ * puff of smoke from its torn hinges that thins away over this long,
+ * seconds; and it is flung off up and out, m/s, tumbling at up to this,
+ * radians a second. Light and broad, the air stops it almost at once: it
+ * falls at no more than this, m/s, and is let go of after this long.
+ */
+const SURFACE_BLAST_M = 4;
+const SURFACE_SMOKE = { size: 1.4, strength: 0.7, fades: 2.5 };
+const SURFACE_KICK_MS = 8;
+const SURFACE_SPIN = 12;
+const SURFACE_TERMINAL = 25;
+const SURFACE_S = 6;
+/**
+ * And the jolt of it, a gust of so many degrees a second, dying away over
+ * this long: towards the side it left, and, off the tail, in pitch. What is
+ * left buffets: by this much for each surface gone, at the fastest it may be
+ * flown, on top of the flutter's own shaking.
+ */
+const JOLT = { roll: 28, pitch: 9, vertical: 2.5, s: 0.3 };
+const BUFFET_PER_SURFACE = 0.07;
 
 /** The sideways load the fin bears, g, with the hull slipping through the air; and how long it bears more, seconds. */
 export const FIN_LIMIT_G = 0.9;
@@ -149,20 +228,36 @@ export interface Debris {
   resting: boolean;
 }
 
-/** A fire: on the hull or on a piece that has come off, at a place in the model's frame. */
+/** A surface that has fluttered off, on its own way: as a piece is, for the few seconds it is in sight. */
+export interface Shed {
+  surface: LostSurface;
+  at: Vec3;
+  velocity: Vec3;
+  turn: Mat3;
+  spin: Vec3;
+  born: number;
+}
+
+/** A fire: on the hull or on a piece that has come off, at a place in the model's frame; one that thins away over `fades` seconds. */
 export interface Fire {
   on: AircraftPiece | "hull";
   at: Vec3;
   size: number;
   strength: number;
   born: number;
+  fades?: number;
 }
 
-/** A blast, where it went off: from the hull, metres north, east and down. */
+/**
+ * A blast, where it went off: from the hull, metres north, east and down;
+ * or, `aloft`, in the hull's own frame where it went off in the air, which
+ * carries it off behind (aircraftEffects.ts) as it does any smoke.
+ */
 export interface Blast {
   at: Vec3;
   size: number;
   born: number;
+  aloft?: boolean;
 }
 
 /** Something a wreck still has coming: a piece that tears off as it slides, or fuel that goes up. */
@@ -176,9 +271,14 @@ export interface Damage {
   /** Seconds since the aircraft was whole: it only runs forward. */
   clock: number;
   seed: number;
-  /** How much of each margin is used up, 0 to 1: the wings' under load, the airframe's in flutter, the fin's sideways. */
+  /**
+   * How much of each margin is used up, 0 to 1: the wings' under load, the
+   * next surface's in flutter, the wings' and the tail's own boxes' far past
+   * it, the fin's sideways.
+   */
   stress: number;
   flutter: number;
+  airframe: number;
   fin: number;
   /** The flaps and the gear, on their way to jamming, 0 to 1; and jammed. */
   flapStrain: number;
@@ -189,8 +289,16 @@ export interface Damage {
   lost: Lost;
   cause: Cause | null;
   debris: Debris[];
+  shed: Shed[];
   fires: Fire[];
   blasts: Blast[];
+  /**
+   * The last surface's jolt: when, and how hard, degrees a second of roll
+   * and pitch and m/s of the air's rise; and how hard what is left buffets,
+   * 0 to 1.
+   */
+  jolt: { born: number; roll: number; pitch: number; vertical: number } | null;
+  buffet: number;
   /** How hard it came down, once it has, 0 to 1; and what its wreck still has coming. */
   violence: number | null;
   coming: Coming[];
@@ -199,6 +307,7 @@ export interface Damage {
 /** What happened in a step, for whoever makes the noise of it: how much of the aircraft went, or how large a blast, 0 to 1. */
 export type DamageEvent =
   | { kind: "torn"; piece: AircraftPiece; strength: number }
+  | { kind: "shed"; surface: LostSurface; strength: number }
   | { kind: "jammed"; strength: number }
   | { kind: "blast"; strength: number };
 
@@ -216,13 +325,44 @@ export interface Flight {
 /** An aircraft with nothing wrong with it. */
 export function intact(seed = 1): Damage {
   return {
-    clock: 0, seed, stress: 0, flutter: 0, fin: 0, flapStrain: 0, gearStrain: 0, flapsStuck: false, gearStuck: false,
-    lost: {}, cause: null, debris: [], fires: [], blasts: [], violence: null, coming: [],
+    clock: 0, seed, stress: 0, flutter: 0, airframe: 0, fin: 0, flapStrain: 0, gearStrain: 0, flapsStuck: false, gearStuck: false,
+    lost: {}, cause: null, debris: [], shed: [], fires: [], blasts: [], jolt: null, buffet: 0, violence: null, coming: [],
   };
 }
 
-/** Whether anything has come off. */
+/** Whether a wing or the tail has come off: the end of the flight. */
 export const broken = (damage: Damage): boolean => Boolean(damage.lost.leftWing || damage.lost.rightWing || damage.lost.tail);
+
+/** Whether anything has come off, a surface or more. */
+export const harmed = (damage: Damage): boolean => broken(damage) || Boolean(damage.lost.surfaces?.length);
+
+/** The surfaces that have come off, in the order they went. */
+export const surfacesLost = (damage: Damage): readonly LostSurface[] => damage.lost.surfaces ?? [];
+
+/**
+ * What the damage does to the air the aircraft meets, as a gust to add to
+ * the weather's (physics.ts): the last surface's jolt, and the buffeting of
+ * what is left; and how hard that shakes a seat, 0 to 1.
+ */
+export function shudder(damage: Damage): { roll: number; pitch: number; vertical: number; shake: number } {
+  const { clock, jolt, buffet } = damage;
+  // A buffet is a rattle, not a swing: two quick shakes that never fall into step.
+  const rattle = (a: number, b: number) => 0.6 * Math.sin(clock * a) + 0.4 * Math.sin(clock * b + 1.3);
+  let roll = buffet * 4 * rattle(31, 47);
+  let pitch = buffet * 2.5 * rattle(23, 41);
+  let vertical = buffet * 1.2 * rattle(17, 29);
+  let shake = buffet;
+  if (jolt) {
+    const age = clock - jolt.born;
+    // A kick that dies away, ringing as it does.
+    const left = Math.exp(-age / JOLT.s) * (0.6 + 0.4 * Math.cos(age * 25));
+    roll += jolt.roll * left;
+    pitch += jolt.pitch * left;
+    vertical += jolt.vertical * left;
+    shake = Math.max(shake, Math.exp(-age / (2 * JOLT.s)));
+  }
+  return { roll, pitch, vertical, shake: Math.min(1, shake) };
+}
 
 /** The next number of the damage's own run of chance, 0 to 1. */
 function chance(damage: Damage): number {
@@ -280,6 +420,53 @@ export function overload(loadFactor: number, flaps: number): number {
 /** How far into flutter a speed is: 0 where it begins, 1 where something comes off at once; nothing short of it. */
 export function fluttering(ias: number, mach: number): number {
   return Math.max(0, (ias - FLUTTER_MS) / (FLUTTER_CERTAIN_MS - FLUTTER_MS), (mach - FLUTTER_MACH) / (FLUTTER_CERTAIN_MACH - FLUTTER_MACH));
+}
+
+/** How far past flutter being certain a speed is: 0 there, 1 where the wings and the tail go at once; nothing short of it. */
+export function overstrained(ias: number, mach: number): number {
+  return Math.max(0, (ias - FLUTTER_CERTAIN_MS) / (BREAKUP_MS - FLUTTER_CERTAIN_MS), (mach - FLUTTER_CERTAIN_MACH) / (BREAKUP_MACH - FLUTTER_CERTAIN_MACH));
+}
+
+/** The surfaces still on that the air can take, the aircraft set as it is: those that stand out only where they are out. */
+function exposed(damage: Damage, state: AircraftState): LostSurface[] {
+  const gone = surfacesLost(damage);
+  return EVERY_SURFACE.filter((surface) => {
+    const { out, side } = SURFACES[surface];
+    if (gone.includes(surface)) return false;
+    // What was on a wing or the tail that has come off went with it.
+    if (side < 0 && damage.lost.leftWing && !surface.endsWith("Elevator")) return false;
+    if (side > 0 && damage.lost.rightWing && !surface.endsWith("Elevator")) return false;
+    if (damage.lost.tail && (surface === "rudder" || surface.endsWith("Elevator"))) return false;
+    return out === "spoilers" ? state.spoilers > 0.1 : out === "flaps" ? state.flaps > 0.2 : true;
+  });
+}
+
+/**
+ * Take a surface off: it is gone from the airframe with a bang and a puff of
+ * smoke where it was, flung up and out, tumbling; and the aircraft jolts.
+ */
+function shedSurface(damage: Damage, surface: LostSurface, state: AircraftState): void {
+  damage.lost = { ...damage.lost, surfaces: [...surfacesLost(damage), surface] };
+  const { centre, side } = SURFACES[surface];
+  const hull = rotation(state);
+  const jitter = () => (chance(damage) - 0.5) * 2;
+  const push = apply(hull, [jitter() * 2, (side || jitter()) * SURFACE_KICK_MS * (0.5 + chance(damage)), -SURFACE_KICK_MS * chance(damage)]);
+  const going = velocityOf(state);
+  damage.shed = [...damage.shed, {
+    surface, at: apply(hull, centre), velocity: [going[0] + push[0], going[1] + push[1], going[2] + push[2]],
+    turn: hull, spin: apply(hull, [jitter() * SURFACE_SPIN, jitter() * SURFACE_SPIN, jitter() * SURFACE_SPIN]), born: damage.clock,
+  }];
+  damage.blasts = [...damage.blasts, { at: centre, size: SURFACE_BLAST_M * (0.8 + 0.4 * chance(damage)), born: damage.clock, aloft: true }];
+  damage.fires = [...damage.fires, { on: "hull", at: centre, ...SURFACE_SMOKE, born: damage.clock }];
+  // Off a wing it rolls the aircraft towards the side it left; off the tail it pitches it, either way, and rolls it a little.
+  const tail = surface === "rudder" || surface.endsWith("Elevator");
+  const sign = side || (chance(damage) < 0.5 ? -1 : 1);
+  damage.jolt = {
+    born: damage.clock,
+    roll: JOLT.roll * sign * (tail ? 0.3 : 1) * (0.7 + 0.6 * chance(damage)),
+    pitch: JOLT.pitch * (tail ? 1 : 0.35) * jitter(),
+    vertical: JOLT.vertical * jitter(),
+  };
 }
 
 /**
@@ -349,21 +536,41 @@ function strain(damage: Damage, state: AircraftState, flight: Flight, dt: number
     }
   }
 
-  // Flutter: it builds past its speed, and dies away again short of it.
+  // Flutter: it builds past its speed, and dies away again short of it. It takes the surfaces, one at a time, any of them.
   const shaking = fluttering(flight.ias, flight.mach);
-  if (shaking > 0) {
-    damage.flutter = Math.min(1, damage.flutter + (dt * (1 + FLUTTER_FASTER * shaking * shaking)) / FLUTTER_S);
+  const open = exposed(damage, state);
+  if (shaking > 0 && open.length) {
+    const pace = surfacesLost(damage).length
+      ? (1 + SURFACE_AGAIN_FASTER * Math.min(shaking, 1.5)) / SURFACE_AGAIN_S
+      : (1 + FLUTTER_FASTER * shaking * shaking) / FLUTTER_S;
+    damage.flutter = Math.min(1, damage.flutter + dt * pace);
     if (damage.flutter >= 1) {
-      const left = ALL.filter((piece) => !damage.lost[piece]);
-      const wing = left.filter((piece) => piece !== "tail");
-      const tail = !damage.lost.tail && (chance(damage) < FLUTTER_TAIL || !wing.length);
-      const piece = tail ? "tail" : wing[chance(damage) < 0.5 ? 0 : wing.length - 1];
-      if (piece) went(piece, "flutter", 0.8);
-      damage.flutter = left.length > 1 ? 0.4 : 0;
+      const surface = open[Math.min(open.length - 1, Math.floor(chance(damage) * open.length))];
+      shedSurface(damage, surface, state);
+      events.push({ kind: "shed", surface, strength: 0.2 });
+      damage.flutter = SURFACE_AGAIN * chance(damage);
     }
-  } else {
+  } else if (shaking <= 0) {
     damage.flutter = Math.max(0, damage.flutter - dt / FLUTTER_DIES_S);
   }
+
+  // Far past it the wings and the tail themselves: at once well past, or over seconds with what damps them gone.
+  const beyond = overstrained(flight.ias, flight.mach);
+  const bare = PRIMARY.filter((surface) => surfacesLost(damage).includes(surface)).length / PRIMARY.length;
+  if (beyond >= 1) damage.airframe += dt / AIRFRAME_AT_ONCE_S;
+  else if (beyond > 0) damage.airframe += (dt * beyond * (beyond + bare)) / AIRFRAME_S;
+  else damage.airframe = Math.max(0, damage.airframe - dt / FLUTTER_DIES_S);
+  if (damage.airframe >= 1) {
+    const left = ALL.filter((piece) => !damage.lost[piece]);
+    const wing = left.filter((piece) => piece !== "tail");
+    const tail = !damage.lost.tail && (chance(damage) < FLUTTER_TAIL || !wing.length);
+    const piece = tail ? "tail" : wing[chance(damage) < 0.5 ? 0 : wing.length - 1];
+    if (piece) went(piece, "flutter", 0.8);
+    damage.airframe = left.length > 1 ? 0.4 : 0;
+  }
+  // What is left buffets in the air going past it: the flutter's own shaking, and the stubs and gaps of what has gone.
+  const gone = surfacesLost(damage).length;
+  damage.buffet = clamp(0.6 * Math.min(1, shaking) + BUFFET_PER_SURFACE * gone * Math.min(1.3, flight.ias / VMO_MS), 0, 1);
 
   // The fin, with the hull sideways to a fast air.
   if (!damage.lost.tail) {
@@ -496,12 +703,27 @@ function fall(damage: Damage, state: AircraftState, flight: Flight, dt: number):
     }
     return [{ ...piece, at, velocity, turn, spin, resting }];
   });
-  // A blast stays where it went off, and so falls behind a hull that slides on.
+  // A surface is gone behind in a moment, and is let go of once it is out of sight or down.
+  const drag = G / SURFACE_TERMINAL ** 2;
+  damage.shed = damage.shed.flatMap((piece) => {
+    if (damage.clock - piece.born > SURFACE_S || Math.hypot(...piece.at) > DEBRIS_M) return [];
+    let { at, velocity, turn } = piece;
+    for (let left = dt; left > 1e-6; left -= 0.02) {
+      const h = Math.min(left, 0.02);
+      const slowed = 1 / (1 + drag * Math.hypot(...velocity) * h);
+      velocity = [velocity[0] * slowed, velocity[1] * slowed, velocity[2] * slowed + G * h];
+      at = [at[0] + (velocity[0] - hull[0]) * h, at[1] + (velocity[1] - hull[1]) * h, at[2] + (velocity[2] - hull[2]) * h];
+      turn = turned(turn, piece.spin, h);
+    }
+    return at[2] > floor ? [] : [{ ...piece, at, velocity, turn }];
+  });
+  // A blast stays where it went off, and so falls behind a hull that slides on; one aloft is carried off by the air itself.
   damage.blasts = damage.blasts
     .filter((blast) => damage.clock - blast.born < BLAST_S)
-    .map((blast) => ({ ...blast, at: [blast.at[0] - hull[0] * dt, blast.at[1] - hull[1] * dt, blast.at[2] - hull[2] * dt] as Vec3 }));
-  // A fire on a piece that is no longer followed is out of sight.
-  damage.fires = damage.fires.filter((fire) => fire.on === "hull" || damage.debris.some((piece) => piece.piece === fire.on));
+    .map((blast) => (blast.aloft ? blast : { ...blast, at: [blast.at[0] - hull[0] * dt, blast.at[1] - hull[1] * dt, blast.at[2] - hull[2] * dt] as Vec3 }));
+  // A fire on a piece that is no longer followed is out of sight; a puff of smoke has thinned away.
+  damage.fires = damage.fires.filter((fire) => (fire.on === "hull" || damage.debris.some((piece) => piece.piece === fire.on))
+    && !(fire.fades !== undefined && damage.clock - fire.born >= fire.fades));
 }
 
 /**
@@ -519,14 +741,20 @@ export function advance(before: Damage, state: AircraftState, flight: Flight, dt
   } else if (!state.onGround) {
     strain(damage, state, flight, dt, events);
   }
+  // On the ground nothing buffets in the air going past.
+  if (state.crash || state.onGround) damage.buffet = 0;
   fall(damage, state, flight, dt);
   return { damage, events };
 }
 
-/** A piece's place as the renderer wants it: from where the model has it to where it is now, in the hull's frame, columns first. */
-function placed(inward: Mat3, piece: Debris): { turn: Mat3; shift: Vec3; matrix: number[] } {
+/**
+ * A piece's place as the renderer wants it, the piece with its middle at
+ * `centre` on the model: from where the model has it to where it is now, in
+ * the hull's frame, columns first.
+ */
+function placed(inward: Mat3, piece: Pick<Debris, "at" | "turn">, centre: Vec3): { turn: Mat3; shift: Vec3; matrix: number[] } {
   const turn = multiply(inward, piece.turn);
-  const middle = apply(piece.turn, PIECES[piece.piece].centre);
+  const middle = apply(piece.turn, centre);
   const shift = apply(inward, [piece.at[0] - middle[0], piece.at[1] - middle[1], piece.at[2] - middle[2]]);
   return {
     turn, shift,
@@ -540,30 +768,38 @@ function placed(inward: Mat3, piece: Debris): { turn: Mat3; shift: Vec3; matrix:
 }
 
 /**
- * The damage as the aircraft's renderer draws it (`AircraftView.pieces`
- * and `effects`), for a hull in `state`; null for an aircraft that is
- * whole and has nothing burning.
+ * The damage as the aircraft's renderer draws it (`AircraftView.pieces`,
+ * `lost` and `effects`), for a hull in `state`; null for an aircraft that
+ * is whole and has nothing burning.
  */
 export function shown(
   damage: Damage, state: AircraftState,
-): { pieces: Partial<Record<AircraftPiece, number[] | null>>; effects: AircraftEffects } | null {
-  if (!broken(damage) && !damage.fires.length && !damage.blasts.length) return null;
+): {
+  pieces: Partial<Record<AircraftPiece, number[] | null>>; lost: Record<string, number[] | null>; effects: AircraftEffects;
+} | null {
+  if (!harmed(damage) && !damage.fires.length && !damage.blasts.length) return null;
   const inward = transpose(rotation(state));
-  const places = new Map(damage.debris.map((piece) => [piece.piece, placed(inward, piece)]));
+  const places = new Map(damage.debris.map((piece) => [piece.piece, placed(inward, piece, PIECES[piece.piece].centre)]));
   const pieces: Partial<Record<AircraftPiece, number[] | null>> = {};
   for (const piece of ALL) if (damage.lost[piece]) pieces[piece] = places.get(piece)?.matrix ?? null;
-  const fires = damage.fires.map(({ on, at, size, strength, born }) => {
+  // A surface that has come off: tumbling away for as long as it is in sight, and then nowhere; never on the airframe.
+  const lost: Record<string, number[] | null> = {};
+  for (const surface of surfacesLost(damage)) lost[SURFACES[surface].part] = null;
+  for (const piece of damage.shed) lost[SURFACES[piece.surface].part] = placed(inward, piece, SURFACES[piece.surface].centre).matrix;
+  const fires = damage.fires.map(({ on, at, size, strength, born, fades }) => {
     const place = on === "hull" ? null : places.get(on);
     const moved = place ? apply(place.turn, at).map((value, i) => value + place.shift[i]) as Vec3 : at;
-    return { at: moved, size, strength, born };
+    const left = fades === undefined ? 1 : Math.max(0, 1 - (damage.clock - born) / fades);
+    return { at: moved, size, strength: strength * left, born };
   });
   const speed = velocityOf(state);
   return {
     pieces,
+    lost,
     effects: {
       time: damage.clock,
       fires,
-      blasts: damage.blasts.map(({ at, size, born }) => ({ at: apply(inward, at), size, born })),
+      blasts: damage.blasts.map(({ at, size, born, aloft }) => ({ at: aloft ? at : apply(inward, at), size, born })),
       air: apply(inward, [-speed[0], -speed[1], -speed[2]]),
       up: apply(inward, [0, 0, -1]),
     },

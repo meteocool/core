@@ -20,12 +20,14 @@
  * shader makes the cut (by where a point is on the model as it was built,
  * lib/studio/flight/model.ts), a ragged one, and blackens what is near it
  * and what is seen of the inside through it. An aircraft in one piece is
- * drawn by a shader that knows nothing of this.
+ * drawn by a shader that knows nothing of this. A moving part that has come
+ * off on its own (a surface fluttered away) is simpler: drawn whole where
+ * it has got to, or not at all.
  *
  * Over it all, what burns and bursts (aircraftEffects.ts).
  */
-import { BREAKS, multiply4, parseModel, pieceOf, PIECES, piecesOf, posedParts, VERTEX_BYTES } from "../lib/studio/flight/model";
-import type { AircraftModel } from "../lib/studio/flight/model";
+import { BREAKS, cockpitDrives, multiply4, parseModel, pieceOf, PIECES, piecesOf, posedParts, VERTEX_BYTES } from "../lib/studio/flight/model";
+import type { AircraftModel, CockpitPose } from "../lib/studio/flight/model";
 import { blastGlare, makeEffectsPass } from "./aircraftEffects";
 import type { EffectsPass } from "./aircraftEffects";
 import { perspective } from "../lib/studio/flight/view";
@@ -61,6 +63,12 @@ export interface AircraftView {
   elevator?: number;
   rudder?: number;
   /**
+   * Where the flight deck's stick, levers, pedals and handles are (see
+   * `CockpitPose`): each as the model has it where not said, and all of
+   * them without it.
+   */
+  cockpit?: CockpitPose;
+  /**
    * The pieces an aircraft that has broken up is in. A piece named here has
    * come off: it is drawn where its 4x4 puts it (columns first, from where
    * the model has it to where it is now, in the frame `modelView` draws,
@@ -68,6 +76,13 @@ export interface AircraftView {
    * still on. Whole where not said.
    */
   pieces?: Partial<Record<AircraftPiece, ArrayLike<number> | null>>;
+  /**
+   * The moving parts no longer on the airframe, by their names in the
+   * model's file: a surface that has fluttered off. Each is drawn whole
+   * where its 4x4 puts it (as a piece is), or not at all for null; never
+   * where it hung. All on where not said.
+   */
+  lost?: Readonly<Record<string, ArrayLike<number> | null>>;
   /** What burns and bursts on and round it; nothing where not said. */
   effects?: AircraftEffects;
 }
@@ -534,10 +549,12 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       webgl.uniform1i(uniform(shader, "uTexture"), 0);
       webgl.activeTexture(webgl.TEXTURE0);
 
-      // The gear's legs and doors, the flaps, slats and spoilers, the ailerons, elevators and rudder where they are now; the rest as the model has it.
+      // The gear's legs and doors, the flaps, slats and spoilers, the ailerons, elevators and rudder, and the flight deck's controls
+      // where they are now; the rest as the model has it.
       const positions = {
         gear: view.gear ?? 1, flaps: view.flaps ?? 0, spoilers: view.spoilers ?? 0,
         ailerons: view.ailerons ?? 0, elevator: view.elevator ?? 0, rudder: view.rudder ?? 0,
+        ...cockpitDrives(view.cockpit),
       };
       const frame = (moved?: ArrayLike<number>): Frame => {
         const modelView = new Float32Array(moved ? multiply4(view.modelView, moved) : view.modelView);
@@ -553,6 +570,8 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
         const moved = name === "hull" ? undefined : off?.[name];
         return moved === undefined ? hull : moved && frame(moved);
       });
+      // A part that has come off: through its own frame for as long as it is in sight, then through none.
+      const loose = new Map(Object.entries(view.lost ?? {}).map(([name, moved]) => [name, moved ? frame(moved) : null]));
       if (broken) {
         webgl.uniform3f(uniform(shader, "uBreaks"), BREAKS.wingRoot, BREAKS.tail, BREAKS.ragged);
         webgl.uniform3f(uniform(shader, "uTorn"), ...(["leftWing", "rightWing", "tail"] as const).map((name) => (off && name in off ? 1 : 0)) as Vec3);
@@ -571,6 +590,16 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
           webgl.uniform2f(uniform(shader, "uUvMin"), ...chunk.uvMin);
           webgl.uniform2f(uniform(shader, "uUvSize"), ...chunk.uvSize);
           webgl.bindVertexArray(chunk.vao);
+          const away = chunk.part !== undefined ? loose.get(chunk.part) : undefined;
+          if (away !== undefined) {
+            if (away) {
+              webgl.uniformMatrix4fv(uniform(shader, "uModelView"), false, away.modelView);
+              webgl.uniform3f(uniform(shader, "uLight"), ...away.light);
+              if (broken) webgl.uniform1i(uniform(shader, "uKeep"), EVERY_PIECE);
+              webgl.drawElements(webgl.TRIANGLES, chunk.count, webgl.UNSIGNED_SHORT, 0);
+            }
+            continue;
+          }
           // Once for all of it that is still together, and once for each piece of it that is off.
           let done = 0;
           for (const piece of broken ? chunk.pieces : ALL_HULL) {

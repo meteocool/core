@@ -647,6 +647,11 @@ export default class Cells3DCapability extends Capability {
   /** Whether the map stands on the ground's relief; see `terrain3dVisible`. */
   private terrainWanted = get(terrain3dVisible);
 
+  /** Whether the relief is drawn: as the reader wants it, and always under a flight, which flies among the mountains. */
+  private get terrainShown(): boolean {
+    return this.terrainWanted || this.flight !== null;
+  }
+
   private unsubscribeTerrain: (() => void) | null = null;
   private unsubscribeResolution: (() => void) | null = null;
 
@@ -1062,7 +1067,7 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeTerrain = terrain3dVisible.subscribe((wanted) => {
       this.terrainWanted = wanted;
       // Before the style is up, `applyData` adds it once it is.
-      if (this.gl && this.styleReady) applyTerrain(this.gl, wanted, this.dark, this.drapeSize());
+      if (this.gl && this.styleReady) applyTerrain(this.gl, this.terrainShown, this.dark, this.drapeSize());
     });
     // Settings: full resolution or the handheld cap, redrawn at once.
     this.unsubscribeResolution = fullResolution3d.subscribe((full) => {
@@ -3042,6 +3047,7 @@ export default class Cells3DCapability extends Capability {
       if (this.styleReady) {
         gl.setSky(FLIGHT_SKY);
         this.ensureAircraft(gl);
+        if (!this.terrainWanted) applyTerrain(gl, true, this.dark, this.drapeSize());
       }
       this.applySections();
       this.setDirected(true);
@@ -3067,6 +3073,7 @@ export default class Cells3DCapability extends Capability {
       if (gl.getLayer(AIRCRAFT_LAYER)) gl.removeLayer(AIRCRAFT_LAYER);
       this.aircraftLayer = null;
       if (this.styleReady) gl.setSky(undefined as unknown as SkySpecification);
+      if (this.styleReady && !this.terrainWanted) applyTerrain(gl, false, this.dark, this.drapeSize());
       gl._camera?.transform?.clearNearFarZOverride?.();
       gl.setCenterClampedToGround(before.clamped);
       if (pose && had) {
@@ -3884,7 +3891,7 @@ export default class Cells3DCapability extends Capability {
     // Nothing to do yet: `style.load` calls this again once there is.
     if (!gl || !this.styleReady) return;
 
-    applyTerrain(gl, this.terrainWanted, this.dark, this.drapeSize());
+    applyTerrain(gl, this.terrainShown, this.dark, this.drapeSize());
     this.ensureRadar(gl);
     this.ensureNetworks(gl);
     this.ensureCells(gl);
