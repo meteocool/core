@@ -24,11 +24,14 @@ const TITLE = "meteoair · fly through live clouds";
 /**
  * Where the radar map is, from the flight's own page: the same page without
  * `#meteoair` where the hash made it the flight's (the web app's, or the
- * apps' own), and the page beside meteoair.html where that made it.
+ * apps' own), and the page beside meteoair.html where that made it. On its
+ * rain and thunderstorms, the map's own, whatever the address last said.
  */
 export function radarMapHref(): string {
-  if (isFlightPageHash(window.location.hash)) return `${window.location.pathname}${window.location.search}`;
-  return new URL("./", window.location.href).href;
+  const url = isFlightPageHash(window.location.hash) ? new URL(window.location.href) : new URL("./", window.location.href);
+  url.hash = "";
+  if (url.searchParams.has("layer")) url.searchParams.set("layer", "radar");
+  return url.href;
 }
 
 /** Whether a location's hash asks for the flight's page, in whatever case it was typed. */
@@ -41,6 +44,8 @@ export function enterFlightPage(): void {
   studioFlightOnly.set(true);
   document.documentElement.classList.add(FLIGHT_PAGE_CLASS);
   document.title = TITLE;
+  // No text selection starts on this page (global.css): neither does iOS's loupe on a long press.
+  document.addEventListener("selectstart", (event) => event.preventDefault());
 }
 
 /**

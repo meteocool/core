@@ -32,10 +32,11 @@ function fly(
 /** The music settled in a steady state. */
 const settled = (input: Partial<SoundInput> = {}, status: Partial<SoundStatus> = {}, seconds = 20) => fly(seconds, () => ({ input, status }));
 
-test("a flight's music comes in from silence, smoothly", () => {
-  const { frames } = fly(8);
+test("a flight's music comes in from silence, slowly and smoothly", () => {
+  const { frames } = fly(14);
   assert.equal(initialMemory(CRUISE, STATUS).music.gain, 0);
   assert.ok(frames[0].gain < 0.02);
+  assert.ok(frames[Math.round(2 / FRAME)].gain < 0.4, `two seconds in: ${frames[Math.round(2 / FRAME)].gain}`);
   assert.ok(frames[frames.length - 1].gain > 0.75);
   for (let i = 1; i < frames.length; i++) assert.ok(Math.abs(frames[i].gain - frames[i - 1].gain) < 0.02, "no step a frame");
 });
@@ -69,7 +70,7 @@ test("dense cloud muffles the music; breaking out into clear air opens it up in 
   const inCloud = settled({ cloud: 1 }).music;
   assert.ok(inCloud.low < clear.low * 0.3 && inCloud.gain < clear.gain);
   // Out of cloud after ten seconds in it: louder than plain clear air for a while, then back.
-  const out = fly(10, () => ({ input: { cloud: 1 } }));
+  const out = fly(10, () => ({ input: { cloud: 1 } }), settled().memory);
   const after = fly(25, () => ({ input: { cloud: 0 } }), out.memory);
   const peak = Math.max(...after.frames.map((frame) => frame.gain));
   assert.ok(peak > clear.gain * 1.2, `a swell: ${peak} over ${clear.gain}`);
@@ -129,30 +130,28 @@ test("what makes a flight difficult: a strong storm near or around it, jammed ge
   assert.ok(tensionOf({ ...CRUISE, storm: { peakDbz: 55, distance: 30_000 } }, { warnings: ["flapsJammed"] }, 0, 0) >= TENSE_ON);
 });
 
-test("tension crossfades the theme into the suspenseful piece slowly, at equal power, the theme thinned and never cut", () => {
+test("tension crossfades the theme into the suspenseful piece in a few seconds, at equal power, and the two do not linger together", () => {
   const calm = settled().music;
   assert.ok(calm.theme > 0.99 && calm.tension < 0.01);
   const storm = { storm: { peakDbz: 63, distance: 4_000 }, dbz: 56 };
-  const rising = fly(90, () => ({ input: storm }));
-  // Slow: after five seconds barely begun, after tens of seconds most of the way.
+  const rising = fly(40, () => ({ input: storm }));
   const at = (seconds: number) => rising.frames[Math.round(seconds / FRAME)];
-  assert.ok(at(5).tension < 0.5, `five seconds in: ${at(5).tension}`);
-  assert.ok(at(TENSION_IN_S * 3).tension > 0.7);
+  // Not a jump: a second in barely begun; a few seconds on, most of the way; soon wholly the suspenseful piece.
+  assert.ok(at(1).tension < 0.4, `a second in: ${at(1).tension}`);
+  assert.ok(at(TENSION_IN_S * 1.5).tension > 0.8, `${TENSION_IN_S * 1.5} s in: ${at(TENSION_IN_S * 1.5).tension}`);
   const full = rising.music;
-  assert.ok(full.tension > 0.85 && full.theme >= 0.2 && full.theme < 0.4, "the theme thinned, still there");
-  assert.ok(full.themeLow < 2000, "and darker");
-  for (const frame of rising.frames) {
-    // Equal power between the two, over the theme's floor.
-    const theme = (frame.theme - 0.22) / 0.78;
-    assert.ok(Math.abs(theme ** 2 + frame.tension ** 2 - 1) < 1e-6);
-  }
+  assert.ok(full.tension > 0.99 && full.theme < 0.02, "the theme gone under it");
+  // Both heard at once only on the way across.
+  const both = rising.frames.filter((frame) => frame.theme > 0.2 && frame.tension > 0.2).length * FRAME;
+  assert.ok(both < 6.5, `${both.toFixed(1)} s of both`);
+  for (const frame of rising.frames) assert.ok(Math.abs(frame.theme ** 2 + frame.tension ** 2 - 1) < 1e-6, "equal power");
   for (let i = 1; i < rising.frames.length; i++) {
-    assert.ok(Math.abs(rising.frames[i].tension - rising.frames[i - 1].tension) < 0.003, "no step a frame");
+    assert.ok(Math.abs(rising.frames[i].tension - rising.frames[i - 1].tension) < 0.01, "no step a frame");
   }
-  // Clear of it again: slower still to go.
-  const easing = fly(30, () => ({}), rising.memory);
-  assert.ok(easing.music.tension > 0.4, `still going after half a minute: ${easing.music.tension}`);
-  const gone = fly(150, () => ({}), easing.memory);
+  // Clear of it again: a little slower to go, and gone within half a minute.
+  const easing = fly(3, () => ({}), rising.memory);
+  assert.ok(easing.music.tension > 0.5, `still going after three seconds: ${easing.music.tension}`);
+  const gone = fly(30, () => ({}), easing.memory);
   assert.ok(gone.music.tension < 0.05);
 });
 

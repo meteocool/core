@@ -65,7 +65,7 @@ test("past its flutter speed the surfaces go one at a time, in an order chance d
   const slow = gaps(FLUTTER_MS + 2);
   const quick = gaps(FLUTTER_CERTAIN_MS);
   // Always a few seconds to get the speed off, if fewer the further past.
-  assert.ok(slow > 6 && quick > 2.5 && quick < slow / 2, `${slow.toFixed(2)} s apart just past, ${quick.toFixed(2)} s far past`);
+  assert.ok(slow > 9 && quick > 5 && quick < slow * 0.75, `${slow.toFixed(2)} s apart just past, ${quick.toFixed(2)} s far past`);
 });
 
 test("the spoilers, flaps and slats go only where they stand out in the air", () => {
@@ -116,7 +116,7 @@ test("each goes with a small bang and a puff of smoke where it was, tumbles off 
   assert.ok(gone.buffet > 0 && gone.buffet < 0.2);
 });
 
-test("the airframe itself goes only well past that: at once 90 kt past, over seconds a little short of it, quicker with its surfaces gone", () => {
+test("the airframe itself goes only well past that: within seconds 90 kt past, over longer a little short of it, quicker with its surfaces gone", () => {
   const certain = held(cruise, 25, speeds(FLUTTER_CERTAIN_MS + 2), intact(4)).damage;
   assert.equal(surfacesLost(certain).length, 5);
   assert.ok(!broken(certain), "60 kt past, it flies on without them");
@@ -124,8 +124,10 @@ test("the airframe itself goes only well past that: at once 90 kt past, over sec
     const { events } = held(cruise, 60, flight, from);
     return events.find((event) => event.kind === "torn")?.at ?? Infinity;
   };
-  assert.ok(at(speeds(BREAKUP_MS + 1), 1) < 0.5);
-  assert.ok(at(speeds(160, BREAKUP_MACH + 0.002), 1) < 0.5);
+  // Even there, a last moment to pull the power.
+  const quick = at(speeds(BREAKUP_MS + 1), 1);
+  assert.ok(quick > 2 && quick < 3.5, `${quick} s`);
+  assert.ok(at(speeds(160, BREAKUP_MACH + 0.002), 1) < 3.5);
   // Three quarters of the way there it holds for a good few seconds, and then goes.
   const between = FLUTTER_CERTAIN_MS + 0.75 * (BREAKUP_MS - FLUTTER_CERTAIN_MS);
   const lasted = at(speeds(between), 2);

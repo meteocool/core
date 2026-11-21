@@ -31,7 +31,7 @@ for (const path of [`/meteoair.html?${VIEW}`, `/?${VIEW}#meteoair`]) {
     });
 }
 
-test("the button opens the flight's plan, and the plan put away is the page again", async ({ page }, testInfo) => {
+test("the button opens the flight's plan, and the plan put away is meteocool's radar map", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
   // The 3D map's first bring-up and Studio's chunk, both under this one test.
   test.setTimeout(120_000);
@@ -43,10 +43,11 @@ test("the button opens the flight's plan, and the plan put away is the page agai
   await expect(landing(page)).toHaveCount(0);
   // Studio's own tools are not this page's.
   await expect(page.getByRole("button", { name: "Take off" })).toBeVisible();
+  // Escape, the ✕, Back to meteocool: off the flight's page altogether, to the map's rain and thunderstorms.
   await page.keyboard.press("Escape");
-  await expect(landing(page)).toBeVisible({ timeout: 30_000 });
-  await expect(plan).toHaveCount(0, { timeout: 30_000 });
-  expect(await page.evaluate(() => (window as any).lm.currentCap)).toBe("radar");
+  await page.waitForURL((url) => !url.pathname.endsWith("meteoair.html"), { timeout: 30_000 });
+  await expect.poll(() => page.evaluate(() => (window as any).lm?.currentCap), { timeout: 30_000 }).toBe("radar");
+  await expect(landing(page)).toHaveCount(0);
 });
 
 test("a flight's link takes off at once from where it says, and once it is over the page is its own again", async ({ page }, testInfo) => {

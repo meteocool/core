@@ -57,31 +57,33 @@ const BOTH_WINGS_FROM = 1.6;
 /**
  * Flutter. Well past the fastest it may be flown (25 kt, or Mach 0.89)
  * what hangs on hinges begins to shake: there, a surface comes off after
- * `FLUTTER_S`; by 60 kt past, or Mach 0.96, at once. Then another, and
- * another, each over `SURFACE_AGAIN_S` at the onset and quicker the faster
- * it goes, but never all at once: up to `SURFACE_AGAIN` of the build-up is
- * left over from the last, as chance draws it, and the order is chance's
- * too. The aircraft flies on without them, and the reader has several
- * seconds between each to get the speed off (from 5 or 6 at the onset, and
- * still 3 or so far past it). Slowed down again in time, the shaking dies
- * away.
+ * `FLUTTER_S`; by 60 kt past, or Mach 0.96, after two seconds, and never
+ * sooner than that, however far past. Then another, and another, each over
+ * `SURFACE_AGAIN_S` at the onset and quicker the faster it goes, but never
+ * all at once: up to `SURFACE_AGAIN` of the build-up is left over from the
+ * last, as chance draws it, and the order is chance's too. The aircraft
+ * flies on without them, and the reader has time between each to get the
+ * speed off: ten seconds or so at the onset, and still five far past it.
+ * Slowed down again in time, the shaking dies away. It is a game's
+ * forgiveness more than an airframe's: real flutter does not wait.
  */
 export const FLUTTER_MS = VMO_MS + 12.9;
 export const FLUTTER_MACH = 0.89;
 export const FLUTTER_CERTAIN_MS = VMO_MS + 30.9;
 export const FLUTTER_CERTAIN_MACH = 0.96;
-export const FLUTTER_S = 4;
-const FLUTTER_FASTER = 15;
+export const FLUTTER_S = 5;
+const FLUTTER_FASTER = 1.5;
 const FLUTTER_DIES_S = 2;
 const SURFACE_AGAIN = 0.25;
-const SURFACE_AGAIN_S = 12;
-const SURFACE_AGAIN_FASTER = 2;
+const SURFACE_AGAIN_S = 14;
+const SURFACE_AGAIN_FASTER = 1;
 /**
  * The wing's and the tail's own boxes are far stiffer than what hangs on
  * them. An airliner is shown free of flutter up to 15% past its design
  * diving speed, itself some 30 kt past the fastest it may be flown: about
- * 90 kt past that, which is where they go at once (`BREAKUP_MS`), as they do
- * at Mach 0.98, where the shock waves on the wing shake it as hard. Between
+ * 90 kt past that, which is where they go quickly (`BREAKUP_MS`), as they do
+ * at Mach 0.98, where the shock waves on the wing shake it as hard: still
+ * over `AIRFRAME_AT_ONCE_S`, a last moment to pull the power. Between
  * flutter being certain and that, they last as long as there is still
  * something on them to take the shaking: over `AIRFRAME_S` times what is
  * left of the way, quicker with the surfaces gone (`bare`, the share of the
@@ -91,8 +93,8 @@ const SURFACE_AGAIN_FASTER = 2;
  */
 export const BREAKUP_MS = VMO_MS + 46.3;
 export const BREAKUP_MACH = 0.98;
-const AIRFRAME_S = 6;
-const AIRFRAME_AT_ONCE_S = 0.25;
+const AIRFRAME_S = 10;
+const AIRFRAME_AT_ONCE_S = 2.5;
 /** How often it is the tail that flutter takes, and not a wing. */
 const FLUTTER_TAIL = 0.45;
 
@@ -543,7 +545,7 @@ function strain(damage: Damage, state: AircraftState, flight: Flight, dt: number
   if (shaking > 0 && open.length) {
     const pace = surfacesLost(damage).length
       ? (1 + SURFACE_AGAIN_FASTER * Math.min(shaking, 1.5)) / SURFACE_AGAIN_S
-      : (1 + FLUTTER_FASTER * shaking * shaking) / FLUTTER_S;
+      : (1 + FLUTTER_FASTER * Math.min(shaking, 1.5)) / FLUTTER_S;
     damage.flutter = Math.min(1, damage.flutter + dt * pace);
     if (damage.flutter >= 1) {
       const surface = open[Math.min(open.length - 1, Math.floor(chance(damage) * open.length))];

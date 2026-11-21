@@ -143,6 +143,8 @@ export interface MusicMemory {
   /** The aircraft a frame ago (`SoundInput.flight`); and seconds left of letting the last one's trouble go quickly. */
   flight: number;
   calming: number;
+  /** Seconds since the flight's music began. */
+  age: number;
 }
 
 /** What the cockpit's voice carries from one frame to the next. */
@@ -353,6 +355,9 @@ const MUSIC_LOW_MOST = 20000;
 /** How fast the music follows: down (a duck under the voice or an alarm), up, and its band; time constants, seconds. */
 const MUSIC_DOWN_S = 0.3;
 const MUSIC_UP_S = 1.4;
+/** Taking off, the music comes in slowly: for this long, seconds, it rises at this pace instead (most of the way in about eight seconds). */
+const LAUNCH_S = 12;
+const LAUNCH_UP_S = 3.5;
 const MUSIC_BAND_S = 0.35;
 /** A wreck: how fast the music goes. */
 const MUSIC_GONE_S = 0.5;
@@ -376,15 +381,17 @@ const WARP_UP = 0.3;
  * Tension: how difficult the flight is, 0 to 1. It takes this much to be
  * difficult and goes only below this, so that it never flickers between the
  * two; once difficult, the suspenseful piece is at least this much of the
- * music. It comes in slowly, over tens of seconds, and goes more slowly still
- * (each the time of its two easings together, seconds); faster as a wreck
- * silences everything.
+ * music. It comes in over a few seconds and goes a little more slowly (each
+ * the time of its two easings together, seconds); faster as a wreck
+ * silences everything. Not slower: the two pieces are not written to be
+ * heard together, so the crossfade is a passage between them and not a
+ * place to stay.
  */
 export const TENSE_ON = 0.5;
 export const TENSE_OFF = 0.3;
-export const TENSE_LEAST = 0.6;
-export const TENSION_IN_S = 16;
-export const TENSION_OUT_S = 36;
+export const TENSE_LEAST = 1;
+export const TENSION_IN_S = 4;
+export const TENSION_OUT_S = 6;
 /** A new start's calm: the trouble before it gone in about this long, seconds, under the cut to black and out of it. */
 export const CALM_AGAIN_S = 3;
 /** Below this height over the ground, metres (about 1,000 ft), for this long and up to this long, seconds, is a long low approach. */
@@ -392,8 +399,8 @@ export const LOW_APPROACH_M = 300;
 export const LOW_APPROACH_S: [number, number] = [40, 120];
 /** Several warnings at once for this long and up to this long, seconds, is a flight in trouble. */
 export const WARNED_S: [number, number] = [8, 25];
-/** The theme under the suspenseful piece at its fullest: thinned to this share of it and through a low-pass this low, Hz; never cut. */
-const THEME_LEAST = 0.22;
+/** The theme under the suspenseful piece at its fullest: none of it, as the low-pass on its way out goes this low, Hz. */
+const THEME_LEAST = 0;
 const THEME_LOW_LEAST = 900;
 
 /**
@@ -426,7 +433,7 @@ const easeLog = (from: number, to: number, dt: number, tau: number) => Math.exp(
 export function initialMusic(): MusicMemory {
   return {
     gain: 0, high: 20, low: MUSIC_LOW_MOST, drive: 0, tension: 0, tense: false, lowFor: 0, warnedFor: 0, clouded: 0, inCloud: false, swell: 0,
-    aloft: true, orbit: NaN, turning: 0, flight: NaN, calming: 0,
+    aloft: true, orbit: NaN, turning: 0, flight: NaN, calming: 0, age: 0,
   };
 }
 
@@ -487,7 +494,8 @@ export function mixMusic(
   else if (cockpit && input.speaking) gain *= UNDER_VOICE;
   if (input.ended) gain = 0;
   gain = Math.min(gain, 1.3);
-  const tau = input.ended ? MUSIC_GONE_S : gain < memory.gain ? MUSIC_DOWN_S : MUSIC_UP_S;
+  const age = memory.age + dt;
+  const tau = input.ended ? MUSIC_GONE_S : gain < memory.gain ? MUSIC_DOWN_S : age < LAUNCH_S ? LAUNCH_UP_S : MUSIC_UP_S;
   const level = ease(memory.gain, gain, dt, tau);
 
   // The band: the view's, muffled by thick cloud, opened by a swell.
@@ -495,7 +503,7 @@ export function mixMusic(
   const lowNow = easeLog(memory.low, Math.max(lowTarget, 300), dt, MUSIC_BAND_S);
   const highNow = easeLog(memory.high, view.high, dt, MUSIC_BAND_S);
 
-  // The crossfade: equal in power, the theme thinned and never cut.
+  // The crossfade: equal in power, each piece wholly the other's once it is over.
   const angle = (tension * Math.PI) / 2;
   const music: MusicLevels = {
     gain: level,
@@ -509,7 +517,7 @@ export function mixMusic(
     music,
     memory: {
       gain: level, high: highNow, low: lowNow, drive, tension, tense, lowFor, warnedFor, clouded, inCloud, swell, aloft,
-      orbit: input.orbit ?? memory.orbit, turning, flight, calming,
+      orbit: input.orbit ?? memory.orbit, turning, flight, calming, age,
     },
   };
 }

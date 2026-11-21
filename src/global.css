@@ -154,6 +154,19 @@ html.screenshot .maplibregl-ctrl-top-right {
   -webkit-touch-callout: none;
 }
 
+/* The flight's page, its plan and the flight: nothing there is text to be
+   selected, its words not either. A long press anywhere near selectable
+   text has iOS bring up its text loupe over the picture; held on the map or
+   on a touch control, it is a press, not a selection. */
+html.mc-flight-page,
+html.mc-flight-page *,
+html.mc-aboard,
+html.mc-aboard * {
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none !important;
+}
+
 /* Studio's flight (components/studio/flight): the page's own chrome steps
    aside for the flight deck, which carries the map's credits itself. */
 html.mc-flying .top-left,

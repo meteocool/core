@@ -105,7 +105,7 @@ test("the same flight breaks the same way every time, and another may break the 
   assert.equal(sides.size, 2);
 });
 
-test("past its flutter speed a surface comes off after a few seconds, far past it at once; slowed down in time, nothing does", () => {
+test("past its flutter speed a surface comes off after a few seconds, far past it after two, never at once; slowed down in time, nothing does", () => {
   const speeds = (ias: number): Flight => ({ ias, mach: 0.6, gear: 0, over: null });
   const edge = FLUTTER_MS + 0.5;
   const before = held(cruise, FLUTTER_S - 0.5, speeds(edge));
@@ -114,7 +114,9 @@ test("past its flutter speed a surface comes off after a few seconds, far past i
   near(after.seconds, FLUTTER_S, 0.2);
   assert.deepEqual(after.events.map((event) => event.kind), ["shed"]);
   assert.ok(!broken(after.damage) && after.damage.cause === null, "a surface, not the flight's end");
-  assert.ok(first(cruise, speeds(FLUTTER_CERTAIN_MS + 5)).seconds < 0.3);
+  const far = first(cruise, speeds(FLUTTER_CERTAIN_MS + 5)).seconds;
+  assert.ok(far > 1.5 && far < 2.5, `${far} s far past`);
+  assert.ok(first(cruise, speeds(BREAKUP_MS + 20)).seconds > 1.5, "however far past, time to pull the power");
   near(first(cruise, { ias: 150, mach: FLUTTER_MACH + 0.002, gear: 0, over: null }).seconds, FLUTTER_S, 0.3);
   // The shaking dies away again.
   const saved = held(cruise, 6, speeds(VMO_MS), before.damage);
@@ -122,7 +124,7 @@ test("past its flutter speed a surface comes off after a few seconds, far past i
   assert.ok(!harmed(saved.damage));
   // Far beyond, the airframe itself: the tail as often as a wing, near enough, and that ends the flight.
   const pieces = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((seed) => {
-    const { damage, events } = held(cruise, 1, speeds(BREAKUP_MS + 2), intact(seed));
+    const { damage, events } = held(cruise, 4, speeds(BREAKUP_MS + 2), intact(seed));
     assert.equal(damage.cause, "flutter");
     const torn = events.find((event) => event.kind === "torn");
     return torn?.kind === "torn" && torn.piece === "tail" ? "tail" : "wing";

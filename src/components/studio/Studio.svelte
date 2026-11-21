@@ -262,6 +262,15 @@ $: document.documentElement.classList.toggle("mc-flying", $studioFlying);
    lib/sideways.ts. */
 let releaseSideways: (() => void) | null = null;
 $: aboard = Boolean(boarding || loading || planning || $studioFlying);
+// Aboard, nothing is text to select (global.css), and no selection starts: iOS's loupe comes with one on a long press.
+const noSelection = (event: Event) => event.preventDefault();
+$: document.documentElement.classList.toggle("mc-aboard", aboard);
+$: if (aboard) document.addEventListener("selectstart", noSelection);
+else document.removeEventListener("selectstart", noSelection);
+onDestroy(() => {
+  document.documentElement.classList.remove("mc-aboard");
+  document.removeEventListener("selectstart", noSelection);
+});
 $: if (aboard && !releaseSideways) releaseSideways = holdSideways();
 $: if (!aboard && releaseSideways) {
   releaseSideways();
@@ -329,8 +338,9 @@ function keydown(event: KeyboardEvent) {
       <span class="spinner" aria-hidden="true"></span>{$_("studio.flight.boarding")}
     </p>
   {:else if planning}
-    <Preflight {stage} ontakeoff={(flightPlan) => cut(() => fly(flightPlan), TAKEOFF_HOLD_MS)} oncancel={() => cut(cancel)}
-      onback={flightAlone ? backToMap : null} />
+    <!-- On the flight's own page its plan is that page's way in: put away, it is meteocool's map, not the page's words again. -->
+    <Preflight {stage} ontakeoff={(flightPlan) => cut(() => fly(flightPlan), TAKEOFF_HOLD_MS)}
+      oncancel={$studioFlightOnly ? backToMap : () => cut(cancel)} onback={flightAlone ? backToMap : null} />
   {:else if !flightAlone}
   {#if frame && width && height}
     <div
