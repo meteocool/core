@@ -25,6 +25,7 @@
  * In the apps the page is their meteoair mode: a way back to the app's map
  * where the website has its footer.
  */
+import logo from "../../assets/logo.svg";
 import { onDestroy, onMount } from "svelte";
 import { get } from "svelte/store";
 import { fade } from "svelte/transition";
@@ -184,12 +185,13 @@ const FEATURES = [
         <a href={mapHref}>{$_("studio.flight.page.by")}</a>
       </p>
       <div class="tools">
-      {#if inApp}
-        <a class="screen" href={mapHref}>
-          <Icon icon={faArrowLeft} />
-          <span>{$_("studio.flight.plan.back")}</span>
-        </a>
-      {/if}
+      <!-- The way back to the radar map, in the website as in the apps: meteocool's, and looking it.
+           On a narrow screen it is by the way in instead, where there is room for its words. -->
+      <a class="home top" href={mapHref}>
+        <Icon icon={faArrowLeft} />
+        <img src={logo} alt="" />
+        <span>{$_("studio.flight.plan.back")}</span>
+      </a>
       {#if offered}
         <SoundSwitch />
       {/if}
@@ -213,6 +215,11 @@ const FEATURES = [
             <Icon icon={faPlaneDeparture} />
             {$_("studio.flight.page.board")}
           </button>
+          <a class="home by-board" href={mapHref}>
+            <Icon icon={faArrowLeft} />
+            <img src={logo} alt="" />
+            <span>{$_("studio.flight.plan.back")}</span>
+          </a>
           <p class="hint">{$_(byTouch ? "studio.flight.page.hint_touch" : "studio.flight.page.hint")}</p>
           {#if metered}
             <p class="note data">{$_("studio.flight.page.data", { values: { mb: megabytes } })}</p>
@@ -272,6 +279,8 @@ const FEATURES = [
     z-index: var(--mc-z-pill);
     display: grid;
     grid-template-rows: auto minmax(0, 1fr) auto;
+    /* Never wider than the screen for what is in it. */
+    grid-template-columns: minmax(0, 1fr);
     box-sizing: border-box;
     padding: clamp(18px, 3.2vh, 36px) clamp(20px, 4.5vw, 72px);
     padding: clamp(18px, 3.2cqh, 36px) clamp(20px, 4.5cqw, 72px);
@@ -325,7 +334,27 @@ const FEATURES = [
     cursor: pointer;
     transition: background-color 0.12s ease;
   }
-  a.screen { text-decoration: none; }
+  .home {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 18px 0 14px;
+    border-radius: var(--mc-radius-pill);
+    background: #0a84ff;
+    color: #fff;
+    font: 650 15px/1 var(--mc-font);
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow: 0 8px 24px rgba(10, 132, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    transition: transform 0.12s ease, background-color 0.12s ease;
+  }
+  .home img { width: 26px; height: 26px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
+  .home :global(svg) { width: 13px; height: 13px; }
+  .home:hover { background: #409cff; transform: translateY(-1px); }
+  .home:active { transform: translateY(0) scale(0.98); }
+  .home:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  .home.by-board { display: none; }
   .screen:hover { background: rgba(30, 38, 50, 0.8); }
   .screen:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   .mark {
@@ -509,11 +538,18 @@ const FEATURES = [
     main { align-self: end; padding-bottom: 18px; }
     .screen { width: 38px; padding: 0; justify-content: center; }
     .screen span { display: none; }
+    .home.top { display: none; }
+    .home.by-board { display: inline-flex; height: 52px; padding: 0 22px 0 18px; font-size: 16px; }
+    .hint { order: 1; }
     ul { display: none; }
     .lede { margin-top: 12px; }
     .go { margin-top: 20px; }
   }
   @container mc-frame (max-height: 620px) {
     ul { display: none; }
+  }
+  /* The smallest phones: the button by the way in says whose the page is. */
+  @container mc-frame (max-width: 400px) {
+    .mark a { display: none; }
   }
 </style>
