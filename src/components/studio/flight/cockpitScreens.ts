@@ -8,7 +8,8 @@
  * instrument move with every frame; a page of numbers is redrawn a few
  * times a second, and the windows of the glareshield only when their text
  * changes. The captain's tablet (efbChart.ts) is a few times a second too,
- * and at once when a hand has done something on it. A canvas not redrawn is not sent to the GPU again either (its
+ * and at once when a hand has done something on it; the first officer's
+ * (assistantTablet.ts) eight times a second, for its spinner. A canvas not redrawn is not sent to the GPU again either (its
  * `version` stays). The lights are parts of one small picture, taken once
  * from the model's own picture of them lit, and are shown or not.
  */
@@ -17,6 +18,7 @@ import { drawLowerEcam, drawUpperEcam } from "./ecam";
 import type { EngineReadout } from "./ecam";
 import { drawBar, drawBaro, drawFcu, drawIsis, drawMcdu } from "./panel";
 import { EfbChart } from "./efbChart";
+import { drawAssistantTablet } from "./assistantTablet";
 import { AIRCRAFT_FILES, COCKPIT_LIGHTS, COCKPIT_SCREENS, LIGHTS_TEXTURE } from "../../../lib/studio/flight/cockpit";
 import type { CockpitLight, CockpitLightName, CockpitScreen, ScreenTouch, TexturePart } from "../../../lib/studio/flight/cockpit";
 import { EFB_HEIGHT, EFB_WIDTH } from "../../../lib/studio/flight/efb";
@@ -55,7 +57,7 @@ function sheet(width: number, height: number, every: number): Sheet {
 
 type UvRect = [number, number, number, number];
 
-type SheetName = "pfd" | "nd" | "upper" | "lower" | "isis" | "fcu" | "baro" | "mcduCaptain" | "mcduFo" | "efb";
+type SheetName = "pfd" | "nd" | "upper" | "lower" | "isis" | "fcu" | "baro" | "mcduCaptain" | "mcduFo" | "efb" | "foEfb";
 
 /** What the screens take of the flight besides the telemetry. */
 export interface CockpitInputs {
@@ -85,6 +87,7 @@ export class CockpitScreens {
     mcduCaptain: sheet(288, 272, 0.5),
     mcduFo: sheet(288, 272, 0.5),
     efb: sheet(EFB_WIDTH, EFB_HEIGHT, 0.25),
+    foEfb: sheet(EFB_WIDTH, EFB_HEIGHT, 0.125),
   };
   /** The captain's tablet: its storm map, and what a hand has done on it. */
   private readonly efb = new EfbChart();
@@ -106,6 +109,7 @@ export class CockpitScreens {
     const placed: Array<[CockpitScreen, SheetName]> = [
       ["pfd", "pfd"], ["nd", "nd"], ["foPfd", "pfd"], ["foNd", "nd"], ["upperEcam", "upper"], ["lowerEcam", "lower"],
       ["isis", "isis"], ["fcu", "fcu"], ["baroCaptain", "baro"], ["baroFo", "baro"], ["mcduCaptain", "mcduCaptain"], ["mcduFo", "mcduFo"],
+      ["foEfb", "foEfb"],
     ];
     for (const [where, name] of placed) {
       const screen: AircraftScreen = { source: this.sheets[name].canvas, corners: COCKPIT_SCREENS[where], version: 0 };
@@ -222,6 +226,8 @@ export class CockpitScreens {
     this.redraw("efb", telemetry.time, (context) => this.efb.draw(context, telemetry, { warp: status.warp, scan, now }), {
       key: String(this.efb.version), urgent: true,
     });
+    // On the wall clock, not the flight's: the first officer types no faster at four times the speed.
+    this.redraw("foEfb", telemetry.time, (context, { width, height }) => drawAssistantTablet(context, width, height, now / 1000));
 
     // The lights: shown or not, nothing redrawn.
     const loaded = this.atlas.version > 0;

@@ -64,8 +64,27 @@ export function mirrored(quad: Quad): Quad {
 /** The sheets of the windows and lights stand this far in front of the paint they cover, m. */
 const OVER_PANEL = 0.0012;
 
-const PFD: Quad = [[15.629, -0.655, -0.394], [15.629, -0.459, -0.394], [15.579, -0.459, -0.213], [15.579, -0.655, -0.213]];
-const ND: Quad = [[15.629, -0.426, -0.394], [15.629, -0.232, -0.394], [15.579, -0.232, -0.213], [15.579, -0.426, -0.213]];
+/**
+ * The panel's face where the display units are set into it: forward of
+ * the middle, metres, at a height (down, metres). It leans back towards the
+ * crew, a little over 16°.
+ */
+const panelFace = (down: number) => 15.5375 - 0.2957 * (down + 0.4315);
+
+/**
+ * A display unit of the main panel, from `left` to `right` across: in the
+ * opening of its bezel, just behind the bezel's face, not on the model's
+ * own glass a hand's breadth further in. Seen from the other seat, a
+ * picture that deep slid half out of its opening, behind the bezel on one
+ * side and leaving the glass bare on the other.
+ */
+function displayUnit(left: number, right: number): Quad {
+  const [top, bottom] = [-0.43, -0.262];
+  return [[panelFace(top), left, top], [panelFace(top), right, top], [panelFace(bottom), right, bottom], [panelFace(bottom), left, bottom]];
+}
+
+const PFD = displayUnit(-0.645, -0.46);
+const ND = displayUnit(-0.445, -0.26);
 /**
  * The captain's tablet on the left console, beside the sidestick: the
  * opening of its bezel, right of its keys, a 4:3 screen 24 cm across, tilted
@@ -104,6 +123,8 @@ export const COCKPIT_SCREENS = {
   mcduFo: lifted([[15.4118, 0.1318, -0.0669], [15.4124, 0.2334, -0.0671], [15.319, 0.2334, -0.0516], [15.3184, 0.1319, -0.0514]], OVER_PANEL),
   /** The captain's tablet, a storm map (components/studio/flight/efbChart.ts); a hand uses it (`ScreenTouch`). */
   efb: lifted(EFB, OVER_PANEL),
+  /** The first officer's, on the right console: busy with something else (components/studio/flight/assistantTablet.ts). */
+  foEfb: lifted(mirrored(EFB), OVER_PANEL),
 } satisfies Record<string, Quad>;
 
 export type CockpitScreen = keyof typeof COCKPIT_SCREENS;
