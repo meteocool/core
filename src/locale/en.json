@@ -214,7 +214,10 @@
         "fullscreen_exit": "Leave full screen",
         "map": "meteocool.com",
         "imprint": "Imprint",
-        "privacy": "Privacy"
+        "privacy": "Privacy",
+        "demo_tag": "Tech demo",
+        "demo": "A game made to show live radar in 3D. It wants a recent device, and may not run on older ones.",
+        "data": "Planning a flight loads about {mb} MB. On a mobile connection, Wi-Fi is the better choice."
       },
       "plan": {
         "title": "Flight plan",
@@ -230,9 +233,6 @@
         "speed": "Speed",
         "heading": "Heading",
         "aim": "On the storm",
-        "view": "Seen from",
-        "cockpit": "Cockpit",
-        "outside": "Outside",
         "briefing": "Briefing",
         "brief": {
           "route": "ROUTE",
@@ -297,8 +297,9 @@
       "share": {
         "flight": "Share this flight's start",
         "plan": "Share",
-        "plan_title": "Copy a link that takes off from this plan: the start, heading, level, speed and view, over the weather of the moment it is opened",
-        "title": "A flight through live clouds on meteoair"
+        "plan_title": "Copy a link that takes off from this plan: the start, heading, level and speed, over the weather of the moment it is opened",
+        "title": "A flight through live clouds on meteoair",
+        "note": "The link shares this start: the place, heading, level and speed. The clouds are always the newest radar's, whenever it is opened."
       },
       "fullscreen": "Full screen (F)",
       "fullscreen_exit": "Leave full screen (F)",

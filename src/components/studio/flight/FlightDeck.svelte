@@ -432,7 +432,7 @@ const WARNINGS = {
 
   {#if status.view !== "clean"}
     <div class="corner">
-      <!-- The controls, on a card: H, and the touch strip's ?, are the same. -->
+      <!-- The controls, on a card: H is the same; under a finger, the only way to them. -->
       <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => pilot.act("help")}
         title={$_("studio.flight.help_title")} aria-label={$_("studio.flight.help")} aria-pressed={status.keys}>
         <Icon icon={faQuestion} />

@@ -42,6 +42,19 @@ let jobs = 0;
 const pathIds = new WeakMap<MaskPath, number>();
 let paths = 0;
 
+/**
+ * Put the workers away, and whatever they were packing with them: for a
+ * flight, which wants their memory. The next tile asks for new ones.
+ */
+export function stopPacking(): void {
+  for (const packer of packers ?? []) packer.worker.terminate();
+  packers = undefined;
+  for (const [id, reply] of replies) {
+    reply(null);
+    replies.delete(id);
+  }
+}
+
 function pool(): Packer[] | null {
   if (packers !== undefined) return packers;
   packers = null;

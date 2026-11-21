@@ -35,6 +35,11 @@
  * flight page's body); and the safe area's insets are handed round with
  * the picture (`--mc-safe-*`).
  *
+ * Newer builds of the apps turn themselves instead (`nativeCapabilities.flight`):
+ * told `flightEntered`, they go to landscape and put all of their own bars
+ * and buttons away, and back on `flightLeft`; the page is then laid out
+ * the right way up as it is, and nothing here turns it.
+ *
  * To try it without the apps: open the page with `?sideways` in its address
  * (for that load), or set localStorage `mc-sideways` to `1` (until removed),
  * in a window taller than it is wide: a phone's browser, or a desktop
@@ -43,7 +48,7 @@
 import { writable } from "svelte/store";
 import type OlMap from "ol/Map";
 import { DeviceDetect as dd } from "./DeviceDetect";
-import { hideNativeControls } from "./nativeBridge";
+import { hideNativeControls, postToNative } from "./nativeBridge";
 
 /**
  * How far the picture is turned on the screen, degrees clockwise: 90 with
@@ -151,6 +156,8 @@ let turn: Turn = 0;
 let preferred: Turn = 90;
 let viewport: Viewport = { width: 0, height: 0 };
 let releaseControls: (() => void) | null = null;
+/** Whether the app has been told the flight is up, and turns itself (see the header). */
+let toldApp = false;
 /** The other way round, and since when the phone has said so. */
 let pending: { turn: Turn; since: number } | null = null;
 let turningTimer: ReturnType<typeof setTimeout> | null = null;
@@ -252,7 +259,13 @@ const SLIDING: Array<[string, (event: PointerEvent) => void]> = [
 /** Whether the page should be on its side now, and the apps' buttons away: set it so. */
 function settle(): void {
   const app = dd.isApp();
-  const wanted = holds > 0 && (app || forced);
+  // An app that turns itself is told, and the page is left upright in it.
+  const turnsItself = app && Boolean(window.nativeCapabilities?.flight);
+  if (turnsItself && (holds > 0) !== toldApp) {
+    toldApp = holds > 0;
+    postToNative(toldApp ? "flightEntered" : "flightLeft");
+  }
+  const wanted = holds > 0 && !turnsItself && (app || forced);
   // The apps' buttons go for the whole of it, whichever way the screen is: the page cannot move them out of the flight's way.
   if (holds > 0 && app && !releaseControls) releaseControls = hideNativeControls();
   if (holds === 0 && releaseControls) {

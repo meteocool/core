@@ -18,9 +18,12 @@
  * The page is the flight's menu: the menus' music plays on it from the
  * reader's first click or key (lib/studio/flight/soundtrack.ts), with a
  * switch for it, and on through the plan, until the flight takes it over.
- * And while the reader reads, everything the flight needs is loaded
- * (lib/studio/flight/preload.ts): the button says how far that is, and a
- * press before it is done waits for it.
+ * Everything else the flight needs is large (lib/studio/flight/preload.ts),
+ * so it is loaded only once the reader asks for the plan, and a reader on a
+ * phone's data is told how large first.
+ *
+ * In the apps the page is their meteoair mode: a way back to the app's map
+ * where the website has its footer.
  */
 import { onDestroy, onMount } from "svelte";
 import { get } from "svelte/store";
@@ -31,6 +34,7 @@ import { faBolt } from "@fortawesome/free-solid-svg-icons/faBolt";
 import { faGauge } from "@fortawesome/free-solid-svg-icons/faGauge";
 import { faGamepad } from "@fortawesome/free-solid-svg-icons/faGamepad";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
+import { faFlask } from "@fortawesome/free-solid-svg-icons/faFlask";
 import { faExpand } from "@fortawesome/free-solid-svg-icons/faExpand";
 import { faCompress } from "@fortawesome/free-solid-svg-icons/faCompress";
 import Icon from "../Icon.svelte";
@@ -45,19 +49,22 @@ import type Cells3DCapability from "../../caps/Cells3DCapability";
 import { cells3dFailed, sharedActiveCap } from "../../stores";
 import { DeviceDetect } from "../../lib/DeviceDetect";
 import SoundSwitch from "../studio/flight/SoundSwitch.svelte";
-import { flightLoad, loadMenuMusic, preloadFlight, shareOf } from "../../lib/studio/flight/preload";
+import { FLIGHT_BYTES, loadMenuMusic, preloadFlight } from "../../lib/studio/flight/preload";
+import { radarMapHref } from "../../lib/studio/flightPage";
 import { claimMenuMusic } from "../../lib/studio/flight/soundtrack";
 import { curtainDown, lift, lower } from "../../lib/curtain";
 
 export let layerManager: LayerManager;
 
+/** Inside one of the apps, where the page is their meteoair mode. */
+const inApp = DeviceDetect.isApp();
 /**
  * Where the radar map is: meteocool.com on the web; in the apps, their own
- * page without `#meteoair`, which loads it again as the app's map
- * (lib/studio/flightPage.ts). A link to the website would take the app's
- * view off to it.
+ * page without `#meteoair`, on its thunderstorms, which loads it again as the
+ * app's map (lib/studio/flightPage.ts). A link to the website would take the
+ * app's view off to it.
  */
-const mapHref = DeviceDetect.isApp() ? `${window.location.pathname}${window.location.search}` : "https://meteocool.com/";
+const mapHref = inApp ? radarMapHref() : "https://meteocool.com/";
 /** The flight the page's link asks for, if it asks for one. */
 export let link: FlightStart | null = null;
 
@@ -73,30 +80,24 @@ const offered = Boolean(layerManager.getCapability("cells3d"));
 /** Whether it will be flown by touch: the page says how, in place of the keys. */
 const byTouch = touchFirst();
 
-/* The menus' music at once: it is what is heard first. The flight's code is
-   Studio's, fetched when Studio opens, and its aircraft and music are large;
-   here the flight is what the page is for, so all of it is loaded while the
-   reader reads, once the page is up and the radar has had its first moments. */
-const LOAD_AFTER_MS = 600;
-let loadTimer: ReturnType<typeof setTimeout> | null = null;
+/* The menus' music at once: it is what is heard first, and small. The rest
+   (the flight's code, its aircraft and its music) waits for the button. */
 onMount(() => {
-  if (!offered) return;
-  void loadMenuMusic();
-  requestAnimationFrame(() => {
-    loadTimer = setTimeout(() => preloadFlight().catch(() => undefined), LOAD_AFTER_MS);
-  });
-});
-onDestroy(() => {
-  if (loadTimer !== null) clearTimeout(loadTimer);
+  if (offered) void loadMenuMusic();
 });
 
-/** Whether the reader has pressed the button before the flight was loaded: it goes once it is. */
-let waiting = false;
-$: percent = Math.floor(shareOf($flightLoad) * 100);
-$: if (waiting && $flightLoad.state === "ready") {
-  waiting = false;
-  aboard();
-}
+type Connection = { type?: string; saveData?: boolean };
+const connection = (navigator as Navigator & { connection?: Connection }).connection;
+/**
+ * Whether the reader may be paying for what the flight loads: a phone's data
+ * where the browser says so (Chrome on Android), or asks to save it; where
+ * it says nothing (Safari, Firefox), any touch screen, which is most often a
+ * phone's.
+ */
+const metered = connection?.type !== undefined || connection?.saveData
+  ? connection.type === "cellular" || connection.saveData === true
+  : byTouch;
+const megabytes = Math.round(FLIGHT_BYTES / 1e6);
 
 function board(): void {
   if (offered) layerManager.setTarget("cells3d", MAP_TARGET);
@@ -111,17 +112,11 @@ function aboard(): void {
   void lower().then(board);
 }
 
-/** The button: on board if everything is loaded, else once it is (and another try after a failure). */
+/** The button: on board to the plan, with what the flight needs loading behind it; taking off waits for it if it must. */
 function plan(): void {
   if (!offered) return;
-  if ($flightLoad.state === "ready") {
-    aboard();
-    return;
-  }
-  waiting = true;
-  preloadFlight().catch(() => {
-    waiting = false;
-  });
+  preloadFlight().catch(() => undefined);
+  aboard();
 }
 
 /** Whether the page is on its link's flight: from opening until that flight is over, or never got off. */
@@ -189,6 +184,12 @@ const FEATURES = [
         <a href={mapHref}>{$_("studio.flight.page.by")}</a>
       </p>
       <div class="tools">
+      {#if inApp}
+        <a class="screen" href={mapHref}>
+          <Icon icon={faArrowLeft} />
+          <span>{$_("studio.flight.plan.back")}</span>
+        </a>
+      {/if}
       {#if offered}
         <SoundSwitch />
       {/if}
@@ -208,26 +209,14 @@ const FEATURES = [
 
       {#if offered}
         <div class="go">
-          <button type="button" class="board" class:waiting on:click={plan} aria-busy={waiting}
-            title={$flightLoad.state === "ready" || $flightLoad.state === "failed" ? undefined
-              : $_("studio.flight.page.loading_title", { values: { percent } })}>
+          <button type="button" class="board" on:click={plan}>
             <Icon icon={faPlaneDeparture} />
-            {waiting ? $_("studio.flight.page.loading", { values: { percent } }) : $_("studio.flight.page.board")}
-            {#if $flightLoad.state === "loading"}
-              <span class="load" style:width={`${percent}%`} aria-hidden="true"></span>
-            {/if}
+            {$_("studio.flight.page.board")}
           </button>
           <p class="hint">{$_(byTouch ? "studio.flight.page.hint_touch" : "studio.flight.page.hint")}</p>
-          <p class="status" class:failed={$flightLoad.state === "failed"} role="status">
-            {#if $flightLoad.state === "loading"}
-              <span class="spinner" aria-hidden="true"></span>{$_("studio.flight.page.loading", { values: { percent } })}
-            {:else if $flightLoad.state === "ready"}
-              {$_("studio.flight.page.ready")}
-            {:else if $flightLoad.state === "failed"}
-              {$_("studio.flight.page.failed")}
-              <button type="button" class="retry" on:click={plan}>{$_("studio.flight.page.retry")}</button>
-            {/if}
-          </p>
+          {#if metered}
+            <p class="note data">{$_("studio.flight.page.data", { values: { mb: megabytes } })}</p>
+          {/if}
         </div>
       {:else}
         <div class="go">
@@ -235,6 +224,11 @@ const FEATURES = [
           <a class="board quiet" href={mapHref}>{$_("studio.flight.page.open_map")}</a>
         </div>
       {/if}
+
+      <p class="note demo">
+        <span class="tag"><Icon icon={faFlask} /> {$_("studio.flight.page.demo_tag")}</span>
+        {$_("studio.flight.page.demo")}
+      </p>
 
       <ul>
         {#each FEATURES as feature (feature.title)}
@@ -249,11 +243,13 @@ const FEATURES = [
       </ul>
     </main>
 
-    <footer>
-      <a href={mapHref}>{$_("studio.flight.page.map")}</a>
-      <a href="imprint.html">{$_("studio.flight.page.imprint")}</a>
-      <a href="privacy.html">{$_("studio.flight.page.privacy")}</a>
-    </footer>
+    {#if !inApp}
+      <footer>
+        <a href={mapHref}>{$_("studio.flight.page.map")}</a>
+        <a href="imprint.html">{$_("studio.flight.page.imprint")}</a>
+        <a href="privacy.html">{$_("studio.flight.page.privacy")}</a>
+      </footer>
+    {/if}
   </div>
 {:else if $cells3dFailed}
   <!-- The 3D map did not come up: its veil offers another try, this the way back. -->
@@ -329,6 +325,7 @@ const FEATURES = [
     cursor: pointer;
     transition: background-color 0.12s ease;
   }
+  a.screen { text-decoration: none; }
   .screen:hover { background: rgba(30, 38, 50, 0.8); }
   .screen:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
   .mark {
@@ -402,51 +399,29 @@ const FEATURES = [
   .board:hover { background: color-mix(in srgb, var(--mc-orange) 86%, #fff); transform: translateY(-1px); }
   .board:active { transform: translateY(0) scale(0.98); }
   .board:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
-  /* What is loaded so far, along the button's foot; pressed early, it waits for the rest. */
-  .board { position: relative; overflow: hidden; }
-  .board .load {
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    height: 4px;
-    background: rgba(26, 18, 5, 0.55);
-    transition: width 0.2s ease;
-  }
-  .board.waiting { cursor: progress; }
-  .status {
-    flex-basis: 100%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-height: 18px;
+  .note {
     margin: 0;
     color: var(--ink-3);
     font-size: 12.5px;
-    font-variant-numeric: tabular-nums;
+    line-height: 1.45;
   }
-  .status.failed { color: #ffb4ae; }
-  .status .spinner {
-    width: 10px;
-    height: 10px;
-    border: 2px solid rgba(244, 246, 248, 0.3);
-    border-top-color: var(--mc-orange);
-    border-radius: 50%;
-    animation: landing-turn 0.9s linear infinite;
+  .note.data { flex-basis: 100%; color: #ffd08a; }
+  .note.demo { margin-top: 22px; }
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-right: 6px;
+    padding: 2px 8px;
+    border-radius: var(--mc-radius-pill);
+    background: rgba(255, 149, 0, 0.18);
+    color: var(--mc-orange);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
-  @keyframes landing-turn { to { transform: rotate(360deg); } }
-  .retry {
-    padding: 0;
-    border: 0;
-    background: none;
-    color: var(--ink);
-    font: 600 12.5px/1 var(--mc-font);
-    text-decoration: underline;
-    cursor: pointer;
-  }
-  @media (prefers-reduced-motion: reduce) {
-    .status .spinner { animation: none; }
-    .board .load { transition: none; }
-  }
+  .tag :global(svg) { width: 10px; height: 10px; }
   .board.quiet {
     background: rgba(255, 255, 255, 0.14);
     color: var(--ink);

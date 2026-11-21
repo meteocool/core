@@ -1018,6 +1018,13 @@ export default class Cells3DCapability extends Capability {
 
   /** Whether a flight has taken the radar's picture off the ground; see `setRadarOnGround`. */
   private radarOffGround = false;
+  /**
+   * The drape's layers put away for that, rather than made clear: a clear
+   * layer still fetches and holds its tiles, which a flight wants the memory
+   * of. They still count as the ground's picture (`radarTiles`), which the
+   * flight's own map reads.
+   */
+  private offGround = new Set<string>();
 
   /** Where the aircraft was last put; what the storms are chosen from while flying. */
   private flightPose: FlightPose | null = null;
@@ -2829,7 +2836,8 @@ export default class Cells3DCapability extends Capability {
 
   /** Keep hold of the volumes on the map while in Studio, as far as `STUDIO_HELD_BYTES` goes. */
   private hold(): void {
-    if (!this.studio) return;
+    // Not while flying: a flight wants the memory, and what it flies past is not Studio's to play back.
+    if (!this.studio || this.flight) return;
     for (const [path, { cutaway }] of this.cutaways) {
       if (this.studioHeld.has(path)) continue;
       const bytes = cutaway.voxels.byteLength;
@@ -3059,6 +3067,11 @@ export default class Cells3DCapability extends Capability {
     if (on) {
       if (this.flight || !gl || !this.studio || !support) return;
       this.flightSupport = support;
+      // What Studio kept of earlier scans goes: the flight shows the newest, and wants the memory. Fetched again after.
+      this.studioHeld.clear();
+      this.studioHeldBytes = 0;
+      this.studioDrawn.clear();
+      this.blendMotions.clear();
       this.cloudsLayer?.setScenic(support.cloudscape(this.cloudBaseKm), support.makeScenicPass);
       this.flight = {
         minZoom: gl.getMinZoom(),
@@ -3219,11 +3232,20 @@ export default class Cells3DCapability extends Capability {
   /** The frames the drape's first set of layers shows, as their `masked://` templates: the same tiles the ground is painted with. */
   radarTiles(): string[] {
     const gl = this.gl;
-    const shown = (id: string) => Boolean(gl?.getLayer(id)) && gl?.getLayoutProperty(id, "visibility") !== "none";
+    const shown = (id: string) => Boolean(gl?.getLayer(id))
+      && (gl?.getLayoutProperty(id, "visibility") !== "none" || this.offGround.has(id));
     return [
       shown(RADAR_SOURCE) ? this.radarMasks[0]?.tiles : undefined,
       ...NETWORKS.map(({ code }) => (shown(networkLayerId(code)) ? this.networkMasks[0][code]?.tiles : undefined)),
     ].filter((tiles): tiles is string => tiles !== undefined);
+  }
+
+  /** A drape layer that has a picture to show: shown, or put away while a flight has the radar off the ground. */
+  private showDrape(gl: GlMap, id: string): void {
+    if (!gl.getLayer(id)) return;
+    gl.setLayoutProperty(id, "visibility", this.radarOffGround ? "none" : "visible");
+    if (this.radarOffGround) this.offGround.add(id);
+    else this.offGround.delete(id);
   }
 
   /** How opaque one of the drape's two sets of layers is drawn: as its blend has it, or not at all. */
@@ -3966,7 +3988,10 @@ export default class Cells3DCapability extends Capability {
     if (!url) {
       // An earlier scan the grid has no frame for: no radar, rather than the
       // newest under storms from before it.
-      if ((!drape || drape.past) && gl.getLayer(id)) gl.setLayoutProperty(id, "visibility", "none");
+      if ((!drape || drape.past) && gl.getLayer(id)) {
+        gl.setLayoutProperty(id, "visibility", "none");
+        this.offGround.delete(id);
+      }
       return;
     }
 
@@ -3993,7 +4018,7 @@ export default class Cells3DCapability extends Capability {
       // this runs on every refresh and every return to this map.
       const source = existing as unknown as { tiles?: string[]; setTiles(tiles: string[]): void };
       if (source.tiles?.[0] !== tiles) source.setTiles([tiles]);
-      gl.setLayoutProperty(id, "visibility", "visible");
+      this.showDrape(gl, id);
       return;
     }
 
@@ -4013,6 +4038,7 @@ export default class Cells3DCapability extends Capability {
       source: id,
       paint: this.drapePaint(slot),
     }, this.rasterAnchor(gl));
+    if (this.radarOffGround) this.showDrape(gl, id);
   }
 
   /** Let go of every `masked://` registration of the drape's, both sets'. */
@@ -4102,6 +4128,8 @@ export default class Cells3DCapability extends Capability {
         if (gl.getLayer(id) && gl.getPaintProperty(id, "raster-opacity") !== this.drapeShown(slot)) {
           gl.setPaintProperty(id, "raster-opacity", this.drapeShown(slot));
         }
+        const away = this.radarOffGround && gl.getLayer(id) && gl.getLayoutProperty(id, "visibility") !== "none";
+        if (away || (!this.radarOffGround && this.offGround.has(id))) this.showDrape(gl, id);
       }
     }
   }
@@ -4130,6 +4158,7 @@ export default class Cells3DCapability extends Capability {
       const frame = frames[code];
       if (!frame) {
         if (gl.getLayer(id)) gl.setLayoutProperty(id, "visibility", "none");
+        this.offGround.delete(id);
         continue;
       }
 
@@ -4154,7 +4183,7 @@ export default class Cells3DCapability extends Capability {
       if (existing) {
         const source = existing as unknown as { tiles?: string[]; setTiles(tiles: string[]): void };
         if (source.tiles?.[0] !== mask.tiles) source.setTiles([mask.tiles]);
-        gl.setLayoutProperty(id, "visibility", "visible");
+        this.showDrape(gl, id);
         continue;
       }
 
@@ -4172,6 +4201,7 @@ export default class Cells3DCapability extends Capability {
         source: id,
         paint: this.drapePaint(slot),
       }, this.rasterAnchor(gl));
+      if (this.radarOffGround) this.showDrape(gl, id);
     }
   }
 

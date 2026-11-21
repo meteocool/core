@@ -12,7 +12,7 @@
 /** Where the aircraft's files are served from, and its model's size, bytes, until the server says. */
 export const AIRCRAFT_FILES = `${import.meta.env?.BASE_URL ?? "/"}models/a320/`;
 export const AIRCRAFT_MODEL = "a320.bin";
-export const AIRCRAFT_BYTES = 13_851_508;
+export const AIRCRAFT_BYTES = 13_851_716;
 
 /** How long a file may send nothing before it is given up on, ms. */
 const STALL_MS = 30_000;

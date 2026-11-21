@@ -91,7 +91,6 @@ test.describe("a phone held upright, the page forced on its side", () => {
     expect(Math.abs(after[1] - before[1])).toBeLessThan(Math.abs(after[0] - before[0]) / 10);
 
     // The plan: a slider slid along by a finger.
-    await expect(landing(page).getByRole("status")).toContainText("Ready for take-off", { timeout: 90_000 });
     await page.getByRole("button", { name: "Plan a flight" }).tap();
     await expect(flightPlan(page)).toBeVisible({ timeout: 60_000 });
     const level = page.locator("#preflight-level");
@@ -104,7 +103,7 @@ test.describe("a phone held upright, the page forced on its side", () => {
 
     // Off, and paused, for the controls to be read as they are held.
     await flightPlan(page).getByRole("button", { name: "Take off" }).tap();
-    await expect(deck(page)).toBeVisible({ timeout: 60_000 });
+    await expect(deck(page)).toBeVisible({ timeout: 90_000 });
     expect(await turnOf(page)).toBe(90);
     await page.evaluate(() => (window as any).flightPilot.paused || (window as any).flightPilot.act("pause"));
     // No word about turning the phone: it is turned.

@@ -59,7 +59,8 @@ export async function share(request: ShareRequest = {}): Promise<void> {
  * it does not unfurl as the map's card, so the dialog shows none.
  */
 export async function sendLink(
-  link: { url: string; title: string }, anchor: Element | null = null, { card = true }: { card?: boolean } = {},
+  link: { url: string; title: string }, anchor: Element | null = null,
+  { card = true, note }: { card?: boolean; note?: string } = {},
 ): Promise<void> {
   if (dd.isApp()) {
     if (!nativeShare()) return;
@@ -73,7 +74,7 @@ export async function sendLink(
   // Written in the press that asked for it, before anything else is awaited:
   // Safari lets a page at the clipboard only that close to the gesture.
   const copied = copyLink(link.url);
-  shareDialog.set({ ...link, copied, ...(card ? {} : { card: false }) });
+  shareDialog.set({ ...link, copied, ...(card ? {} : { card: false }), ...(note ? { note } : {}) });
 }
 
 /** Put `url` on the clipboard; whether it got there. */

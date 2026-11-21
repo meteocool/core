@@ -154,6 +154,8 @@ import { radolanOverlay } from "./layers/dwd";
 import { webglSupported } from "./layers/webglTile";
 import { reportNotice } from "./lib/Toast";
 import { dropEarlierFrames, forgetEarlierFrames } from "./layers/valueTiles";
+import { stopPacking } from "./layers/packTiles";
+import { releaseMap } from "./lib/hiddenMaps";
 import { isHandheld } from "./lib/gpuBudget";
 import LightningCapability from "./caps/LightningCapability";
 import makeStationLayer from "./layers/stations";
@@ -1046,6 +1048,20 @@ if (cells3d && isHandheld()) {
   browsingFrames.subscribe((browsing) => { if (browsing) cells3d.unload(); });
 }
 sharedActiveCap.subscribe((cap) => { if (cap === "cells3d") dropEarlierFrames(); });
+/*
+ * A flight wants all the memory a phone has, and the flat maps' is let go
+ * of at take-off rather than once they have been hidden a while: their
+ * frames and tiles, their drawings, the workers that pack their tiles. All
+ * of it comes back on demand, slower, once the reader is on the radar map
+ * again. The 3D map lets go of what Studio kept for itself (`setFlying`).
+ */
+studioFlying.subscribe((flying) => {
+  if (!flying) return;
+  dropEarlierFrames();
+  radarCap?.stopPreload();
+  for (const map of lm.maps) if (!map.getTarget()) releaseMap(map);
+  stopPacking();
+});
 
 /*
  * The way back from a detour to the 3D map: a tag or a panel's "open on the

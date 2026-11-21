@@ -27,6 +27,19 @@ export const RELEASE_AFTER_MS = 30_000;
  */
 export const HANDHELD_RELEASE_AFTER_MS = 2_000;
 
+/**
+ * Let go of everything a map has drawn: its layers' renderers, their
+ * canvases, textures and tile caches. Drawn again from the HTTP cache once
+ * it is on screen.
+ */
+export function releaseMap(map: Map): void {
+  for (const layer of map.getAllLayers()) layer.clearRenderer();
+  // The last frame it drew stays on a map with no element to draw the
+  // next, and that frame's post-render callbacks hold on to the renderers
+  // just let go, tile canvases and all. OpenLayers has no way to say so.
+  (map as unknown as { frameState_: unknown }).frameState_ = null;
+}
+
 /** Watch `map` from now on; the returned function stops watching. */
 export function releaseWhileHidden(map: Map, after = RELEASE_AFTER_MS): () => void {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -37,11 +50,7 @@ export function releaseWhileHidden(map: Map, after = RELEASE_AFTER_MS): () => vo
     timer = setTimeout(() => {
       timer = undefined;
       if (map.getTarget()) return;
-      for (const layer of map.getAllLayers()) layer.clearRenderer();
-      // The last frame it drew stays on a map with no element to draw the
-      // next, and that frame's post-render callbacks hold on to the renderers
-      // just let go, tile canvases and all. OpenLayers has no way to say so.
-      (map as unknown as { frameState_: unknown }).frameState_ = null;
+      releaseMap(map);
     }, after);
   });
   return () => {

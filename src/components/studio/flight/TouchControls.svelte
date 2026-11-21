@@ -39,7 +39,6 @@ import { faLayerGroup } from "@fortawesome/free-solid-svg-icons/faLayerGroup";
 import { faMobileScreen } from "@fortawesome/free-solid-svg-icons/faMobileScreen";
 import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
 import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
-import { faQuestion } from "@fortawesome/free-solid-svg-icons/faQuestion";
 import { faRotate } from "@fortawesome/free-solid-svg-icons/faRotate";
 import { faRotateLeft } from "@fortawesome/free-solid-svg-icons/faRotateLeft";
 import { faVolumeHigh } from "@fortawesome/free-solid-svg-icons/faVolumeHigh";
@@ -522,9 +521,6 @@ onDestroy(() => {
             <button type="button" class="key" class:lit={tilting} tabindex="-1" aria-pressed={tilting}
               title={$_("studio.flight.touch.tilt_title")} on:click={toggleTilt}>
               <Icon icon={faMobileScreen} /><span>{$_("studio.flight.touch.tilt")}</span>
-            </button>
-            <button type="button" class="key" class:lit={status.keys} tabindex="-1" on:click={act("help")}>
-              <Icon icon={faQuestion} /><span>{$_("studio.flight.touch.help")}</span>
             </button>
           </div>
         {/if}

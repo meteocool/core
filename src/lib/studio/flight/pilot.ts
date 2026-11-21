@@ -307,6 +307,18 @@ export class Pilot {
    */
   private fallen: { bearing: number; yaw: number } | null = null;
   private paused = false;
+  /**
+   * The flight paused when the page goes out of sight: another tab, another
+   * app, the screen locked. It stays paused on coming back, for the reader
+   * to go on when they are ready, not mid-storm the moment it is seen.
+   */
+  private readonly away = (): void => {
+    if (this.stopped || this.paused || get(flightStatus).leaving) return;
+    this.act("pause");
+  };
+  private readonly hidden = (): void => {
+    if (document.hidden) this.away();
+  };
   private frame: number | null = null;
   private last: number | null = null;
   private slowAt = -Infinity;
@@ -418,6 +430,8 @@ export class Pilot {
     // Taking off is a click or a key: when a page may begin to make sound.
     this.sound = new FlightSound();
     this.keys.start();
+    document.addEventListener("visibilitychange", this.hidden);
+    window.addEventListener("pagehide", this.away);
     this.keysTimer = setTimeout(() => this.status({ keys: false }), KEYS_MS);
     this.frame = requestAnimationFrame((now) => this.tick(now));
     // While developing, within reach of the console: to put the aircraft somewhere, or a storm round it.
@@ -438,6 +452,8 @@ export class Pilot {
     if (this.keysTimer !== null) clearTimeout(this.keysTimer);
     this.keysTimer = null;
     this.keys.stop();
+    document.removeEventListener("visibilitychange", this.hidden);
+    window.removeEventListener("pagehide", this.away);
     this.sound?.dispose();
     this.sound = null;
     // A video the reader was taking is kept, not thrown away with the flight.

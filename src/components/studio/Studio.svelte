@@ -249,7 +249,8 @@ if (asked) board(asked);
 function share(anchor: Element | null): void {
   if (!flown) return;
   const start = startOf(flown, stormSystems(stage.stormTiles()));
-  void sendLink({ url: flightLinkUrl(window.location.origin, start), title: $_("studio.flight.share.title") }, anchor, { card: false });
+  void sendLink({ url: flightLinkUrl(window.location.origin, start), title: $_("studio.flight.share.title") }, anchor,
+    { card: false, note: $_("studio.flight.share.note") });
 }
 
 // The map can end a flight itself: when the 3D map is put away under it.

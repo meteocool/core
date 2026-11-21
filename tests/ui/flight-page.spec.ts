@@ -85,42 +85,47 @@ test("a flight's link takes off at once from where it says, and once it is over 
   await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
 });
 
-test("the page loads the flight while the reader reads: the button says how far, waits when pressed early, and says when it failed",
+test("the page loads nothing of the flight but its menu music until the button: then the plan, with the rest loading behind it",
   async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
     test.setTimeout(120_000);
     await noGeocoder(page);
-    // The model fails first, then comes when the test says.
-    await page.route("**/models/a320/**", (route) => route.abort());
-    await page.goto(`/meteoair.html?${VIEW}`);
-    const status = landing(page).getByRole("status");
-    await expect(status).toContainText("The flight did not load", { timeout: 60_000 });
-    await page.unrouteAll({ behavior: "ignoreErrors" });
+    const asked: string[] = [];
+    page.on("request", (request) => {
+      if (/\/(models\/a320\/|audio\/(theme|tension))/.test(request.url())) asked.push(request.url());
+    });
     let release = () => {};
     await emptyAircraft(page, new Promise<void>((resolve) => { release = resolve; }));
-    await status.getByRole("button", { name: "Try again" }).click();
-    await expect(status).toContainText(/Loading \d+%/);
-    // Pressed before it is done, the button waits and says so.
+    await page.goto(`/meteoair.html?${VIEW}`);
+    await expect(board(page)).toBeVisible({ timeout: 30_000 });
+    // Read for a while: nothing large comes.
+    await page.waitForTimeout(3_000);
+    expect(asked).toEqual([]);
+    // The tech demo is said, and a desktop's connection is not warned of.
+    await expect(landing(page)).toContainText("Tech demo");
+    await expect(landing(page).locator(".note.data")).toHaveCount(0);
+    // Pressed: on to the plan at once, the flight loading meanwhile, along the take-off button's foot.
     await board(page).click();
-    await expect(page.getByRole("button", { name: /^Loading \d+%$/ })).toHaveAttribute("aria-busy", "true");
-    await expect(landing(page)).toBeVisible();
-    release();
-    // Then on: the plan, with its own switch for the sound.
     const plan = page.getByRole("region", { name: "Flight plan" });
     await expect(plan).toBeVisible({ timeout: 60_000 });
     await expect(plan.getByRole("button", { name: /^Sound (on|off)$/ })).toBeVisible();
+    await expect.poll(() => asked.some((url) => url.includes("/models/a320/"))).toBe(true);
+    await expect(plan.getByRole("button", { name: "Take off" })).toHaveAttribute("title", /\d+%/);
+    release();
+    await expect(plan.getByRole("button", { name: "Take off" })).not.toHaveAttribute("title", /\d+%/, { timeout: 60_000 });
   });
 
-test("taking off is at once once the page has loaded the flight; the deck's sound button is the plan's switch", async ({ page }, testInfo) => {
+test("taking off is at once once the plan has loaded the flight; the deck's sound button is the plan's switch", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
   test.setTimeout(150_000);
   await noGeocoder(page);
   await emptyAircraft(page);
   await page.goto(`/meteoair.html?${VIEW}`);
-  await expect(landing(page).getByRole("status")).toContainText("Ready for take-off", { timeout: 90_000 });
   await board(page).click();
   const plan = page.getByRole("region", { name: "Flight plan" });
   await expect(plan).toBeVisible({ timeout: 60_000 });
+  // Everything in while the plan is read: the take-off button stops counting.
+  await expect(plan.getByRole("button", { name: "Take off" })).not.toHaveAttribute("title", /\d+%/, { timeout: 90_000 });
   // Off in the plan, off in the flight, and remembered.
   await plan.getByRole("button", { name: /^Sound (on|off)$/ }).click();
   await plan.getByRole("button", { name: "Take off" }).click();

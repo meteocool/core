@@ -26,6 +26,9 @@ export type NativeMessage =
   | "showControls"
   | "impactLight"
   | "impactMedium"
+  /** The flight game came up, and went: an app that says it can (`NativeCapabilities.flight`) turns to landscape and puts its bars away meanwhile. */
+  | "flightEntered"
+  | "flightLeft"
   /** A link to send, as `share:` and the JSON of a `NativeShare`; see lib/share.ts. */
   | `share:${string}`;
 
@@ -40,6 +43,8 @@ export type IosMessage = NativeMessage;
 export interface NativeCapabilities {
   /** Presents the system share sheet for a `share:` message. */
   share?: boolean;
+  /** Turns to landscape, its bars and buttons away, between `flightEntered` and `flightLeft`; see lib/sideways.ts. */
+  flight?: boolean;
 }
 
 /**

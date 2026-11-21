@@ -280,6 +280,8 @@ export const shareDialog = writable<{
   copied: Promise<boolean>;
   /** Whether the link unfurls as the map's card, which the dialog shows; not a flight's (lib/studio/flightLink.ts). */
   card?: boolean;
+  /** A word under the link on what it carries, where that is not plain: a flight's start, not its weather. */
+  note?: string;
 } | null>(null);
 /**
  * The open radar's own page (RadarInfo) is open, from the "i" in its tray.

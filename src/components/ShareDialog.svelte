@@ -42,6 +42,8 @@ export let title: string;
 export let copied: Promise<boolean>;
 /** Whether the link unfurls as the map's card: not a flight's, which has no card to show, send or save. */
 export let card = true;
+/** What the link carries, where that is not plain: a flight's start, and not its weather. */
+export let note: string | undefined = undefined;
 
 /**
  * How long the card may take before the wait is given up. A cold render is a
@@ -228,6 +230,9 @@ onDestroy(() => {
         <span>{linkCopied ? $_("share.copied_short") : $_("share.copy")}</span>
       </button>
     </div>
+    {#if note}
+      <p class="note">{note}</p>
+    {/if}
     <p class="status" aria-live="polite">
       {#if notice}
         {notice}
@@ -404,6 +409,11 @@ onDestroy(() => {
     color: #34c759;
   }
 
+  .note {
+    margin: -6px 2px 0;
+    color: var(--mc-text-2);
+    font: 400 12.5px/1.4 var(--mc-font);
+  }
   .status {
     min-height: 1.3em;
     margin: -8px 2px 0;

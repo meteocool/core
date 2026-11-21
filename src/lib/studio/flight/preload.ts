@@ -7,9 +7,9 @@
  * starts with all of it there: the aircraft drawn, the deck's buttons and
  * the cockpit's controls answering, the sound and the music playing.
  *
- * The meteoair page starts it while the reader reads, and its button waits
- * for it; the flight's plan starts it, and so does a flight asked for from
- * the map; taking off before it is done shows how far it is
+ * The meteoair page starts it when the reader asks for the plan, not before:
+ * it is large, and a phone's data may be counted; the flight's plan starts
+ * it, and so does a flight asked for from the map; taking off before it is done shows how far it is
  * (components/studio/flight/FlightLoading.svelte). Whatever is fetched is
  * kept (assets.ts, and the modules' own), so asking again costs nothing and
  * a second flight never waits.
@@ -42,6 +42,9 @@ const CODE_BYTES = 450_000;
 const TEXTURE_BYTES = 1_000_000;
 /** The longest the code may take to come, ms, before the loading is said to have failed. */
 const CODE_MOST_MS = 60_000;
+
+/** About what a flight fetches, bytes, the menus' music aside: what the meteoair page warns a phone of. */
+export const FLIGHT_BYTES = CODE_BYTES + AIRCRAFT_BYTES + TEXTURE_BYTES + SOUNDTRACK.theme.bytes + SOUNDTRACK.tension.bytes;
 
 let loading: Promise<void> | null = null;
 

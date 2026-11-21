@@ -7,8 +7,10 @@
  * moves; the aircraft, turning; where and how the flight begins; and a
  * briefing that reads all of it back as a crew would be handed it.
  *
- * The whole screen, as a simulator's menu is: the map behind it blurred out
- * of reading, and each part of the plan a pane of glass over it. What the
+ * The whole screen, as a simulator's menu is: a storm turning slowly behind
+ * it, lightning in its anvil (a loop the flight's own sky was recorded in,
+ * public/video), and each part of the plan a pane of dark glass over it,
+ * dark whatever the theme, as the sky behind it is. What the
  * flight draws is not asked: the imagery under it, its storms in the sky's
  * own style, the radar off the ground and the storms ahead marked (the
  * flight's own keys still change the last two). The plan and the briefing are lib/studio/flight/plan.ts;
@@ -33,7 +35,6 @@ import { Fill, RegularShape, Stroke, Style } from "ol/style";
 import { faPlaneDeparture } from "@fortawesome/free-solid-svg-icons/faPlaneDeparture";
 import CloseDisc from "../../CloseDisc.svelte";
 import Icon from "../../Icon.svelte";
-import Segmented from "../../Segmented.svelte";
 import AircraftPreview from "./AircraftPreview.svelte";
 import SoundSwitch from "./SoundSwitch.svelte";
 import { radarColour } from "./instruments";
@@ -54,7 +55,7 @@ import { FLIGHT_BASEMAP } from "../../../lib/studio/store";
 import { flightLinkUrl } from "../../../lib/studio/flightLink";
 import { startOf } from "../../../lib/studio/flight/plan";
 import { sendLink } from "../../../lib/share";
-import { loadMenuMusic, preloadFlight } from "../../../lib/studio/flight/preload";
+import { flightLoad, loadMenuMusic, preloadFlight, shareOf } from "../../../lib/studio/flight/preload";
 import { claimMenuMusic } from "../../../lib/studio/flight/soundtrack";
 import { shareAvailable, shareIcon } from "../../../lib/shareSupport";
 import { followSideways } from "../../../lib/sideways";
@@ -70,6 +71,7 @@ export let onback: (() => void) | null = null;
 
 const FEET = 3.28084;
 const KNOTS = 1.943844;
+const KMH = 3.6;
 const NM = 1852;
 /** How many storm systems the page offers to fly at. */
 const OFFERED = 6;
@@ -85,6 +87,10 @@ const camera = stage.studioCamera();
 const look = { lon: camera?.lon ?? 10, lat: camera?.lat ?? 50, bearing: camera?.bearing ?? 0 };
 const ground = (lon: number, lat: number) => stage.groundElevation(lon, lat);
 const aircraft = AIRCRAFT[0];
+
+/** The storm behind the plan, and its first frame for until it plays (or instead, for a reader who asks for less motion). */
+const SKY = `${import.meta.env?.BASE_URL ?? "/"}video/storm-loop`;
+const still = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 let tiles = stage.stormTiles();
 let systems = rankSystems(stormSystems(tiles), look.lon, look.lat);
@@ -119,7 +125,8 @@ const listTimer = setInterval(() => {
   drawStorms();
   if (!touched) {
     plan = proposed();
-    frame();
+    // Not from under a reader who is looking round the chart: it would jump back to the plan as they moved it.
+    if (!viewed) frame();
     return;
   }
   const was = plan.target;
@@ -148,6 +155,9 @@ $: mach = machOf(plan.tas, plan.altitude);
 $: speeds = machRange(plan.altitude);
 $: level = Math.round((plan.altitude * FEET) / 1000) * 10;
 $: target = plan.target ? systems.indexOf(plan.target) : -1;
+$: feet = Math.round((plan.altitude * FEET) / 100) * 100;
+$: knots = Math.round(indicatedFromTrue(plan.tas, plan.altitude) * KNOTS);
+$: loadPercent = Math.floor(shareOf($flightLoad) * 100);
 
 /** A storm system as the list names it: how strong, how far and which way from where the reader looked. */
 function named(system: StormSystem): string {
@@ -162,10 +172,11 @@ function setTarget(event: Event): void {
   frame();
 }
 
-const VIEWS: Array<FlightPlan["view"]> = ["cockpit", "outside"];
 
 /* The chart. */
 let chartElement: HTMLDivElement | null = null;
+/** Whether the reader has moved or zoomed the chart: the plan's own framing leaves it where they put it from then on. */
+let viewed = false;
 let chart: OlMap | null = null;
 const stormSource = new VectorSource();
 const route = new Feature<LineString>();
@@ -281,6 +292,8 @@ function keydown(event: KeyboardEvent): void {
 <svelte:window on:keydown|capture={keydown} />
 
 <section class="preflight" aria-label={$_("studio.flight.plan.title")}>
+  <video class="sky" src={still ? undefined : `${SKY}.mp4`} poster={`${SKY}.jpg`} autoplay muted loop playsinline
+    disablepictureinpicture aria-hidden="true" tabindex="-1"></video>
   <header>
     <h2 class="title glass glass-pill"><Icon icon={faPlaneDeparture} /> {$_("studio.flight.plan.title")}</h2>
     <div class="head-tools">
@@ -290,9 +303,25 @@ function keydown(event: KeyboardEvent): void {
   </header>
 
   <div class="panes">
-    <div class="pane chart glass glass-tray">
-      <div class="map" bind:this={chartElement} aria-label={$_("studio.flight.plan.chart")} role="application"></div>
-      <p class="hint">{$_("studio.flight.plan.chart_hint")}</p>
+    <!-- The chart, and under it which storm it is drawn for. -->
+    <div class="chart-col">
+      <div class="pane chart glass glass-tray">
+        <div class="map" bind:this={chartElement} aria-label={$_("studio.flight.plan.chart")} role="application"
+          on:pointerdown={() => { viewed = true; }} on:wheel={() => { viewed = true; }}></div>
+        <p class="hint">{$_("studio.flight.plan.chart_hint")}</p>
+      </div>
+      <div class="field storm glass glass-tray">
+        <label for="preflight-target">{$_("studio.flight.plan.target")}</label>
+        {#if systems.length}
+          <select id="preflight-target" value={String(target)} on:change={setTarget}>
+            {#each systems.slice(0, OFFERED) as system, i (i)}
+              <option value={String(i)}>{named(system)}</option>
+            {/each}
+          </select>
+        {:else}
+          <span class="value">{$_("studio.flight.clear_sky")}</span>
+        {/if}
+      </div>
     </div>
 
     <div class="pane aircraft glass glass-tray">
@@ -315,25 +344,15 @@ function keydown(event: KeyboardEvent): void {
     <!-- The flight, a pane of glass for each of what it asks. -->
     <div class="fields" role="group" aria-label={$_("studio.flight.plan.flight")}>
       <div class="field glass glass-tray">
-        <label for="preflight-target">{$_("studio.flight.plan.target")}</label>
-        {#if systems.length}
-          <select id="preflight-target" value={String(target)} on:change={setTarget}>
-            {#each systems.slice(0, OFFERED) as system, i (i)}
-              <option value={String(i)}>{named(system)}</option>
-            {/each}
-          </select>
-        {:else}
-          <span class="value">{$_("studio.flight.clear_sky")}</span>
-        {/if}
-      </div>
-
-      <div class="field glass glass-tray">
         <label for="preflight-level">{$_("studio.flight.plan.level")}</label>
         <div class="slider">
           <input id="preflight-level" type="range" min={Math.round((ALTITUDE_RANGE[0] * FEET) / 100)}
             max={Math.round((ALTITUDE_RANGE[1] * FEET) / 100)} step="10" value={level}
             on:input={(event) => change(levelled(plan, (Number(event.currentTarget.value) * 100) / FEET))} />
-          <output for="preflight-level">{flightLevel(plan.altitude)} · {Math.round((plan.altitude * FEET) / 100) * 100} ft</output>
+          <output for="preflight-level">
+            <b>{flightLevel(plan.altitude)}</b>
+            <small>{feet.toLocaleString("en")} ft · {(plan.altitude / 1000).toFixed(1)} km</small>
+          </output>
         </div>
       </div>
 
@@ -343,7 +362,10 @@ function keydown(event: KeyboardEvent): void {
           <!-- Only the speeds the level allows: never one that stalls the wing or tears the surfaces off it. -->
           <input id="preflight-speed" type="range" min={speeds[0].toFixed(3)} max={speeds[1].toFixed(3)} step="0.005" value={mach.toFixed(3)}
             on:input={(event) => change(atMach(plan, Number(event.currentTarget.value)))} />
-          <output for="preflight-speed">M{mach.toFixed(2).slice(1)} · {Math.round(indicatedFromTrue(plan.tas, plan.altitude) * KNOTS)} kt</output>
+          <output for="preflight-speed">
+            <b>M{mach.toFixed(2).slice(1)}</b>
+            <small>{knots} kt · {Math.round((knots / KNOTS) * KMH)} km/h</small>
+          </output>
         </div>
       </div>
 
@@ -359,13 +381,6 @@ function keydown(event: KeyboardEvent): void {
             </button>
           {/if}
         </div>
-      </div>
-
-      <div class="field glass glass-tray">
-        <span class="label" id="preflight-view">{$_("studio.flight.plan.view")}</span>
-        <Segmented compact stretch label={$_("studio.flight.plan.view")}
-          options={VIEWS.map((view) => ({ value: view, label: $_(`studio.flight.plan.${view}`) }))}
-          value={plan.view} on:change={(event) => change({ ...plan, view: event.detail })} />
       </div>
     </div>
 
@@ -387,7 +402,7 @@ function keydown(event: KeyboardEvent): void {
       <button type="button" class="chip glass glass-pill" title={$_("studio.flight.share.plan_title")}
         on:click={(event) => sendLink(
           { url: flightLinkUrl(window.location.origin, startOf(plan, systems)), title: $_("studio.flight.share.title") },
-          event.currentTarget, { card: false },
+          event.currentTarget, { card: false, note: $_("studio.flight.share.note") },
         )}>
         <Icon icon={shareIcon()} /> {$_("studio.flight.share.plan")}
       </button>
@@ -397,8 +412,13 @@ function keydown(event: KeyboardEvent): void {
     {:else}
       <button type="button" class="chip glass glass-pill" on:click={oncancel}>{$_("studio.flight.plan.cancel")}</button>
     {/if}
-    <button type="button" class="chip go" on:click={() => ontakeoff(plan)}>
+    <!-- What the flight needs, loading since the plan came up: along the button's foot until it is in. -->
+    <button type="button" class="chip go" on:click={() => ontakeoff(plan)}
+      title={$flightLoad.state === "loading" ? $_("studio.flight.page.loading_title", { values: { percent: loadPercent } }) : undefined}>
       <Icon icon={faPlaneDeparture} /> {$_("studio.flight.plan.takeoff")}
+      {#if $flightLoad.state === "loading"}
+        <span class="load" style:width={`${loadPercent}%`} aria-hidden="true"></span>
+      {/if}
     </button>
   </footer>
 </section>
@@ -418,13 +438,48 @@ function keydown(event: KeyboardEvent): void {
     padding-right: max(clamp(10px, 2.4cqw, 32px), calc(var(--mc-safe-right, 0px) + 8px));
     padding-top: max(clamp(10px, 2.4cqh, 28px), calc(var(--mc-safe-top, 0px) + 6px));
     padding-bottom: max(clamp(10px, 2.4cqh, 28px), calc(var(--mc-safe-bottom, 0px) + 8px));
-    background: rgba(6, 9, 14, 0.32);
-    -webkit-backdrop-filter: blur(44px) saturate(1.25);
-    backdrop-filter: blur(44px) saturate(1.25);
+    overflow: hidden;
+    background: #0b1018;
     color: var(--mc-text);
     font: 13px/1.35 var(--mc-font);
     pointer-events: auto;
+    /* Dark glass whatever the theme: the storm behind it is a dark sky, and a
+       light theme's ink and controls on dark panes read as neither. */
+    color-scheme: dark;
+    --mc-text: #f2f2f7;
+    --mc-text-2: rgba(235, 235, 245, 0.72);
+    --mc-chrome-text: #ffffff;
+    --mc-chrome-text-2: rgba(235, 235, 245, 0.8);
+    --mc-chrome-text-3: rgba(235, 235, 245, 0.6);
+    --mc-chrome-tint: rgba(255, 255, 255, 0.13);
+    --mc-chrome-tint-hover: rgba(255, 255, 255, 0.2);
+    --mc-chrome-tint-active: rgba(255, 255, 255, 0.28);
+    --mc-chrome-separator: rgba(255, 255, 255, 0.16);
+    --mc-chrome-hairline: rgba(255, 255, 255, 0.26);
+    --mc-chrome-accent: #0a84ff;
+    --mc-chrome-accent-strong: #409cff;
+    --mc-sheet-card: #3a3f47;
+    --mc-glass-fill: rgba(18, 22, 30, 0.56);
+    --mc-glass-fill-strong: rgba(18, 22, 30, 0.72);
+    --mc-glass-edge: rgba(255, 255, 255, 0.16);
+    --mc-glass-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 0 0 0.5px rgba(255, 255, 255, 0.1);
+    --mc-glass-ring: var(--mc-glass-highlight), 0 2px 10px rgba(0, 0, 0, 0.35);
+    --mc-glass-ring-lg: var(--mc-glass-highlight), 0 10px 30px rgba(0, 0, 0, 0.4);
+    --mc-glass-backdrop: blur(14px) saturate(1.2);
   }
+  /* The storm: under everything, darkened a little and only just softened, so it is seen but not read. */
+  .sky {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    filter: blur(3px) brightness(0.62) saturate(0.9);
+    transform: scale(1.03);
+    pointer-events: none;
+  }
+  .preflight { isolation: isolate; }
   header {
     display: flex;
     align-items: center;
@@ -445,14 +500,16 @@ function keydown(event: KeyboardEvent): void {
   .panes {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(330px, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
+    /* Never shorter than what is in them: the chart's column, its storm under it, spans the first two. */
+    grid-template-rows: auto auto 1fr;
     grid-template-areas:
       "chart aircraft"
       "chart fields"
       "brief fields";
     gap: var(--gap);
     min-height: 0;
-    overflow: auto;
+    overflow-x: hidden;
+    overflow-y: auto;
     /* Room for the panes' shadows, inside what scrolls. */
     margin: -6px;
     padding: 6px;
@@ -466,8 +523,15 @@ function keydown(event: KeyboardEvent): void {
     text-transform: uppercase;
   }
 
-  .chart {
+  .chart-col {
     grid-area: chart;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--gap) * 0.75);
+    min-width: 0;
+  }
+  .chart {
+    flex: 1 1 auto;
     position: relative;
     min-height: 300px;
     overflow: hidden;
@@ -521,7 +585,7 @@ function keydown(event: KeyboardEvent): void {
     box-sizing: border-box;
     padding: 8px 12px 8px 16px;
   }
-  .field > label, .field > .label { font-weight: 700; }
+  .field > label { font-weight: 700; }
   .field .value { color: var(--mc-text-2, inherit); }
   select {
     min-width: 0;
@@ -541,12 +605,19 @@ function keydown(event: KeyboardEvent): void {
   }
   .slider input { flex: 1; min-width: 60px; accent-color: var(--mc-orange); }
   .slider output {
-    min-width: 108px;
+    display: grid;
+    justify-items: end;
+    gap: 3px;
+    min-width: 96px;
     font: 600 12px/1 var(--mc-font);
     font-variant-numeric: tabular-nums;
     text-align: right;
     white-space: nowrap;
   }
+  .slider output b { font-weight: 700; font-size: 13px; }
+  .slider output small { color: var(--mc-text-2); font-size: 11px; font-weight: 600; }
+  /* The way back onto the storm: never squeezed below its words. */
+  .slider .chip { flex: none; }
 
   /* The briefing: the crew's printout, dark glass whatever the theme. */
   .briefing {
@@ -597,7 +668,15 @@ function keydown(event: KeyboardEvent): void {
   .chip:disabled { cursor: default; opacity: 0.45; }
   .chip :global(svg) { width: 12px; height: 12px; }
   footer .chip { height: 40px; padding: 0 18px; font-size: 13px; }
-  .chip.go { padding: 0 24px; background: var(--mc-orange); color: #1a1205; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); }
+  .chip.go { position: relative; overflow: hidden; padding: 0 24px; background: var(--mc-orange); color: #1a1205; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); }
+  .chip.go .load {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 3px;
+    background: rgba(26, 18, 5, 0.55);
+    transition: width 0.2s ease;
+  }
   .chip.go:hover { background: color-mix(in srgb, var(--mc-orange) 88%, #fff); }
 
   /* Narrower: one column, scrolled, the way off always at its foot. */
@@ -610,17 +689,32 @@ function keydown(event: KeyboardEvent): void {
     .chart { min-height: 260px; }
   }
   /* A phone on its side is wide enough for the chart beside the rest again,
-     which leaves a thumb somewhere to scroll the plan by that is not the chart. */
-  @container mc-frame (min-width: 640px) and (max-width: 900px) and (max-height: 560px) {
+     which leaves a thumb somewhere to scroll the plan by that is not the chart.
+     The chart keeps to the screen's height, its storm under it in sight. */
+  @container mc-frame (min-width: 560px) and (max-height: 560px) {
     .panes {
-      grid-template-columns: minmax(0, 1fr) minmax(300px, 1.1fr);
-      grid-template-areas: "chart aircraft" "chart fields" "brief fields";
+      /* Measured, for the chart to be as tall as what is seen of it. */
+      container: plan-panes / size;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+      grid-template-rows: auto auto;
+      grid-template-areas: "chart aircraft" "chart fields";
     }
-    .chart { min-height: 200px; }
+    .chart-col { position: sticky; top: 0; align-self: start; height: calc(100cqh - 12px); }
+    .chart { min-height: 120px; }
+    .aircraft { padding: 8px; gap: 10px; }
+    .preview { height: 72px; }
+    .field { grid-template-columns: 64px minmax(0, 1fr); gap: 8px; min-height: 44px; padding: 6px 10px 6px 12px; }
+    .slider { gap: 8px; }
+    .slider input { min-width: 40px; }
+    .slider output { min-width: 0; }
   }
   @container mc-frame (max-height: 560px) {
     .preview { height: 96px; }
     .title { padding: 7px 14px; font-size: 14px; }
+  }
+  /* A phone, either way up: no room to read a briefing in, and the plan says it all already. */
+  @container mc-frame (max-width: 480px) or (max-height: 560px) {
+    .briefing { display: none; }
   }
   /* Under a finger, what is pressed is a finger's size. */
   @media (pointer: coarse) {
