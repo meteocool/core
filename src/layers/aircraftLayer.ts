@@ -9,7 +9,7 @@
  * so it is drawn last, over everything, with the depth started afresh.
  */
 import type { CustomLayerInterface, Map as GlMap } from "maplibre-gl";
-import { loadAircraft, makeAircraftRenderer } from "./aircraftRenderer";
+import { loadAircraft, makeAircraftRenderer, OUTSIDE_RANGE } from "./aircraftRenderer";
 import type { AircraftRenderer, AircraftScreen, AircraftView } from "./aircraftRenderer";
 
 import { layCoresLate } from "./scenicPass";
@@ -22,7 +22,7 @@ export type { WeatherView } from "./weatherPass";
 export interface AircraftLayer extends CustomLayerInterface {
   setView(view: AircraftView | null): void;
   setScreens(screens: AircraftScreen[]): void;
-  /** The weather going past the eye this frame (weatherPass.ts), drawn under the aircraft; none for null. */
+  /** The weather going past the eye this frame (weatherPass.ts): under the aircraft, and from outside round it too; none for null. */
   setWeather(weather: WeatherView | null): void;
 }
 
@@ -76,7 +76,9 @@ export function makeAircraftLayer(id: string, base: string): AircraftLayer {
       if (weather) weatherPass?.draw(weather);
       // The core of a storm seen through, over the cloud round the eye that would hide it, and under the aircraft.
       layCoresLate();
-      if (view) renderer?.draw(view, screens);
+      const drew = view && renderer ? renderer.draw(view, screens) : false;
+      // From outside, what goes past nearer than the aircraft is over it, and what is beyond it behind it.
+      if (weather) weatherPass?.drawNear(weather, OUTSIDE_RANGE, drew);
     },
   };
 }

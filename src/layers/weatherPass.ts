@@ -11,7 +11,11 @@
  *
  * Drawn into the 3D map's picture over the world and under the aircraft
  * (aircraftLayer.ts), so from the cockpit it is seen through the windows and
- * hidden by the panel, as the weather outside is. Like the aircraft, it is
+ * hidden by the panel, as the weather outside is. From outside, what goes
+ * past is drawn after the aircraft instead (`drawNear`), in front of it
+ * where it is nearer and hidden by it where it is not, with shreds of cloud
+ * streaming between the eye and the aircraft: in cloud it is flown through
+ * the cloud, not in a clear bubble of its own. Like the aircraft, it is
  * not in the map's coordinates: everything is metres in the aircraft's own
  * frame (forward, right, down), taken straight to the camera.
  *
@@ -46,6 +50,8 @@ const ICE: Fall = { count: 2200, box: [60, 40, 30], exposure: 1 / 400, longest: 
 
 /** Shreds of cloud: this many soft patches in a box this large, each this many metres across at most. */
 const WISPS = { count: 56, box: [640, 360, 240] as Vec3, size: 110 };
+/** And smaller ones, seen from outside, round the way from the eye to the aircraft: close enough to go past between them. */
+const SHREDS = { count: 64, box: [170, 110, 70] as Vec3, size: 17 };
 
 /** How long a condensation trail is drawn, metres: as far back as it reads as one from beside the aircraft. */
 const TRAIL_M = 620;
@@ -72,6 +78,10 @@ export interface WeatherView {
   wisps: number;
   frost: number;
   bolts: Bolt[];
+  /** Seen from outside: what goes past nearer than the aircraft is drawn over it, by `drawNear`. */
+  outside: boolean;
+  /** Shreds of cloud going past between the eye and the aircraft, from outside, 0 to 1. */
+  shreds: number;
   /** How far cloud round the eye hides the world, 0 to 1; and lightning on the glass, 0 to 1. */
   veil: number;
   flash: number;
@@ -127,7 +137,8 @@ void main() {
 const WISP_VERTEX = `#version 300 es
 uniform mat4 uModelView;
 uniform mat4 uProjection;
-uniform vec3 uEye;
+// Where the box of them stands: round the eye, or between it and the aircraft.
+uniform vec3 uCentre;
 uniform vec3 uBox;
 uniform vec3 uTravel;
 uniform float uSize;
@@ -142,7 +153,7 @@ void main() {
   float id = float(gl_VertexID / 6);
   vec3 seed = home(id);
   vec3 place = fract(seed + uTravel / uBox) - 0.5;
-  vec3 centre = (uModelView * vec4(place * uBox + uEye, 1.0)).xyz;
+  vec3 centre = (uModelView * vec4(place * uBox + uCentre, 1.0)).xyz;
   float size = uSize * (0.45 + 0.55 * fract(seed.x * 7.3 + seed.y * 3.1));
   vec3 edge = abs(place) * 2.0;
   vFade = (1.0 - smoothstep(0.6, 1.0, max(edge.x, max(edge.y, edge.z)))) * smoothstep(size * 0.3, size * 1.2, -centre.z);
@@ -316,7 +327,14 @@ export function boltStrips(bolts: readonly Bolt[]): Float32Array {
 }
 
 export interface WeatherPass {
+  /** What is beyond the aircraft: drawn before it. And from the cockpit, everything. */
   draw(view: WeatherView): void;
+  /**
+   * From outside, what goes past round the eye: drawn after the aircraft,
+   * through its `range` (the near and far its lens draws it with), and
+   * behind it where `depth` says its depth is there to be tested against.
+   */
+  drawNear(view: WeatherView, range: [number, number], depth: boolean): void;
   dispose(): void;
 }
 
@@ -348,28 +366,72 @@ export function makeWeatherPass(gl: WebGL2RenderingContext): WeatherPass {
     return known.get(name) ?? null;
   };
 
+  /** The state every part starts from: blended over what is there, no depth, the whole picture. */
+  const begin = () => {
+    const width = gl.drawingBufferWidth;
+    const height = gl.drawingBufferHeight;
+    gl.viewport(0, 0, width, height);
+    gl.disable(gl.SCISSOR_TEST);
+    gl.disable(gl.STENCIL_TEST);
+    gl.disable(gl.CULL_FACE);
+    gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+    gl.colorMask(true, true, true, true);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    return width / Math.max(height, 1);
+  };
+
+  /** A box of soft patches of cloud carried past by the air. */
+  const patches = (view: WeatherView, modelView: Float32Array, projection: Float32Array, kind: typeof WISPS, centre: Vec3, alpha: number) => {
+    gl.useProgram(wisp);
+    gl.uniformMatrix4fv(uniform(wisp, "uModelView"), false, modelView);
+    gl.uniformMatrix4fv(uniform(wisp, "uProjection"), false, projection);
+    gl.uniform3f(uniform(wisp, "uCentre"), ...centre);
+    gl.uniform3f(uniform(wisp, "uBox"), ...kind.box);
+    gl.uniform3f(uniform(wisp, "uTravel"), ...wrapped(view.travel, kind.box));
+    gl.uniform1f(uniform(wisp, "uSize"), kind.size);
+    gl.uniform4f(uniform(wisp, "uColour"), 0.9, 0.92, 0.95, alpha);
+    gl.drawArrays(gl.TRIANGLES, 0, kind.count * 6);
+  };
+
+  /** What goes past the eye: shreds of cloud, and rain, ice and hail in streaks. */
+  const goingPast = (view: WeatherView, modelView: Float32Array, projection: Float32Array) => {
+    gl.bindVertexArray(empty);
+    if (view.wisps > 0.01) patches(view, modelView, projection, WISPS, view.eye, 0.34 * view.wisps);
+    // Halfway from the eye to the aircraft, which is where the frame's origin is.
+    if (view.shreds > 0.01) patches(view, modelView, projection, SHREDS, view.eye.map((at) => at / 2) as Vec3, 0.5 * view.shreds);
+    const speed = Math.hypot(...view.air);
+    if (speed > 1) {
+      gl.useProgram(streak);
+      gl.uniformMatrix4fv(uniform(streak, "uModelView"), false, modelView);
+      gl.uniformMatrix4fv(uniform(streak, "uProjection"), false, projection);
+      gl.uniform3f(uniform(streak, "uEye"), ...view.eye);
+      for (const [fall, amount] of [[RAIN, view.rain], [ICE, view.ice], [HAIL, view.hail]] as const) {
+        if (amount <= 0.01) continue;
+        const length = Math.min(speed * fall.exposure, fall.longest) / speed;
+        gl.uniform3f(uniform(streak, "uBox"), ...fall.box);
+        gl.uniform3f(uniform(streak, "uTravel"), ...wrapped(view.travel, fall.box));
+        // Drawn out behind it: from where it is back along the way it came.
+        gl.uniform3f(uniform(streak, "uStreak"), -view.air[0] * length, -view.air[1] * length, -view.air[2] * length);
+        gl.uniform1f(uniform(streak, "uWidth"), fall.width);
+        gl.uniform1f(uniform(streak, "uSeed"), fall.seed);
+        gl.uniform4f(uniform(streak, "uColour"), ...fall.colour, fall.alpha);
+        gl.drawArrays(gl.TRIANGLES, 0, Math.round(fall.count * Math.min(amount, 1)) * 6);
+      }
+    }
+  };
+
   return {
     draw(view) {
       const { rain, hail, ice, wisps, frost: frosted, bolts } = view;
       const lit = bolts.filter((each) => each.brightness > 0.01 && each.points.length > 1);
       const trailing = view.trails.strength > 0.01 && view.trails.from.length > 0;
-      if (rain <= 0.01 && hail <= 0.01 && ice <= 0.01 && wisps <= 0.01 && frosted <= 0.01 && !lit.length
-        && view.veil <= 0.003 && view.flash <= 0.003 && !trailing) return;
-      const width = gl.drawingBufferWidth;
-      const height = gl.drawingBufferHeight;
-      const aspect = width / Math.max(height, 1);
-      gl.viewport(0, 0, width, height);
-      gl.disable(gl.SCISSOR_TEST);
-      gl.disable(gl.STENCIL_TEST);
-      gl.disable(gl.CULL_FACE);
-      gl.disable(gl.DEPTH_TEST);
-      gl.depthMask(false);
-      gl.colorMask(true, true, true, true);
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+      const past = !view.outside && (rain > 0.01 || hail > 0.01 || ice > 0.01 || wisps > 0.01);
+      if (!past && frosted <= 0.01 && !lit.length && view.veil <= 0.003 && view.flash <= 0.003 && !trailing) return;
+      const aspect = begin();
       const modelView = new Float32Array(view.modelView);
       const projection = new Float32Array(perspective(view.fov, aspect, 0.3, 60_000));
-      const speed = Math.hypot(...view.air);
 
       // Lightning first: the furthest thing here, behind the rain it lights.
       if (lit.length) {
@@ -412,43 +474,29 @@ export function makeWeatherPass(gl: WebGL2RenderingContext): WeatherPass {
         gl.uniform4f(uniform(wash, "uColour"), colour[0] * strength, colour[1] * strength, colour[2] * strength, strength);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       }
-      if (wisps > 0.01) {
-        gl.useProgram(wisp);
-        gl.uniformMatrix4fv(uniform(wisp, "uModelView"), false, modelView);
-        gl.uniformMatrix4fv(uniform(wisp, "uProjection"), false, projection);
-        gl.uniform3f(uniform(wisp, "uEye"), ...view.eye);
-        gl.uniform3f(uniform(wisp, "uBox"), ...WISPS.box);
-        gl.uniform3f(uniform(wisp, "uTravel"), ...wrapped(view.travel, WISPS.box));
-        gl.uniform1f(uniform(wisp, "uSize"), WISPS.size);
-        gl.uniform4f(uniform(wisp, "uColour"), 0.9, 0.92, 0.95, 0.34 * wisps);
-        gl.drawArrays(gl.TRIANGLES, 0, WISPS.count * 6);
-      }
-
-      if (speed > 1) {
-        gl.useProgram(streak);
-        gl.uniformMatrix4fv(uniform(streak, "uModelView"), false, modelView);
-        gl.uniformMatrix4fv(uniform(streak, "uProjection"), false, projection);
-        gl.uniform3f(uniform(streak, "uEye"), ...view.eye);
-        for (const [fall, amount] of [[RAIN, rain], [ICE, ice], [HAIL, hail]] as const) {
-          if (amount <= 0.01) continue;
-          const length = Math.min(speed * fall.exposure, fall.longest) / speed;
-          gl.uniform3f(uniform(streak, "uBox"), ...fall.box);
-          gl.uniform3f(uniform(streak, "uTravel"), ...wrapped(view.travel, fall.box));
-          // Drawn out behind it: from where it is back along the way it came.
-          gl.uniform3f(uniform(streak, "uStreak"), -view.air[0] * length, -view.air[1] * length, -view.air[2] * length);
-          gl.uniform1f(uniform(streak, "uWidth"), fall.width);
-          gl.uniform1f(uniform(streak, "uSeed"), fall.seed);
-          gl.uniform4f(uniform(streak, "uColour"), ...fall.colour, fall.alpha);
-          gl.drawArrays(gl.TRIANGLES, 0, Math.round(fall.count * Math.min(amount, 1)) * 6);
-        }
-      }
+      if (past) goingPast(view, modelView, projection);
 
       if (frosted > 0.01) {
+        gl.bindVertexArray(empty);
         gl.useProgram(frost);
         gl.uniform1f(uniform(frost, "uFrost"), Math.min(frosted, 1));
         gl.uniform1f(uniform(frost, "uAspect"), aspect);
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       }
+      gl.bindVertexArray(null);
+      gl.depthMask(true);
+    },
+
+    drawNear(view, range, depth) {
+      if (!view.outside) return;
+      if (view.rain <= 0.01 && view.hail <= 0.01 && view.ice <= 0.01 && view.wisps <= 0.01 && view.shreds <= 0.01) return;
+      const aspect = begin();
+      if (depth) {
+        gl.enable(gl.DEPTH_TEST);
+        gl.depthFunc(gl.LEQUAL);
+      }
+      goingPast(view, new Float32Array(view.modelView), new Float32Array(perspective(view.fov, aspect, range[0], range[1])));
+      gl.disable(gl.DEPTH_TEST);
       gl.bindVertexArray(null);
       gl.depthMask(true);
     },

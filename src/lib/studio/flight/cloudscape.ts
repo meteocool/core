@@ -28,7 +28,9 @@
  *   than the echo, since a cloud is wider than what falls from it.
  * - Below the base, echo is rain on its way down, with clear air round it.
  *   Drawn as a grey shaft, streaked, as thin as a veil under weak echo and
- *   as dark as a wall under a core.
+ *   as dark as a wall under a core. And under echo inside the base, rain
+ *   too, whatever the radar saw below it: its beam often passes over the
+ *   bottom of a shower, which goes on falling all the same.
  * - Echo that reaches very high belongs to a storm tall enough to have an
  *   anvil: up there the cloud is drawn as a flat sheet, spreading a few
  *   kilometres past the echo, with a level top.
@@ -108,15 +110,15 @@ float lastShaft = 0.0;
 
 /**
  * Rain under the base: a shaft as heavy as its echo is strong, in streaks
- * that run down it. Under the weakest echo next to nothing, which is rain
- * that is seen through; under a core, a wall.
+ * that run down it. Under weak echo a veil, which is rain that is seen
+ * through; under a core, a wall.
  */
 float rainShaft(vec3 w, vec2 field, float above) {
-  float heavy = smoothstep(uLow + 2.0, uHigh + 20.0, field.x) * field.y;
+  float heavy = smoothstep(uLow - 4.0, uHigh + 12.0, field.x) * field.y;
   lastShaft = heavy;
   // Streaks: fine across, long down.
   float streak = 0.5 + 0.5 * noise3(vec3(w.xy * 1.7, w.z * 0.12));
-  return heavy * heavy * streak * (1.0 - above) * 0.24;
+  return heavy * sqrt(heavy) * streak * (1.0 - above) * 0.3;
 }
 
 float skyDensity(vec3 p, vec2 field) {
@@ -140,11 +142,18 @@ float skyDensity(vec3 p, vec2 field) {
       max(sampleField(from + vec3(0.0, far.y, 0.0)).x, sampleField(from - vec3(0.0, far.y, 0.0)).x)) - 6.0;
     reach = max(reach, spread);
   }
+  float above = aboveBase(w);
+  // Under the base, what falls out of the cloud above it: the echo just inside the base, a little weaker for the way down.
+  vec2 falling = field;
+  if (above < 1.0) {
+    vec2 inside = sampleField(vec3(p.xy, (BASE_KM + 0.6) / uExtentKm.z));
+    if (inside.x - 4.0 > falling.x) falling = vec2(inside.x - 4.0, inside.y);
+    reach = max(reach, falling.x);
+  }
   if (reach <= uLow - 10.0) return 0.0;
 
-  float above = aboveBase(w);
   // Under the base it is rain, where it falls: the echo as it is, not pushed about as the cloud is.
-  float rain = above < 1.0 ? rainShaft(w, field, above) : 0.0;
+  float rain = above < 1.0 ? rainShaft(w, falling, above) : 0.0;
   if (above <= 0.0) return rain;
 
   float puff = puffs(w);

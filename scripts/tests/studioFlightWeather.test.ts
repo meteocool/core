@@ -33,6 +33,16 @@ test("echo is rain where it is warm and under the base, ice where it is cold, ha
   assert.ok(airAt(everywhere(60), 3000, 1500).hail > 0.7);
 });
 
+test("under the base it rains from the cloud above, though the radar saw nothing there; and warm cloud has some rain in it", () => {
+  // Echo from the base up only, as when the beam passes over the bottom of a shower.
+  const aloft = (east: number, north: number, up: number) => (1000 + up >= 1500 ? 38 : null);
+  const under = airAt(aloft, 1000, 1500);
+  assert.ok(under.rain > 0.6 && under.cloud === 0, JSON.stringify(under));
+  // Cloud from weak echo, warm: wet, if not much.
+  const warm = airAt(everywhere(18), 1800, 1500);
+  assert.ok(warm.cloud > 0.5 && warm.rain >= 0.3 * warm.cloud, JSON.stringify(warm));
+});
+
 test("strong echo aloft in the cold goes up, heavy rain low down comes down, and both by more the stronger", () => {
   const up = airAt(everywhere(55), 7000, 1500).draft;
   const down = airAt(everywhere(55), 1200, 1500).draft;

@@ -126,6 +126,9 @@ const ORBIT_PITCH: [number, number] = [-80, 80];
 
 /** How far off the eye stands outside, metres: to begin with, and as near and far as the wheel takes it. */
 const OUTSIDE_DISTANCE = 60;
+/** How far off through thick cloud an aircraft seen from outside is two thirds gone, metres; and through heavy rain. */
+const CLOUD_SEEN_M = 45;
+const RAIN_SEEN_M = 320;
 const OUTSIDE_RANGE: [number, number] = [28, 600];
 
 /** The lens from the seat as the wheel narrows it, degrees: down to one that reads a button's lettering. */
@@ -1519,6 +1522,8 @@ export class Pilot {
       // The cloud round the eye and the lightning on the glass are the weather's to draw, under the aircraft.
       veil: 0,
       flash: 0,
+      // From outside, the cloud it is in between it and the eye: going from sight the further off, and a little in heavy rain.
+      fog: outside ? cloud / CLOUD_SEEN_M + this.telemetry.rain / RAIN_SEEN_M : 0,
       gear: this.telemetry.gear,
       flaps: state.flaps / FLAPS_MOST,
       spoilers: state.spoilers,
@@ -1543,6 +1548,9 @@ export class Pilot {
       rain, hail, ice,
       // Shreds of cloud where it is thin: at its edge, going in and coming out.
       wisps: Math.min(1, cloud * 3) * (1 - 0.7 * cloud),
+      // And from outside, in it, cloud streaming past between the eye and the aircraft.
+      outside,
+      shreds: outside ? Math.min(1, cloud * 1.6) : 0,
       frost: outside ? 0 : frost,
       bolts: this.reducedMotion ? [] : lightning.bolts,
       veil: cloud,

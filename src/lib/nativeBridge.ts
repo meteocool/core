@@ -45,6 +45,8 @@ export interface NativeCapabilities {
   share?: boolean;
   /** Turns to landscape, its bars and buttons away, between `flightEntered` and `flightLeft`; see lib/sideways.ts. */
   flight?: boolean;
+  /** Plays a page's video in place; an iOS web view without it plays every video full screen. */
+  inlineVideo?: boolean;
 }
 
 /**

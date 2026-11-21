@@ -88,9 +88,15 @@ const look = { lon: camera?.lon ?? 10, lat: camera?.lat ?? 50, bearing: camera?.
 const ground = (lon: number, lat: number) => stage.groundElevation(lon, lat);
 const aircraft = AIRCRAFT[0];
 
-/** The storm behind the plan, and its first frame for until it plays (or instead, for a reader who asks for less motion). */
+/**
+ * The storm behind the plan, and its first frame for until it plays; or
+ * instead, for a reader who asks for less motion, and in an iOS app whose
+ * web view would play it full screen, over the plan, rather than in place.
+ */
 const SKY = `${import.meta.env?.BASE_URL ?? "/"}video/storm-loop`;
-const still = typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+const fullScreenOnly = typeof window !== "undefined" && Boolean(window.webkit?.messageHandlers?.scriptHandler)
+  && !window.nativeCapabilities?.inlineVideo;
+const still = fullScreenOnly || (typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches);
 
 let tiles = stage.stormTiles();
 let systems = rankSystems(stormSystems(tiles), look.lon, look.lat);

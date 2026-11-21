@@ -156,7 +156,11 @@ export interface Air {
  *   much again.
  * - Echo is cloud from where a white cloud is drawn, rain where it is warm,
  *   ice where it is well below freezing, a mix between; hail from where a
- *   core is strong enough to make it.
+ *   core is strong enough to make it. Rain from light echo up, and some in
+ *   any cloud warm enough for it.
+ * - Under the base, what falls out of the cloud above falls here too: a
+ *   radar's beam often passes over the bottom of a shower, which is no
+ *   reason for it to stop raining there.
  * - Ice builds on the aircraft in cloud between freezing and twenty below,
  *   where the droplets are still liquid.
  */
@@ -187,7 +191,9 @@ export function airAt(
   const rising = ramp(here, 34, 60) * ramp(-temperature, -2, 12) * 22 * (1 + CORE_DRAFT * severity);
   const sinking = ramp(here, 38, 58) * ramp(temperature, -4, 8) * ramp(baseM + 800 - altitude, 0, 1500) * 14 * (1 + CORE_DRAFT * severity);
   const cloud = altitude >= baseM - 150 ? ramp(here, 7, 26) : 0;
-  const wet = ramp(here, 24, 48);
+  // Under the base, the echo just inside it, a little weaker for the way down.
+  const falling = altitude < baseM ? Math.max(here, at(echo(0, 0, baseM + 400 - altitude)) - 4) : here;
+  const wet = Math.max(ramp(falling, 14, 40), 0.35 * cloud);
   const frozen = ramp(-temperature, 2, 14);
   return {
     dbz,

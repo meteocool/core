@@ -47,6 +47,12 @@ export interface AircraftView {
   /** How far cloud round the aircraft hides what is outside, 0 to 1; and a lightning flash, 0 to 1. */
   veil: number;
   flash: number;
+  /**
+   * How thick the air between the eye and the aircraft is, per metre: cloud
+   * the aircraft is in, seen from outside, takes it from sight the further
+   * off it is. None where not said.
+   */
+  fog?: number;
   /** How far the landing gear is down, 0 up to 1 down; down, as the model has it, where not said. */
   gear?: number;
   /** How far the flaps and slats are out, 0 in to 1 all the way; in where not said. */
@@ -140,6 +146,7 @@ uniform vec2 uUvMin;
 uniform vec2 uUvSize;
 out vec3 vNormal;
 out vec2 vUv;
+out float vFar;
 #ifdef BROKEN
 // Where the point is on the model as it was built, and from the eye.
 out vec3 vPlace;
@@ -150,6 +157,7 @@ void main() {
   vUv = aUv * uUvSize + uUvMin;
   vec4 place = vec4(aPosition * uSize + uMin, 1.0);
   vec4 seen = uModelView * place;
+  vFar = length(seen.xyz);
 #ifdef BROKEN
   vPlace = place.xyz;
   vSeen = seen.xyz;
@@ -161,7 +169,10 @@ const FRAGMENT = `
 precision highp float;
 in vec3 vNormal;
 in vec2 vUv;
+in float vFar;
 uniform sampler2D uTexture;
+// The cloud between the eye and the point: its colour, and how thick it is per metre.
+uniform vec4 uFog;
 uniform bool uTextured;
 uniform vec3 uColour;
 uniform float uOpacity;
@@ -220,7 +231,9 @@ void main() {
   lit *= 1.0 - 0.55 * inner;
 #endif
   float alpha = base.a * uOpacity;
-  colour = vec4(base.rgb * lit * alpha, alpha);
+  // Never quite gone: a shape in the cloud, which is how an aircraft in one is seen from close behind.
+  float fogged = min(1.0 - exp(-vFar * uFog.w), 0.93);
+  colour = vec4(mix(base.rgb * lit, uFog.rgb, fogged) * alpha, alpha);
 }`;
 
 const WHOLE = "#version 300 es\n";
@@ -245,7 +258,7 @@ void main() { colour = uColour; }`;
 
 /** How near and how far the aircraft is drawn from, metres: from a seat, and from outside. */
 const INSIDE_RANGE: [number, number] = [0.05, 150];
-const OUTSIDE_RANGE: [number, number] = [2, 4000];
+export const OUTSIDE_RANGE: [number, number] = [2, 4000];
 
 /** How near the eye smoke and flame begin to be drawn, and from where in full, metres: none is cut off sharp by the lens's near edge. */
 const INSIDE_FADE: [number, number] = [0.3, 2.5];
@@ -381,11 +394,14 @@ uniform vec3 uCorners[4];
 uniform vec4 uPart;
 out vec3 vNormal;
 out vec2 vUv;
+out float vFar;
 void main() {
   vNormal = vec3(0.0, 0.0, 1.0);
   vUv = mix(uPart.xy, uPart.zw, aUv);
   // The first coordinate counts the corner, one step of 65535 each.
-  gl_Position = uProjection * uModelView * vec4(uCorners[int(aPosition.x * 65535.0 + 0.5)], 1.0);
+  vec4 seen = uModelView * vec4(uCorners[int(aPosition.x * 65535.0 + 0.5)], 1.0);
+  vFar = length(seen.xyz);
+  gl_Position = uProjection * seen;
 }`;
 
 /** What draws the aircraft into one WebGL picture. */
@@ -393,7 +409,8 @@ export interface AircraftRenderer {
   /** Hand over the model, once it is loaded. */
   upload(model: AircraftModel, images: Array<ImageBitmap | null>): void;
   /** Draw the aircraft as `view` sees it, over whatever is in the picture, with `screens` lit in its cockpit. */
-  draw(view: AircraftView, screens: readonly AircraftScreen[]): void;
+  /** Draw it; true once it has, which leaves its depth for what goes past in front of it (weatherPass.ts). */
+  draw(view: AircraftView, screens: readonly AircraftScreen[]): boolean;
   /** Let go of everything it holds on the GPU. */
   dispose(): void;
 }
@@ -497,6 +514,8 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
     gl.uniform1f(uniform(screen, "uOpacity"), 1);
     gl.uniform3f(uniform(screen, "uLight"), 0, 0, 1);
     gl.uniform3f(uniform(screen, "uLighting"), ...SCREEN_LIGHTING);
+    // A screen is looked at from the seat, through no cloud.
+    gl.uniform4f(uniform(screen, "uFog"), 0, 0, 0, 0);
     gl.bindVertexArray(screenVao);
     gl.activeTexture(gl.TEXTURE0);
     // A light's picture has clear parts round it: the panel shows through them.
@@ -558,7 +577,7 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
         webgl.uniform4f(uniform(veil, "uColour"), colour[0] * strength, colour[1] * strength, colour[2] * strength, strength);
         webgl.drawArrays(webgl.TRIANGLES, 0, 3);
       }
-      if (!drawn.length) return;
+      if (!drawn.length) return false;
 
       // Nearer than anything on the map: over all of it, sorted only against itself.
       webgl.enable(webgl.DEPTH_TEST);
@@ -581,6 +600,7 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       webgl.uniformMatrix4fv(uniform(shader, "uProjection"), false, new Float32Array(projection));
       webgl.uniform3f(uniform(shader, "uLighting"), ambient + 0.55 * glare, lit, away);
       webgl.uniform1i(uniform(shader, "uTexture"), 0);
+      webgl.uniform4f(uniform(shader, "uFog"), ...VEIL_COLOUR, view.inside ? 0 : view.fog ?? 0);
       webgl.activeTexture(webgl.TEXTURE0);
 
       // The gear's legs and doors, the flaps, slats and spoilers, the ailerons, elevators and rudder, and the flight deck's controls
@@ -666,6 +686,7 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       webgl.depthMask(true);
       webgl.bindVertexArray(null);
       webgl.bindTexture(webgl.TEXTURE_2D, null);
+      return true;
     },
 
     dispose() {
