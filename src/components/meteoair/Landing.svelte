@@ -282,6 +282,8 @@ const FEATURES = [
     /* Clear of a notch on either side: a phone's, on its side. */
     padding-left: max(clamp(20px, 4.5cqw, 72px), calc(var(--mc-safe-left) + 12px));
     padding-right: max(clamp(20px, 4.5cqw, 72px), calc(var(--mc-safe-right) + 12px));
+    /* And clear of the status bar, a phone's clock and all. */
+    padding-top: max(clamp(18px, 3.2cqh, 36px), calc(var(--mc-safe-top) + 8px));
     background: linear-gradient(90deg, rgba(7, 11, 17, 0.92) 0%, rgba(7, 11, 17, 0.84) 30%, rgba(7, 11, 17, 0.4) 50%, rgba(7, 11, 17, 0) 68%);
     color: var(--ink);
     font-family: var(--mc-font);

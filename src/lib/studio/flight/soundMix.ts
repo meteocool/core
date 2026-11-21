@@ -83,6 +83,10 @@ export interface SoundInput {
   ended?: boolean;
   /** Which way the eye outside looks round the aircraft, degrees: how fast that turns is the orbit. */
   orbit?: number;
+  /** How far the eye outside is from the aircraft, metres: where it hears the engines from, with the orbit. */
+  eye?: number;
+  /** Which aircraft this is, counting each start again: a new one is a calm start, whatever the last went through. */
+  flight?: number;
 }
 
 export type SoundStatus = Pick<FlightStatus, "view" | "warnings" | "alarms" | "silenced" | "paused" | "autopilot" | "warp" | "low">;
@@ -136,6 +140,9 @@ export interface MusicMemory {
   aloft: boolean;
   orbit: number;
   turning: number;
+  /** The aircraft a frame ago (`SoundInput.flight`); and seconds left of letting the last one's trouble go quickly. */
+  flight: number;
+  calming: number;
 }
 
 /** What the cockpit's voice carries from one frame to the next. */
@@ -213,6 +220,9 @@ export interface SoundLevels {
     hissHz: number;
     /** What the engines are heard through: a low-pass, Hz. */
     cutoff: number;
+    /** Where the roar of the jets and the fans' tone are heard from, -1 left to 1 right; the middle but for an eye outside. */
+    roarPan: number;
+    fanPan: number;
   };
   wind: {
     gain: number;
@@ -332,8 +342,9 @@ const callout = (kind: CalloutKind, words: string): Callout => ({ kind, words, .
  * film; the clean view, the picture alone, the most cinematic, fullest.
  */
 const MUSIC_VIEWS: Record<FlightView, { gain: number; high: number; low: number }> = {
-  // Over the engines' and the airflow's drone, which sit low and wide: a headset's band, and loud enough to be heard over them.
-  cockpit: { gain: 0.62, high: 180, low: 6500 },
+  // Over the engines' and the airflow's drone, which sit low and wide and are loudest here: a headset's band, a little
+  // narrower than the whole, and as loud as the cleanest view's, or the drone has it.
+  cockpit: { gain: 1, high: 120, low: 9000 },
   outside: { gain: 0.8, high: 20, low: 18000 },
   clean: { gain: 1, high: 20, low: 20000 },
 };
@@ -374,6 +385,8 @@ export const TENSE_OFF = 0.3;
 export const TENSE_LEAST = 0.6;
 export const TENSION_IN_S = 16;
 export const TENSION_OUT_S = 36;
+/** A new start's calm: the trouble before it gone in about this long, seconds, under the cut to black and out of it. */
+export const CALM_AGAIN_S = 3;
 /** Below this height over the ground, metres (about 1,000 ft), for this long and up to this long, seconds, is a long low approach. */
 export const LOW_APPROACH_M = 300;
 export const LOW_APPROACH_S: [number, number] = [40, 120];
@@ -413,7 +426,7 @@ const easeLog = (from: number, to: number, dt: number, tau: number) => Math.exp(
 export function initialMusic(): MusicMemory {
   return {
     gain: 0, high: 20, low: MUSIC_LOW_MOST, drive: 0, tension: 0, tense: false, lowFor: 0, warnedFor: 0, clouded: 0, inCloud: false, swell: 0,
-    aloft: true, orbit: NaN, turning: 0,
+    aloft: true, orbit: NaN, turning: 0, flight: NaN, calming: 0,
   };
 }
 
@@ -449,13 +462,17 @@ export function mixMusic(
   const orbiting = status.view === "cockpit" ? 0 : ramp(turning, ORBIT_SLOW[0], ORBIT_SLOW[1]) * (1 - ramp(turning, ORBIT_SLOW[2], ORBIT_SLOW[3]));
 
   // Tension, with its hysteresis and its slow ways.
+  // A new aircraft (the next approach, or this one again) starts calm: the last one's trouble goes over a few seconds.
+  const flight = input.flight ?? memory.flight;
+  const fresh = Number.isFinite(memory.flight) && flight !== memory.flight;
+  const calming = fresh ? CALM_AGAIN_S : Math.max(0, memory.calming - dt);
   const low = aloft && (input.height ?? Infinity) < LOW_APPROACH_M;
-  const lowFor = low ? memory.lowFor + dt : Math.max(0, memory.lowFor - 3 * dt);
-  const warnedFor = status.warnings.length >= 2 ? memory.warnedFor + dt : Math.max(0, memory.warnedFor - 2 * dt);
+  const lowFor = fresh ? 0 : low ? memory.lowFor + dt : Math.max(0, memory.lowFor - 3 * dt);
+  const warnedFor = fresh ? 0 : status.warnings.length >= 2 ? memory.warnedFor + dt : Math.max(0, memory.warnedFor - 2 * dt);
   const difficulty = tensionOf(input, status, lowFor, warnedFor);
-  const tense = memory.tense ? difficulty >= TENSE_OFF : difficulty >= TENSE_ON;
+  const tense = fresh ? difficulty >= TENSE_ON : memory.tense ? difficulty >= TENSE_OFF : difficulty >= TENSE_ON;
   const wanted = tense ? Math.max(TENSE_LEAST, difficulty) : 0;
-  const tauTension = (input.ended ? 2 : wanted > memory.drive ? TENSION_IN_S : TENSION_OUT_S) / 2;
+  const tauTension = (input.ended ? 2 : calming > 0 && wanted <= memory.drive ? CALM_AGAIN_S / 3 : wanted > memory.drive ? TENSION_IN_S : TENSION_OUT_S) / 2;
   const drive = ease(memory.drive, wanted, dt, tauTension);
   const tension = ease(memory.tension, drive, dt, tauTension);
 
@@ -492,7 +509,7 @@ export function mixMusic(
     music,
     memory: {
       gain: level, high: highNow, low: lowNow, drive, tension, tense, lowFor, warnedFor, clouded, inCloud, swell, aloft,
-      orbit: input.orbit ?? memory.orbit, turning,
+      orbit: input.orbit ?? memory.orbit, turning, flight, calming,
     },
   };
 }
@@ -515,6 +532,34 @@ const VIEWS: Record<FlightView, {
   outside: { engine: 1, engineCutoff: 16000, wind: 0.75, windCutoff: 9000, rain: 0.35, thunder: 1, thunderCutoff: 9000, cabin: 0 },
   clean: { engine: 0.6, engineCutoff: 9000, wind: 0.5, windCutoff: 6000, rain: 0.25, thunder: 0.85, thunderCutoff: 7000, cabin: 0 },
 };
+
+/**
+ * The engines heard from an eye outside, `yaw` degrees round from behind the
+ * aircraft (90 its left) and `distance` metres off. The jets' roar comes
+ * from the plume behind the tail, the fans' tone from the intakes ahead of
+ * the wing: seen from the side the roar is heard to the tail's side and the
+ * tone to the nose's, and both close in on the middle from further off.
+ * Behind it the roar is loudest, ahead of it the tone; and the whole falls
+ * off with the distance, to nothing at all from far enough.
+ */
+export const ENGINE_HEARD = {
+  /** Where each is heard from, metres ahead of the aircraft's middle. */
+  roarAt: -28, fanAt: 6,
+  /** How far off the engines sound as they do from the eye's first place, metres; and where they fade out, to nothing. */
+  near: 60, fades: [220, 480] as const,
+  /** How much of the airflow's noise is left from furthest: it is the eye's own air as much as the aircraft's. */
+  windFar: 0.3,
+};
+export function heardFrom(yaw: number, distance: number): { level: number; roar: number; fan: number; roarPan: number; fanPan: number } {
+  const radians = (yaw * Math.PI) / 180;
+  const behind = (1 + Math.cos(radians)) / 2;
+  // Across the picture, metres: the eye's right is the aircraft's right from behind, its left from ahead.
+  const across = (ahead: number) => -ahead * Math.sin(radians);
+  const spread = 8 + 0.3 * distance;
+  const pan = (ahead: number) => Math.max(-0.9, Math.min(0.9, across(ahead) / spread));
+  const level = Math.min(1.35, (ENGINE_HEARD.near / Math.max(distance, 1)) ** 0.7) * (1 - ramp(distance, ...ENGINE_HEARD.fades));
+  return { level, roar: 0.7 + 0.6 * behind, fan: 1.25 - 0.5 * behind, roarPan: pan(ENGINE_HEARD.roarAt), fanPan: pan(ENGINE_HEARD.fanAt) };
+}
 
 const clamp01 = (value: number) => Math.min(Math.max(value, 0), 1);
 const ramp = (value: number, low: number, high: number) => clamp01((value - low) / (high - low));
@@ -665,7 +710,19 @@ export function mixSound(
     hiss: view.engine * n1 ** 2.5,
     hissHz: 500 + 1700 * n1,
     cutoff: view.engineCutoff,
+    roarPan: 0,
+    fanPan: 0,
   };
+  // Outside, where the eye is: round the aircraft and how far off.
+  const fromEye = !cockpit && input.orbit !== undefined && input.eye !== undefined ? heardFrom(input.orbit, input.eye) : null;
+  if (fromEye) {
+    engine.rumble *= fromEye.level * fromEye.roar;
+    engine.buzz *= fromEye.level * fromEye.roar;
+    engine.hiss *= fromEye.level * fromEye.roar;
+    engine.whine *= fromEye.level * fromEye.fan;
+    engine.roarPan = fromEye.roarPan;
+    engine.fanPan = fromEye.fanPan;
+  }
 
   // The airflow: with the dynamic pressure, so with the indicated speed squared.
   const speed = input.ias / VMO_MS;
@@ -681,6 +738,12 @@ export function mixSound(
     roar: view.wind * ramp(limit, 0.93, 1.06),
     cutoff: view.windCutoff,
   };
+  if (fromEye) {
+    const far = ENGINE_HEARD.windFar + (1 - ENGINE_HEARD.windFar) * Math.min(1, fromEye.level);
+    wind.gain *= far;
+    wind.roar *= far;
+    wind.brake *= far;
+  }
 
   const hail = ramp(input.dbz ?? -Infinity, HAIL_DBZ[0], HAIL_DBZ[1]);
   const rain = { gain: view.rain * input.rain, hz: 2600 + 1800 * input.rain, hail: view.rain * hail };

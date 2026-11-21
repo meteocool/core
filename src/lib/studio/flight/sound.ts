@@ -37,10 +37,14 @@ import { flightMuted, musicAvailable, pageAudio, plugMusic, setFlightMuted, want
 /** Whether the flight's sound is off, the music's with it (soundtrack.ts); the deck shows it. */
 export { flightMuted };
 
-/** What of the flight's picture the sound follows besides the telemetry: whether it is a wreck, and which way the eye outside looks. */
+/** What of the flight's picture the sound follows besides the telemetry: whether it is a wreck, and where the eye outside is. */
 export interface SoundScene {
   ended: boolean;
   orbit: number;
+  /** How far the eye outside is from the aircraft, metres. */
+  eye: number;
+  /** Which aircraft this is, counting each start again (the next approach, a restart). */
+  flight: number;
 }
 
 /** How long a pause's or a mute's fade takes before the context is suspended, ms. */
@@ -142,6 +146,8 @@ export class FlightSound {
       lost: status.lost.length,
       ended: scene?.ended ?? Boolean(state.crash),
       orbit: scene?.orbit,
+      eye: scene?.eye,
+      flight: scene?.flight,
     };
     this.strike = false;
     this.memory ??= initialMemory(input, status);

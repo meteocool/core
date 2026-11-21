@@ -1,6 +1,8 @@
 <script lang="ts">
   import Icon from "./Icon.svelte";
   import { faLayerGroup } from "@fortawesome/free-solid-svg-icons/faLayerGroup";
+  import { faPlaneDeparture } from "@fortawesome/free-solid-svg-icons/faPlaneDeparture";
+  import { FLIGHT_PAGE_HASH } from "../lib/studio/flightPage";
   import MiniMap from "./MiniMap.svelte";
   import { createEventDispatcher } from "svelte";
   import * as attributions from "../layers/attributions";
@@ -21,9 +23,11 @@
     { layer: "radar", label: `🌧 ${$_("rain_and_thunderstorms")}` },
     // The only tile whose map is not the layer it stands for: see MiniMap.
     { layer: "cells3d", label: `⛰ ${$_("storm_cells_3d")}`, preview: true },
+    // Not a map: the flight through the 3D map's storms, on a page of its own (lib/studio/flightPage.ts).
+    { layer: "meteoair", label: `✈️ meteoair`, needs: "cells3d", page: true },
     { layer: "precipTypes", label: `💧 ${$_("precipitation_types")}` },
     { layer: "lightning", label: `⚡️ ${$_("lightning")}` },
-  ].filter((tile) => capabilityEnabled(tile.layer));
+  ].filter((tile) => capabilityEnabled(tile.needs ?? tile.layer));
 
   // Rain & thunderstorms is what this app is for, so it leads: a wide hero
   // across the top, the rest paired two across beneath it. An odd tile out in
@@ -91,6 +95,12 @@
   }
 
   const dispatch = createEventDispatcher();
+
+  /** To the flight's page: the same page at its hash, which loads it again as that (the apps' too). */
+  function fly() {
+    close();
+    window.location.hash = FLIGHT_PAGE_HASH;
+  }
 
   function changeLayer(event) {
     close();
@@ -204,6 +214,39 @@
   .cell.wide {
     grid-column: span 2;
   }
+  /* The flight's tile: a sky to fly into, not a map. */
+  .cell.flight {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background:
+      radial-gradient(120% 90% at 70% 110%, rgba(255, 159, 10, 0.55), transparent 60%),
+      linear-gradient(180deg, #0d2a4f 0%, #2f6db3 55%, #a9c9ea 100%);
+    font: inherit;
+  }
+  .cell.flight .plane {
+    font-size: clamp(28px, 9cqmin, 56px);
+    color: rgba(255, 255, 255, 0.92);
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.35));
+    transform: translateY(-14%);
+  }
+  .cell.flight .label {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 10px;
+    z-index: 100;
+    padding: 8px 12px;
+    border-radius: var(--mc-radius-inner);
+    background: var(--mc-label-fill);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 2px 8px rgba(0, 0, 0, 0.25);
+    color: #fff;
+    font: 600 14px/1.2 var(--mc-font);
+    text-align: center;
+  }
   .cell.unavailable {
     opacity: 0.45;
     filter: grayscale(1);
@@ -237,6 +280,12 @@
     <div class="grid">
       <div class="maps">
         {#each tiles as tile, index (tile.layer)}
+          {#if tile.page}
+            <button type="button" class="cell flight" on:click={fly}>
+              <span class="plane" aria-hidden="true"><Icon icon={faPlaneDeparture} /></span>
+              <span class="label">{tile.label}</span>
+            </button>
+          {:else}
           <!-- A map a past window has no past for is greyed, and says so; switching to it is refused (LayerManager). -->
           <div
             class="cell"
@@ -253,6 +302,7 @@
               on:mount={childMounted}
               on:changeLayer={changeLayer} />
           </div>
+          {/if}
         {/each}
       </div>
     </div>

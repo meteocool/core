@@ -598,8 +598,9 @@ const WARNINGS = {
   .grade.butter, .grade.smooth { background: rgba(61, 220, 132, 0.25); color: #3ddc84; }
   .grade.firm { background: rgba(255, 179, 64, 0.25); color: #ffb340; }
   .grade.hard { background: rgba(255, 69, 58, 0.25); color: #ff453a; }
-  .corner-nw { top: 16px; left: 16px; }
-  .corner-ne { top: 16px; right: 204px; }
+  /* Every top clear of the status bar, a phone's clock and all, where there is one. */
+  .corner-nw { top: calc(var(--mc-safe-top) + 16px); left: 16px; }
+  .corner-ne { top: calc(var(--mc-safe-top) + 16px); right: 204px; }
   /* Clear of the whole-screen disc as well, where there is one. */
   .corner-ne.beside-screen { right: 246px; }
   .corner-sw { bottom: 32px; left: 16px; }
@@ -682,7 +683,7 @@ const WARNINGS = {
   /* How the storm looked into is opened: a bar at the top, in the middle, large enough to hit while flying. */
   .flight-deck > .inspect {
     position: absolute;
-    top: 14px;
+    top: calc(var(--mc-safe-top) + 14px);
     left: 50%;
     display: flex;
     align-items: center;
@@ -701,20 +702,20 @@ const WARNINGS = {
     font-weight: 600;
   }
   /* The warnings and a recording's mark stand clear of it. */
-  .flight-deck.inspecting .alerts { top: max(13%, 84px); }
-  .flight-deck.inspecting .rec { top: 78px; }
+  .flight-deck.inspecting .alerts { top: max(13%, calc(var(--mc-safe-top) + 84px)); }
+  .flight-deck.inspecting .rec { top: calc(var(--mc-safe-top) + 78px); }
   /* In a window too narrow for it between the speed and the altitude, it goes under them. */
   @container mc-frame (max-width: 1100px) {
-    .flight-deck > .inspect { top: 60px; }
-    .flight-deck.inspecting .alerts { top: max(13%, 130px); }
-    .flight-deck.inspecting .rec { top: 124px; }
+    .flight-deck > .inspect { top: calc(var(--mc-safe-top) + 60px); }
+    .flight-deck.inspecting .alerts { top: max(13%, calc(var(--mc-safe-top) + 130px)); }
+    .flight-deck.inspecting .rec { top: calc(var(--mc-safe-top) + 124px); }
   }
   .mark.target i { border-color: #ff4fd8; }
   .mark.target span:first-of-type { color: #ffc2f1; }
 
   .alerts {
     position: absolute;
-    top: 13%;
+    top: max(13%, calc(var(--mc-safe-top) + 56px));
     left: 50%;
     display: flex;
     flex-direction: column;
@@ -785,7 +786,7 @@ const WARNINGS = {
   /* The way out and the whole screen, side by side in the corner. */
   .corner {
     position: absolute;
-    top: 14px;
+    top: calc(var(--mc-safe-top) + 14px);
     right: 14px;
     display: flex;
     gap: 8px;
@@ -807,7 +808,7 @@ const WARNINGS = {
   .leave:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .rec {
     position: absolute;
-    top: 20px;
+    top: calc(var(--mc-safe-top) + 20px);
     left: 50%;
     padding: 4px 10px;
     border-radius: var(--mc-radius-pill);
@@ -819,7 +820,7 @@ const WARNINGS = {
   /* The sound off, M: small, under the way out, as it stays for the flight. */
   .muted {
     position: absolute;
-    top: calc(22px + var(--mc-pill-h));
+    top: calc(var(--mc-safe-top) + 22px + var(--mc-pill-h));
     right: 14px;
     display: inline-flex;
     align-items: center;
@@ -853,7 +854,7 @@ const WARNINGS = {
   .flight-deck.touch {
     --deck-left: max(16px, calc(var(--mc-safe-left) + 6px));
     --deck-right: max(14px, calc(var(--mc-safe-right) + 6px));
-    --deck-top: max(12px, var(--mc-safe-top));
+    --deck-top: max(12px, calc(var(--mc-safe-top) + 4px));
   }
   .flight-deck.touch .corner-nw { top: var(--deck-top); left: var(--deck-left); }
   .flight-deck.touch .corner-sw { top: var(--deck-top); bottom: auto; left: calc(var(--deck-left) + 180px); }

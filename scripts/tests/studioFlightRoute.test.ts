@@ -61,13 +61,13 @@ test("beside a long line of storms is not in it: the storm whose rain is nearer 
 /* ---- the level and the speed ---- */
 
 test("a weak shower is flown low, a strong storm at mid levels, to the thousand feet", () => {
-  assert.equal(fl(stormLevel(30)), 90);
-  assert.equal(fl(stormLevel(35)), 90);
-  assert.equal(fl(stormLevel(45)), 150);
-  assert.equal(fl(stormLevel(55)), 200);
-  assert.equal(fl(stormLevel(60)), 230);
-  assert.equal(fl(stormLevel(70)), 230);
-  assert.equal(fl(stormLevel(null)), 100);
+  assert.equal(fl(stormLevel(30)), 70);
+  assert.equal(fl(stormLevel(35)), 70);
+  assert.equal(fl(stormLevel(45)), 110);
+  assert.equal(fl(stormLevel(55)), 150);
+  assert.equal(fl(stormLevel(60)), 170);
+  assert.equal(fl(stormLevel(70)), 170);
+  assert.equal(fl(stormLevel(null)), 90);
   for (const dbz of [20, 38, 47, 52, 63]) assert.equal(fl(stormLevel(dbz)) % 10, 0);
 });
 
@@ -101,10 +101,10 @@ test("a flight from a place starts there, nose on the next storm, in its cloud a
   near(wrap180(plan.heading - bearingDeg(3.2, 43.9, plan.target!.lon, plan.target!.lat)), 0, 1e-6);
   assert.ok(fl(plan.altitude) >= 160 && fl(plan.altitude) <= 240, `FL${fl(plan.altitude)}`);
   near(plan.tas, cruiseSpeed(plan.altitude), 1e-9);
-  // As the plan the flight would fly unasked has it: from the cockpit, the radar's colours on the ground, the storms marked.
+  // As the plan the flight would fly unasked has it: from the cockpit, the radar's colours off the ground, the storms marked.
   assert.equal(plan.view, "cockpit");
   assert.equal(plan.style, "sky");
-  assert.equal(plan.radarOnGround, true);
+  assert.equal(plan.radarOnGround, false);
   assert.equal(plan.marks, true);
   // A weak shower is flown low.
   const shower = planHere(open(9.5, 50.3), systems, flat, 0, "sky");

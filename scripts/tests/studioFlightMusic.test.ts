@@ -40,14 +40,14 @@ test("a flight's music comes in from silence, smoothly", () => {
   for (let i = 1; i < frames.length; i++) assert.ok(Math.abs(frames[i].gain - frames[i - 1].gain) < 0.02, "no step a frame");
 });
 
-test("the clean view is the fullest, outside softer, the cockpit softer still and band-limited as through a headset", () => {
+test("the clean view is the fullest, outside softer, the cockpit as full over the engines and band-limited as through a headset", () => {
   const clean = settled({}, { view: "clean" }).music;
   const outside = settled({}, { view: "outside" }).music;
   const cockpit = settled({}, { view: "cockpit" }).music;
-  assert.ok(clean.gain > outside.gain && outside.gain > cockpit.gain);
-  // Softer, not faint: over the engines' drone in cruise it is still heard.
-  assert.ok(cockpit.gain > 0.5 && cockpit.gain < outside.gain);
-  assert.ok(cockpit.high > 150 && cockpit.low < 8000, "a narrower band in the cockpit");
+  assert.ok(clean.gain > outside.gain);
+  // Over the engines' drone, loudest in the cockpit, the music is as full as anywhere.
+  assert.ok(cockpit.gain > outside.gain && cockpit.gain >= clean.gain - 1e-9);
+  assert.ok(cockpit.high > 80 && cockpit.low < 12000, "a narrower band in the cockpit");
   assert.ok(clean.high < 30 && clean.low > 15000, "the whole band outside");
 });
 
@@ -184,5 +184,5 @@ test("the suspenseful piece is shaped as the theme is: muffled in cloud, ducked 
   const outside = fly(90, () => ({ input: storm })).music;
   const cockpit = fly(90, () => ({ input: storm, status: { view: "cockpit" } })).music;
   assert.ok(Math.abs(outside.tension - cockpit.tension) < 1e-9, "the crossfade is the view's alike");
-  assert.ok(cockpit.gain < outside.gain && cockpit.low < outside.low, "the level and band are the view's, for both");
+  assert.ok(cockpit.gain > outside.gain && cockpit.low < outside.low, "the level and band are the view's, for both");
 });

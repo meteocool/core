@@ -16,7 +16,9 @@ import type { FlightStart } from "../flightLink";
 import { indicatedFromTrue, machOf, speedOfSound, trueFromIndicated } from "./atmosphere";
 import { freezingLevel, USUAL_BASE_KM } from "./cloudBase";
 import { bearingDeg, destination, distanceM, offsetM, wrap180, wrap360 } from "./geo";
-import { approachTo, edgeKm, MOUNTAINS, START_TAS, SUN_BEARING, terrainFloor } from "./spawn";
+import { approachTo, edgeKm, MOUNTAINS, SHOWER_DBZ, stormLevel, SUN_BEARING, terrainFloor } from "./spawn";
+
+export { stormLevel };
 import type { Approach, StormSystem, StormTile } from "./spawn";
 
 /** The aircraft there are to fly. One, so far; the page is laid out for more. */
@@ -99,12 +101,13 @@ export function planFrom(approach: Approach, style: CloudStyle): FlightPlan {
     lat: approach.lat,
     heading: approach.heading,
     altitude: clamp(approach.altitude, ALTITUDE_RANGE),
-    tas: startable(START_TAS, clamp(approach.altitude, ALTITUDE_RANGE)),
+    // Rather fast for the level (`cruiseSpeed`): low down a fixed true speed would be close to the limit.
+    tas: startable(cruiseSpeed(clamp(approach.altitude, ALTITUDE_RANGE)), clamp(approach.altitude, ALTITUDE_RANGE)),
     target: approach.target,
     aimed: true,
     view: "cockpit",
     style,
-    radarOnGround: true,
+    radarOnGround: false,
     marks: true,
   };
 }
@@ -152,8 +155,6 @@ export function atMach(plan: FlightPlan, mach: number): FlightPlan {
 /* A flight from a place, chosen for the reader: from a point on the map
    ("Fly from here"), or from a link that fixes some of it. */
 
-/** The weakest echo a flight is worth aiming at from outside it, dBZ: a shower; drizzle is not. */
-const SHOWER_DBZ = 35;
 
 /**
  * The next storm from a place: the system it stands in, if any (the one
@@ -180,25 +181,6 @@ export function nextStorm(lon: number, lat: number, systems: readonly StormSyste
   return nearest(worth.length ? worth : systems, gap);
 }
 
-/**
- * The level a storm is worth flying through, metres: in its cloud, where its
- * echo is.
- *
- * A shower's echo is shallow: its tops are four to six kilometres up, and
- * its rain is the cloud between the base and the freezing level, so a
- * flight into a weak one (35 dBZ and under) is low, at FL090, about 2.7 km.
- * A thunderstorm's strongest echo, the rain and the hail held up in its
- * updraft, stands at mid levels, five to eight kilometres up, under the
- * anvil, whose own echo is faint; so a strong one (60 dBZ, hail) is flown at
- * FL230, about 7 km, and those between on a straight line from one to the
- * other: FL150 at 45 dBZ, FL200 at 55. To the thousand feet, as levels are
- * flown. With no storm, FL100: low enough for the ground to read.
- */
-export function stormLevel(peakDbz: number | null): number {
-  if (peakDbz === null) return 10_000 / FEET;
-  const strength = Math.min(Math.max((peakDbz - SHOWER_DBZ) / 25, 0), 1);
-  return (Math.round(9 + strength * (23 - 9)) * 1000) / FEET;
-}
 
 /**
  * How fast a flight goes that the reader wants rather fast: 300 kt
@@ -261,7 +243,7 @@ export function planHere(
   return {
     aircraft: "a320", lon, lat, heading, altitude, tas, target,
     aimed: start.heading === null && target !== null && !onCore,
-    view: start.view, style, radarOnGround: true, marks: true,
+    view: start.view, style, radarOnGround: false, marks: true,
   };
 }
 

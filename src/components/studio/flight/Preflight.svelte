@@ -10,8 +10,8 @@
  * The whole screen, as a simulator's menu is: the map behind it blurred out
  * of reading, and each part of the plan a pane of glass over it. What the
  * flight draws is not asked: the imagery under it, its storms in the sky's
- * own style, the radar painted on the ground and the storms ahead marked
- * (the flight's own keys still change the last two). The plan and the briefing are lib/studio/flight/plan.ts;
+ * own style, the radar off the ground and the storms ahead marked (the
+ * flight's own keys still change the last two). The plan and the briefing are lib/studio/flight/plan.ts;
  * the flight that takes it is lib/studio/flight/pilot.ts.
  *
  * A menu: the menus' music plays while it is up, with a switch for all of
@@ -416,6 +416,7 @@ function keydown(event: KeyboardEvent): void {
     padding: clamp(10px, 2.4cqh, 28px) clamp(10px, 2.4cqw, 32px);
     padding-left: max(clamp(10px, 2.4cqw, 32px), calc(var(--mc-safe-left, 0px) + 8px));
     padding-right: max(clamp(10px, 2.4cqw, 32px), calc(var(--mc-safe-right, 0px) + 8px));
+    padding-top: max(clamp(10px, 2.4cqh, 28px), calc(var(--mc-safe-top, 0px) + 6px));
     padding-bottom: max(clamp(10px, 2.4cqh, 28px), calc(var(--mc-safe-bottom, 0px) + 8px));
     background: rgba(6, 9, 14, 0.32);
     -webkit-backdrop-filter: blur(44px) saturate(1.25);

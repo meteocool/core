@@ -31,7 +31,7 @@ function held(state: AircraftState, seconds: number, flight: Flight, from: Damag
 
 test("past its flutter speed the surfaces go one at a time, in an order chance decides, and the flight goes on", () => {
   const fast = speeds(FLUTTER_MS + 8);
-  const { damage, events } = held(cruise, 30, fast, intact(3));
+  const { damage, events } = held(cruise, 60, fast, intact(3));
   const lost = surfacesLost(damage);
   // Clean, with the speed brake in, it is the ailerons, the elevators and the rudder that can go: all of them, in time.
   assert.deepEqual([...lost].sort(), ["leftAileron", "leftElevator", "rightAileron", "rightElevator", "rudder"]);
@@ -39,14 +39,14 @@ test("past its flutter speed the surfaces go one at a time, in an order chance d
   assert.deepEqual(events.map((event) => (event.kind === "shed" ? event.surface : null)), lost);
   assert.ok(events.every((event) => event.strength < 0.3), "a small bang each");
   assert.ok(!broken(damage) && damage.cause === null, "the airframe is whole, and the flight not over");
-  // One at a time: no two in the same moment.
-  for (let i = 1; i < events.length; i++) assert.ok(events[i].at - events[i - 1].at > 0.05);
+  // One at a time, with seconds between to get the speed off.
+  for (let i = 1; i < events.length; i++) assert.ok(events[i].at - events[i - 1].at > 3, `${events[i].at - events[i - 1].at} s`);
 
   // The same flight loses them in the same order every time; another flight in another.
-  assert.deepEqual(surfacesLost(held(cruise, 30, fast, intact(3)).damage), lost);
-  const orders = new Set([1, 2, 3, 4, 5, 6, 7, 8].map((seed) => surfacesLost(held(cruise, 30, fast, intact(seed)).damage).join()));
+  assert.deepEqual(surfacesLost(held(cruise, 60, fast, intact(3)).damage), lost);
+  const orders = new Set([1, 2, 3, 4, 5, 6, 7, 8].map((seed) => surfacesLost(held(cruise, 60, fast, intact(seed)).damage).join()));
   assert.ok(orders.size >= 6, `${orders.size} orders in 8 flights`);
-  const firsts = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((seed) => surfacesLost(held(cruise, 30, fast, intact(seed)).damage)[0]));
+  const firsts = new Set([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((seed) => surfacesLost(held(cruise, 60, fast, intact(seed)).damage)[0]));
   assert.ok(firsts.size >= 4, `${firsts.size} first surfaces`);
 
   // Further past, they go sooner after each other.
@@ -64,16 +64,17 @@ test("past its flutter speed the surfaces go one at a time, in an order chance d
   };
   const slow = gaps(FLUTTER_MS + 2);
   const quick = gaps(FLUTTER_CERTAIN_MS);
-  assert.ok(slow > 1.2 && quick < slow / 3, `${slow.toFixed(2)} s apart just past, ${quick.toFixed(2)} s far past`);
+  // Always a few seconds to get the speed off, if fewer the further past.
+  assert.ok(slow > 6 && quick > 2.5 && quick < slow / 2, `${slow.toFixed(2)} s apart just past, ${quick.toFixed(2)} s far past`);
 });
 
 test("the spoilers, flaps and slats go only where they stand out in the air", () => {
   const fast = speeds(FLUTTER_MS + 8);
   const all = new Set<LostSurface>();
-  for (const seed of [1, 2, 3, 4, 5, 6]) for (const surface of surfacesLost(held(cruise, 30, fast, intact(seed)).damage)) all.add(surface);
+  for (const seed of [1, 2, 3, 4, 5, 6]) for (const surface of surfacesLost(held(cruise, 60, fast, intact(seed)).damage)) all.add(surface);
   assert.ok(![...all].some((surface) => SURFACES[surface].out), [...all].join());
   const dirty = { ...cruise, flaps: 2, spoilers: 0.5 };
-  const out = surfacesLost(held(dirty, 30, fast, intact(2)).damage);
+  const out = surfacesLost(held(dirty, 120, fast, intact(2)).damage);
   assert.equal(out.length, 11);
   assert.ok(["leftFlap", "rightSlat", "leftSpoiler"].every((surface) => out.includes(surface as LostSurface)));
 });
@@ -116,7 +117,7 @@ test("each goes with a small bang and a puff of smoke where it was, tumbles off 
 });
 
 test("the airframe itself goes only well past that: at once 90 kt past, over seconds a little short of it, quicker with its surfaces gone", () => {
-  const certain = held(cruise, 10, speeds(FLUTTER_CERTAIN_MS + 2), intact(4)).damage;
+  const certain = held(cruise, 25, speeds(FLUTTER_CERTAIN_MS + 2), intact(4)).damage;
   assert.equal(surfacesLost(certain).length, 5);
   assert.ok(!broken(certain), "60 kt past, it flies on without them");
   const at = (flight: Flight, seed: number, from: Damage = intact(seed)) => {

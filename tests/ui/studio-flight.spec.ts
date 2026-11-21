@@ -248,7 +248,7 @@ test.describe("on a desktop", () => {
     await expect.poll(() => new URL(page.url()).searchParams.get("latLonZ")).toBe(VIEW);
   });
 
-  test("the flight paints the radar on the ground, O takes it off and back, J sets the flaps, and landing puts it back", async ({ page }) => {
+  test("the flight starts with the radar off the ground, O paints it there and back, J sets the flaps, and landing puts it back", async ({ page }) => {
     test.slow();
     await page.goto(MAP_3D);
     await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
@@ -258,15 +258,15 @@ test.describe("on a desktop", () => {
     await expect(flightPlan(page)).toBeVisible();
     // The briefing reads the plan back, the cloud base among it.
     await expect(flightPlan(page).getByText("CLD BASE")).toBeVisible();
-    // The plan asks nothing of how the map is drawn: the radar is painted on the ground, which O takes off and puts back.
+    // The plan asks nothing of how the map is drawn: the radar is off the ground, which O paints there and takes off again.
     await expect(flightPlan(page).getByRole("combobox", { name: "Basemap" })).toHaveCount(0);
     await flightPlan(page).getByRole("button", { name: "Take off" }).click();
     await expect(deck(page)).toBeVisible();
-    await expect.poll(offGround).toBe(false);
-    await page.keyboard.press("o");
     await expect.poll(offGround).toBe(true);
     await page.keyboard.press("o");
     await expect.poll(offGround).toBe(false);
+    await page.keyboard.press("o");
+    await expect.poll(offGround).toBe(true);
     // How fast the flight is drawn is on the deck.
     await expect(deck(page).getByText(/\d+ fps/)).toBeVisible({ timeout: 15_000 });
     // A step of flaps: the lever's place reads out while they travel and after.

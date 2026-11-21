@@ -57,8 +57,8 @@ const TRIM = {
   wind: 0.55, brake: 0.55, roar: 0.5, turbulence: 0.9,
   rain: 0.22, patter: 0.32, hail: 0.5,
   thunder: 1.1, thump: 0.9, cabin: 0.8, alerts: 0.5, ui: 0.32, warp: 4, crash: 1,
-  // Mastered loud: at its fullest about as loud as the cruise's own sounds, over them only in the cleanest view.
-  music: 0.7,
+  // Mastered loud: at its fullest a little over the cruise's own sounds, the engines' drone in the cockpit too.
+  music: 0.85,
 };
 
 /** How many hailstones a second at the hardest. */
@@ -427,6 +427,7 @@ export class SoundGraph {
   private readonly engine: {
     rumble: GainNode; rumbleFilter: BiquadFilterNode; whine: GainNode; whineFilter: BiquadFilterNode;
     fans: OscillatorNode[]; high: OscillatorNode; buzz: GainNode; buzzOsc: OscillatorNode; hiss: GainNode; hissFilter: BiquadFilterNode;
+    roarPan: StereoPannerNode; fanPan: StereoPannerNode;
   };
   private readonly wind: { gain: GainNode; filter: BiquadFilterNode; brake: GainNode; roar: GainNode; buffet: GainNode; rumble: GainNode };
   private readonly gusts: AudioBufferSourceNode;
@@ -537,10 +538,15 @@ export class SoundGraph {
 
     // The engines.
     const engine = this.busses.engine;
-    const rumble = gain(0, engine);
+    // The jets' roar and the fans' tone each from where an eye outside hears it (soundMix.ts, `heardFrom`).
+    const roarPan = context.createStereoPanner();
+    roarPan.connect(engine);
+    const fanPan = context.createStereoPanner();
+    fanPan.connect(engine);
+    const rumble = gain(0, roarPan);
     const rumbleFilter = filter("lowpass", 120, 0.7, rumble);
     loop(this.brown, rumbleFilter);
-    const whine = gain(0, engine);
+    const whine = gain(0, fanPan);
     const whineFilter = filter("bandpass", 1500, 2.5, whine);
     // Two engines never turn quite together: their tones beat, slowly at idle.
     const fans = [oscillator("triangle", 1500, whineFilter), oscillator("triangle", 1500, whineFilter)];
@@ -550,12 +556,12 @@ export class SoundGraph {
     const wander = gain(7);
     loop(buffers.wander, wander, 0.6);
     for (const fan of [...fans, high]) wander.connect(fan.detune);
-    const buzz = gain(0, engine);
+    const buzz = gain(0, roarPan);
     const buzzOsc = oscillator("sawtooth", 70, filter("lowpass", 1400, 0.8, buzz));
-    const hiss = gain(0, engine);
+    const hiss = gain(0, roarPan);
     const hissFilter = filter("bandpass", 1500, 0.6, hiss);
     loop(pink, hissFilter);
-    this.engine = { rumble, rumbleFilter, whine, whineFilter, fans, high, buzz, buzzOsc, hiss, hissFilter };
+    this.engine = { rumble, rumbleFilter, whine, whineFilter, fans, high, buzz, buzzOsc, hiss, hissFilter, roarPan, fanPan };
 
     // The airflow, and what rough air does to it: everything in it goes through the buffet's swells.
     const buffet = gain(1, this.busses.wind);
@@ -623,6 +629,8 @@ export class SoundGraph {
     to(this.engine.buzzOsc.frequency, engine.buzzHz);
     to(this.engine.hiss.gain, engine.hiss * TRIM.hiss);
     to(this.engine.hissFilter.frequency, engine.hissHz);
+    to(this.engine.roarPan.pan, engine.roarPan);
+    to(this.engine.fanPan.pan, engine.fanPan);
 
     const { wind } = levels;
     to(this.filters.wind.frequency, wind.cutoff);

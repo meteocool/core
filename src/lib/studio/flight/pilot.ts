@@ -21,15 +21,15 @@ import { captionOf, recordStage, saveRecording } from "../director";
 import type { InspectMode, Stage, StormTileInfo } from "../director";
 import type { Recording } from "../record";
 import { flightStatus, INITIAL_FLIGHT_STATUS, studioFlying, studioFov, studioOpen } from "../store";
-import type { FlightCrash, FlightStatus, FlightWarning } from "../store";
+import type { FlightCrash, FlightStatus, FlightView, FlightWarning } from "../store";
 import { indicatedFromTrue, machOf } from "./atmosphere";
 import { Keys } from "./controls";
 import type { FlightAction } from "./controls";
 import { FLAPS_MOST, levelFlight, MAX_DT, moveGear, overspeed, PITCH_RATE, ROLL_RATE, SPEEDBRAKE, step, terrainAhead } from "./physics";
 import type { AircraftState, Environment } from "./physics";
-import { approachOf } from "./plan";
+import { approachOf, cruiseSpeed } from "./plan";
 import type { FlightPlan } from "./plan";
-import { chooseApproach, START_TAS, towards } from "./spawn";
+import { chooseApproach, towards } from "./spawn";
 import type { Approach } from "./spawn";
 import { USUAL_BASE_KM } from "./cloudBase";
 import { cloudBaseAt } from "./stationAir";
@@ -44,7 +44,7 @@ import { VERTICAL_SCALE } from "../../../layers/terrain";
 import { toggleFullscreen } from "../../fullscreen";
 import { airAt, noise, roughAir } from "./weather";
 import { advance, BLAST_FROM, broken, harmed, intact, shown, shudder, surfacesLost } from "./damage";
-import type { Damage } from "./damage";
+import type { Damage, DamageEvent } from "./damage";
 import { boltPaths, FLASH_S, flicker, glare, thunderDelay } from "./lightning";
 import type { Bolt } from "../../../layers/weatherPass";
 import { FlightSound } from "./sound";
@@ -163,6 +163,14 @@ const GEAR_WARNING = { below: 150, slower: 98 };
 const SINK_WARNING_MS = 9;
 /** Banked steeper than this in the air, degrees, it says so. */
 const BANK_WARNING = 45;
+/**
+ * Seen from the cockpit, something about to come off the aircraft is shown
+ * from outside, as a film cuts to it: out to the usual outside view this
+ * long before it is reckoned to go, seconds, held this long after it went,
+ * and back in; or back in this long after cutting out where, slowed in
+ * time, nothing went.
+ */
+const SHOW_BREAK = { lead: 0.8, after: 3.2, gaveUp: 2.5 };
 /** How long the reason a flight ended stays up into the next one, seconds. */
 const CRASH_SHOWN_S = 5;
 /**
@@ -287,6 +295,17 @@ export class Pilot {
    * round.
    */
   private wreck: { since: number; until: number; stopped: boolean; bearing: number; distance: number; pitch: number } | null = null;
+
+  /** Cut out of the cockpit to show something coming off: since when, and when it went; see `SHOW_BREAK`. */
+  private showing: { since: number; went: number | null } | null = null;
+
+  /**
+   * An aircraft broken up in the air, followed down from outside: the way
+   * the eye looked when it broke, as a bearing, and the orbit then. The eye
+   * keeps that bearing however the hull tumbles, turning only as the reader
+   * turns it, so the picture does not spin with the wreckage.
+   */
+  private fallen: { bearing: number; yaw: number } | null = null;
   private paused = false;
   private frame: number | null = null;
   private last: number | null = null;
@@ -501,7 +520,8 @@ export class Pilot {
         break;
       case "next":
         this.approach = this.another();
-        this.tas = START_TAS;
+        // Rather fast for its level, which is the next storm's.
+        this.tas = cruiseSpeed(this.approach.altitude);
         this.status({ clearSky: this.approach.target === null });
         this.cut();
         break;
@@ -838,8 +858,12 @@ export class Pilot {
     if (telemetry.time - this.slowAt >= SLOW_S) this.slow();
     this.place();
     for (const listener of this.listeners) listener(telemetry);
-    this.sound?.update(telemetry, get(flightStatus), dt, {
-      ended: Boolean(telemetry.state.crash) || broken(this.damage), orbit: this.orbit.yaw,
+    // Heard as it is seen: from outside where the picture has cut out of the cockpit.
+    const seen = this.seenView();
+    const orbit = seen === "cockpit" ? null : this.orbitNow(telemetry.state);
+    this.sound?.update(telemetry, { ...get(flightStatus), view: seen }, dt, {
+      ended: Boolean(telemetry.state.crash) || broken(this.damage), orbit: orbit?.yaw ?? this.orbit.yaw, eye: orbit?.distance ?? this.distance,
+      flight: this.flights,
     });
   }
 
@@ -965,8 +989,14 @@ export class Pilot {
       over: (state.altitude - floor) * VERTICAL_SCALE,
     };
     const whole = this.damage.violence === null;
+    const before = this.damage;
     const { damage, events } = advance(this.damage, state, flight, dt);
     this.damage = damage;
+    this.foresee(before, damage, events, dt);
+    if (broken(damage) && !this.fallen && !state.crash) {
+      const yaw = this.orbitNow(state).yaw;
+      this.fallen = { bearing: state.heading + yaw, yaw: this.orbit.yaw };
+    }
     // Meeting the ground for good is a blast, or where it only slides, the airframe giving way: by how hard it came down.
     if (whole && damage.violence !== null && !events.some((event) => event.kind === "blast")) {
       this.sound?.breakup(Math.min(1, 0.35 + 2 * damage.violence));
@@ -981,6 +1011,48 @@ export class Pilot {
       this.crashUntil = Infinity;
       this.status({ crash: this.ended(state) });
     }
+  }
+
+  /**
+   * Whether something is about to come off, and the reader is in the
+   * cockpit: then out to see it (`SHOW_BREAK`). What is used up of each
+   * margin (damage.ts), at the rate it went this step, says how soon.
+   */
+  private foresee(before: Damage, after: Damage, events: readonly DamageEvent[], dt: number): void {
+    const time = this.telemetry.time;
+    const went = events.some((event) => event.kind === "shed" || event.kind === "torn");
+    if (this.showing) {
+      if (went && this.showing.went === null) this.showing.went = time;
+      const over = this.showing.went !== null
+        ? time >= this.showing.went + SHOW_BREAK.after
+        : time >= this.showing.since + SHOW_BREAK.gaveUp;
+      if (over && !broken(after)) this.showing = null;
+      return;
+    }
+    if (get(flightStatus).view !== "cockpit" || dt <= 0) return;
+    const margins = ["flutter", "stress", "airframe", "fin"] as const;
+    const soonest = Math.min(...margins.map((margin) => {
+      const rate = (after[margin] - before[margin]) / dt;
+      return rate > 0 ? (1 - after[margin]) / rate : Infinity;
+    }));
+    if (soonest <= SHOW_BREAK.lead) this.showing = { since: time, went: null };
+  }
+
+  /** The view drawn: the reader's, but outside for a wreck, and from the cockpit to see something come off. */
+  private seenView(): FlightView {
+    const chosen = get(flightStatus).view;
+    if (this.wreck) return "outside";
+    return chosen === "cockpit" && (this.showing || this.fallen) ? "outside" : chosen;
+  }
+
+  /** Where round the aircraft the eye outside stands now, and how far off. */
+  private orbitNow(state: AircraftState): { yaw: number; pitch: number; distance: number } {
+    if (this.wreck) return { yaw: this.wreck.bearing - state.heading, pitch: this.wreck.pitch, distance: this.wreck.distance };
+    const chosen = get(flightStatus).view;
+    // Cut out of the cockpit: the usual outside view, not wherever the orbit was last left.
+    const own = chosen === "cockpit" ? { ...OUTSIDE_LOOK, distance: OUTSIDE_DISTANCE } : { ...this.orbit, distance: this.distance };
+    const yaw = this.fallen ? this.fallen.bearing + (this.orbit.yaw - this.fallen.yaw) - state.heading : own.yaw;
+    return { yaw, pitch: Math.min(own.pitch, this.lowestOrbit(state, yaw, own.distance)), distance: own.distance };
   }
 
   /**
@@ -1130,8 +1202,12 @@ export class Pilot {
       this.damage = intact(this.flights);
       this.status({ lost: [] });
       this.wreck = null;
+      this.showing = null;
+      this.fallen = null;
       this.telemetry.frost = 0;
-      this.crashUntil = Math.min(this.crashUntil, this.telemetry.time + CRASH_SHOWN_S);
+      // Nothing of the last one's end left on the screen either.
+      this.crashUntil = -Infinity;
+      this.status({ crash: null });
       this.autopilot = null;
       this.terrain = false;
       // Back at the start of the approach, in the air: clean, gear up.
@@ -1322,7 +1398,7 @@ export class Pilot {
   private place(): void {
     const { state, turbulence, time, cloud } = this.telemetry;
     // A wreck is watched from outside, wherever the reader was sitting; the view they chose is theirs again after the cut.
-    const view = this.wreck ? "outside" : get(flightStatus).view;
+    const view = this.seenView();
     const pose ={ lon: state.lon, lat: state.lat, altitude: state.altitude, heading: state.heading, pitch: state.pitch, roll: state.roll };
     const outside = view === "outside";
     // The seat's lens is the wheel's; the map's camera is given the same one, so the two pictures stay one.
@@ -1342,13 +1418,10 @@ export class Pilot {
        from under it. Over the ground where it stands, which is the length of
        the hull and more behind and below the aircraft, not only the ground
        under the aircraft: a runway's far end, a slope, a valley's side. */
-    const lowest = this.lowestOrbit(state, this.orbit.yaw, this.distance);
-    // A wreck's eye stands where it stood when the wreck came down, and does not swing round with it.
-    const orbit = this.wreck
-      ? { yaw: this.wreck.bearing - state.heading, pitch: this.wreck.pitch }
-      : { yaw: this.orbit.yaw, pitch: Math.min(this.orbit.pitch, lowest) };
-    const eye = outside
-      ? outsideEye(pose, orbit, this.wreck?.distance ?? this.distance)
+    // A wreck's eye stands where it stood when the wreck came down, and neither does one broken up in the air swing round with it.
+    const orbit = outside ? this.orbitNow(state) : null;
+    const eye = orbit
+      ? outsideEye(pose, orbit, orbit.distance)
       : cockpitEye(shaken, this.head, SEAT);
     // What has come off the aircraft, each piece where it has got to, and what burns (damage.ts): nothing for a whole one.
     const wrecked = shown(this.damage, state);

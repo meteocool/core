@@ -10,7 +10,7 @@ import {
 } from "../../src/lib/studio/flight/physics.ts";
 import type { AircraftState, ControlInput, Environment } from "../../src/lib/studio/flight/physics.ts";
 import {
-  approachTo, chooseApproach, edgeKm, MAX_START_KM, rankSystems, reliefAt, START_ALTITUDE_M, START_KM, startAltitude, stormSystems, SUN_BEARING,
+  approachTo, chooseApproach, edgeKm, MAX_START_KM, rankSystems, reliefAt, START_KM, startAltitude, stormLevel, stormSystems, SUN_BEARING,
 } from "../../src/lib/studio/flight/spawn.ts";
 import type { StormTile } from "../../src/lib/studio/flight/spawn.ts";
 import { flightFine, flightWanted } from "../../src/lib/studio/flight/selection.ts";
@@ -496,7 +496,9 @@ test("the approach starts short of the system, nose on it, with the sun behind w
   near(wrap180(bearingDeg(approach.lon, approach.lat, 4.0, 44.0) - approach.heading), 0, 0.5);
   // Flying away from the sun, give or take one of the twelve bearings and the relief.
   assert.ok(Math.abs(wrap180(approach.heading - (SUN_BEARING + 180))) <= 60, `heading ${approach.heading}`);
-  assert.equal(approach.altitude, START_ALTITUDE_M);
+  // Among the storm's clouds, not high over them: FL150 for 55 dBZ.
+  assert.equal(approach.altitude, stormLevel(55));
+  assert.equal(Math.round((approach.altitude * 3.28084) / 1000), 15);
 });
 
 test("the approach starts short of the system's near edge, not of its far reach", () => {
@@ -529,7 +531,9 @@ test("the approach does not start inside another storm", () => {
 
 test("the start is raised over high ground, and with no weather it starts over where the reader looked", () => {
   near(startAltitude(7, 46, 90, () => 4800), 7800, 1e-9);
-  assert.equal(startAltitude(7, 46, 90, () => null), START_ALTITUDE_M);
+  assert.equal(startAltitude(7, 46, 90, () => null), stormLevel(null));
+  // Lower for a shower than for a thunderstorm, and never over FL170.
+  assert.ok(stormLevel(35) < stormLevel(60) && Math.round((stormLevel(70) * 3.28084) / 1000) === 17);
   const clear = chooseApproach([], { lon: 4.6, lat: 43.3, bearing: 20 }, null);
   assert.equal(clear.target, null);
   assert.equal(clear.heading, 20);
@@ -868,7 +872,7 @@ test("the briefing reads the plan back: the route, the weather at its end, the g
   const lines = briefing(plan, systems, Date.UTC(2026, 10, 19, 18, 15) / 1000);
   const line = (item: string) => lines.find((each) => each.item === item);
   assert.match(line("route")!.text, /^N43°00' E002°36' DCT CB .* TRK \d{3}° · \d+ NM$/);
-  assert.match(line("level")!.text, /^FL240 · \d+ KT IAS · M\.\d\d · TAS \d+ KT$/);
+  assert.match(line("level")!.text, /^FL\d{3} · \d+ KT IAS · M\.\d\d · TAS \d+ KT$/);
   assert.match(line("weather")!.text, /SEV TS .* MAX 62 DBZ/);
   assert.equal(line("weather")!.caution, true);
   assert.match(line("time")!.text, /MIN TO FIRST ECHO · \d+ MIN TO CORE · \d+ MIN AT ×4/);

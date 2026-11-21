@@ -61,8 +61,9 @@ const BOTH_WINGS_FROM = 1.6;
  * another, each over `SURFACE_AGAIN_S` at the onset and quicker the faster
  * it goes, but never all at once: up to `SURFACE_AGAIN` of the build-up is
  * left over from the last, as chance draws it, and the order is chance's
- * too. The aircraft flies on without them, and the reader has a moment
- * between each to slow down. Slowed down again in time, the shaking dies
+ * too. The aircraft flies on without them, and the reader has several
+ * seconds between each to get the speed off (from 5 or 6 at the onset, and
+ * still 3 or so far past it). Slowed down again in time, the shaking dies
  * away.
  */
 export const FLUTTER_MS = VMO_MS + 12.9;
@@ -72,9 +73,9 @@ export const FLUTTER_CERTAIN_MACH = 0.96;
 export const FLUTTER_S = 4;
 const FLUTTER_FASTER = 15;
 const FLUTTER_DIES_S = 2;
-const SURFACE_AGAIN = 0.5;
-const SURFACE_AGAIN_S = 6;
-const SURFACE_AGAIN_FASTER = 4;
+const SURFACE_AGAIN = 0.25;
+const SURFACE_AGAIN_S = 12;
+const SURFACE_AGAIN_FASTER = 2;
 /**
  * The wing's and the tail's own boxes are far stiffer than what hangs on
  * them. An airliner is shown free of flutter up to 15% past its design

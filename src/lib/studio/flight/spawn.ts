@@ -79,8 +79,28 @@ export const START_KM = 30;
 export const MAX_START_KM = 80;
 const CLEAR_KM = 15;
 
-/** How high it starts: FL240, low enough for the relief to read with the storms towering over it. */
-export const START_ALTITUDE_M = 7300;
+const FEET_PER_M = 3.28084;
+/** The weakest echo a flight is worth aiming at from outside it, dBZ: a shower; drizzle is not. */
+export const SHOWER_DBZ = 35;
+
+/**
+ * The level a storm is flown at, metres: among its clouds, so the flight
+ * starts where they are and not high over them, with little to come down.
+ *
+ * A shower's cloud is shallow, from its base to four or five kilometres, so
+ * a flight at a weak one (35 dBZ and under) starts at FL070, about 2 km. A
+ * thunderstorm's strongest echo, the rain and the hail held up in its
+ * updraft, stands at mid levels under the anvil; a strong one (60 dBZ, hail)
+ * is flown at FL170, about 5 km, its towers still well over the aircraft,
+ * and those between on a straight line from one to the other: FL110 at
+ * 45 dBZ, FL150 at 55. To the thousand feet, as levels are flown. With no
+ * storm, FL090: low enough for the ground to read.
+ */
+export function stormLevel(peakDbz: number | null): number {
+  if (peakDbz === null) return 9_000 / FEET_PER_M;
+  const strength = Math.min(Math.max((peakDbz - SHOWER_DBZ) / 25, 0), 1);
+  return (Math.round(7 + strength * (17 - 7)) * 1000) / FEET_PER_M;
+}
 /** How far above the ground the start keeps, over the first stretch of the way in, metres and km. */
 const TERRAIN_MARGIN_M = 3000;
 const TERRAIN_CHECK_KM = 60;
@@ -202,7 +222,7 @@ export function approachTo(
     if (!best || score > best.score) best = { score, lon, lat, heading };
   }
   const { lon, lat, heading } = best!;
-  return { lon, lat, heading, altitude: startAltitude(lon, lat, heading, groundAt), target: system };
+  return { lon, lat, heading, altitude: startAltitude(lon, lat, heading, groundAt, system.peakDbz), target: system };
 }
 
 /**
@@ -224,11 +244,11 @@ export function edgeKm(system: Pick<StormSystem, "extent" | "radiusKm">, bearing
   return Math.min(edge, system.radiusKm);
 }
 
-/** FL240, or higher where the ground under the first stretch of the way in asks for it. */
+/** The storm's level (`stormLevel`), or higher where the ground under the first stretch of the way in asks for it. */
 export function startAltitude(
-  lon: number, lat: number, heading: number, groundAt: (lon: number, lat: number) => number | null,
+  lon: number, lat: number, heading: number, groundAt: (lon: number, lat: number) => number | null, peakDbz: number | null = null,
 ): number {
-  return Math.max(START_ALTITUDE_M, terrainFloor(lon, lat, heading, groundAt) ?? 0);
+  return Math.max(stormLevel(peakDbz), terrainFloor(lon, lat, heading, groundAt) ?? 0);
 }
 
 /**
