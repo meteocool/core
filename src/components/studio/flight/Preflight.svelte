@@ -38,7 +38,7 @@ import { cloudBaseAt } from "../../../lib/studio/flight/stationAir";
 import { destination, distanceM } from "../../../lib/studio/flight/geo";
 import { FLIGHT_STYLE } from "../../../lib/studio/flight/pilot";
 import {
-  AIRCRAFT, ALTITUDE_RANGE, atMach, briefing, flightLevel, headed, levelled, MACH_RANGE, movedTo, planFrom, retargeted,
+  AIRCRAFT, ALTITUDE_RANGE, atMach, briefing, flightLevel, headed, levelled, machRange, movedTo, planFrom, retargeted,
 } from "../../../lib/studio/flight/plan";
 import type { FlightPlan } from "../../../lib/studio/flight/plan";
 import { approachTo, clearSkyStart, rankSystems, stormSystems } from "../../../lib/studio/flight/spawn";
@@ -132,6 +132,7 @@ function askBase(lon: number, lat: number): void {
 $: askBase(plan.lon, plan.lat);
 $: lines = briefing(plan, systems, $cloudsTime.newest, base);
 $: mach = machOf(plan.tas, plan.altitude);
+$: speeds = machRange(plan.altitude);
 $: level = Math.round((plan.altitude * FEET) / 1000) * 10;
 $: target = plan.target ? systems.indexOf(plan.target) : -1;
 
@@ -324,7 +325,8 @@ function keydown(event: KeyboardEvent): void {
 
         <label for="preflight-speed">{$_("studio.flight.plan.speed")}</label>
         <div class="slider">
-          <input id="preflight-speed" type="range" min={MACH_RANGE[0]} max={MACH_RANGE[1]} step="0.01" value={mach.toFixed(2)}
+          <!-- Only the speeds the level allows: never one that stalls the wing or tears the surfaces off it. -->
+          <input id="preflight-speed" type="range" min={speeds[0].toFixed(3)} max={speeds[1].toFixed(3)} step="0.005" value={mach.toFixed(3)}
             on:input={(event) => change(atMach(plan, Number(event.currentTarget.value)))} />
           <output for="preflight-speed">M{mach.toFixed(2).slice(1)} · {Math.round(indicatedFromTrue(plan.tas, plan.altitude) * KNOTS)} kt</output>
         </div>

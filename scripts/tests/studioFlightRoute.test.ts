@@ -160,7 +160,7 @@ test("what a start fixes is kept: heading, level, speed (held short of the limit
   near(indicatedFromTrue(fast.tas, fast.altitude) * KNOTS, 340, 0.01);
   const high = planHere(open(3.2, 43.9, { altitude: 80_000 / FEET }), systems, flat, 0, "sky");
   assert.equal(high.altitude, ALTITUDE_RANGE[1]);
-  assert.ok(machOf(high.tas, high.altitude) <= 0.82 + 1e-9);
+  assert.ok(machOf(high.tas, high.altitude) <= 0.8 + 1e-9);
   near(speedOfSound(high.altitude) * CRUISE_MACH, high.tas, 1e-9);
 });
 

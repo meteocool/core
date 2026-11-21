@@ -164,8 +164,9 @@ export function stormSystems(tiles: readonly StormTile[]): StormSystem[] {
 }
 
 /**
- * The systems in the order a flight takes them: strength, with the relief
- * under and around one and its nearness to where the reader looked.
+ * The systems in the order the plan offers them: strength, with the relief
+ * under and around one and its nearness to where the reader looked. N in
+ * flight goes by severity instead (`bySeverity`).
  */
 export function rankSystems(systems: readonly StormSystem[], lookLon: number, lookLat: number): StormSystem[] {
   const score = (system: StormSystem) => {
@@ -258,14 +259,32 @@ export function clearSkyStart(
   return { lon, lat, heading, altitude: startAltitude(lon, lat, heading, groundAt), target: null };
 }
 
-/** The `index`th best approach, round again past the last; the clear-sky start where there is no weather. */
+/**
+ * The systems in order of how severe they are: the strongest echo first, and
+ * of two as strong, the larger. What N steps through, from the worst weather
+ * on the radar down.
+ */
+export function bySeverity(systems: readonly StormSystem[]): StormSystem[] {
+  return [...systems].sort((a, b) => b.peakDbz - a.peakDbz || b.strength - a.strength);
+}
+
+/** A system this near the one flown at is that one, in a newer list: storms move between scans, km. */
+const SAME_SYSTEM_KM = 120;
+
+/**
+ * The approach to the next system after `after`, by severity (`bySeverity`),
+ * round again past the last; the severest where `after` is none or no longer
+ * listed, and the clear-sky start where there is no weather.
+ */
 export function chooseApproach(
-  tiles: readonly StormTile[], look: { lon: number; lat: number; bearing: number }, index: number,
+  tiles: readonly StormTile[], look: { lon: number; lat: number; bearing: number }, after: Pick<StormSystem, "lon" | "lat"> | null,
   groundAt: (lon: number, lat: number) => number | null = () => null,
 ): Approach {
-  const ranked = rankSystems(stormSystems(tiles), look.lon, look.lat);
+  const ranked = bySeverity(stormSystems(tiles));
   if (!ranked.length) return clearSkyStart(look.lon, look.lat, look.bearing, groundAt);
-  return approachTo(ranked[((index % ranked.length) + ranked.length) % ranked.length], tiles, groundAt);
+  const away = (system: StormSystem) => (after ? distanceM(after.lon, after.lat, system.lon, system.lat) / KM : Infinity);
+  const current = ranked.reduce((best, system, i) => (away(system) <= SAME_SYSTEM_KM && (best < 0 || away(system) < away(ranked[best])) ? i : best), -1);
+  return approachTo(ranked[(current + 1) % ranked.length], tiles, groundAt);
 }
 
 /** The bearing and distance from a point to a system, degrees and metres. */

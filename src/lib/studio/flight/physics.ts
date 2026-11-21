@@ -458,8 +458,6 @@ export interface Gust {
 export const CALM: Gust = { roll: 0, pitch: 0, vertical: 0 };
 
 export interface Environment {
-  /** How many times the ground distance a step covers, for the long approach; the attitude stays real time. */
-  warp: number;
   gust: Gust;
   /** The altitude the autopilot holds, wings level; null with it off. */
   autopilot: number | null;
@@ -492,7 +490,7 @@ export interface Lost {
   surfaces?: readonly LostSurface[];
 }
 
-export const STILL_AIR: Environment = { warp: 1, gust: CALM, autopilot: null };
+export const STILL_AIR: Environment = { gust: CALM, autopilot: null };
 
 const RADIANS = Math.PI / 180;
 const clamp = (value: number, low: number, high: number) => Math.min(Math.max(value, low), high);
@@ -973,7 +971,7 @@ function fly(state: AircraftState, input: ControlInput, h: number, env: Environm
 
   const verticalSpeed = tas * Math.sin(flightPath * RADIANS) + airUp;
   const altitude = state.altitude + verticalSpeed * h;
-  const travelled = tas * Math.cos(flightPath * RADIANS) * h * env.warp;
+  const travelled = tas * Math.cos(flightPath * RADIANS) * h;
   const [lon, lat] = destination(state.lon, state.lat, track, travelled);
 
   const flown: AircraftState = {
@@ -1063,7 +1061,7 @@ function roll(state: AircraftState, input: ControlInput, h: number, env: Environ
   const steering = Math.min(STEERING_RATE, tas > 1 ? (STEERING_G * G) / tas / RADIANS : STEERING_RATE) * Math.min(1, tas / 3);
   const heading = wrap360(state.heading + input.yaw * steering * h);
   const rolled = state.roll * (1 - lag(h, 0.3));
-  const [lon, lat] = destination(state.lon, state.lat, heading, tas * h * env.warp);
+  const [lon, lat] = destination(state.lon, state.lat, heading, tas * h);
 
   const rolling: AircraftState = {
     lon, lat, altitude: ground, heading, pitch, roll: rolled, tas, flightPath: 0, track: heading, throttle, spool, reverse, rollRate: 0,

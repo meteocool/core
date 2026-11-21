@@ -260,8 +260,6 @@ export class Pilot {
   private approach: Approach;
   /** The speed an approach starts at, m/s: the plan's, and the flight's own for a storm picked on the way. */
   private tas: number;
-  /** Which of the ranked storm systems is flown at; `N` moves on. */
-  private systemIndex = 0;
   private autopilot: number | null = null;
   /** Whether the reader has asked for the gear down (G); it gets there at its own pace. A flight starts in the air, gear up. */
   private gearDown = false;
@@ -271,6 +269,8 @@ export class Pilot {
   private radarOnGround = false;
   /** Until when the reason the flight ended is shown, seconds flown. */
   private crashUntil = -Infinity;
+  /** The flight's own clock, seconds: real time, four times over while time runs faster. The rough air keeps it. */
+  private airTime = 0;
   /** What the airframe has been through, and what has come off it (damage.ts); and how many flights there have been, which is its chance's seed. */
   private damage: Damage = intact();
   private flights = 1;
@@ -494,7 +494,6 @@ export class Pilot {
         this.status({ autopilot: this.autopilot !== null });
         break;
       case "next":
-        this.systemIndex += 1;
         this.approach = this.another();
         this.tas = START_TAS;
         this.status({ clearSky: this.approach.target === null });
@@ -764,9 +763,9 @@ export class Pilot {
     this.screens = screens;
   }
 
-  /** The approach to the next system down the list, from the storms listed now. */
+  /** The approach to the next system after the one flown at, severest first, from the storms listed now. */
   private another(): Approach {
-    return chooseApproach(this.stage.stormTiles(), this.look, this.systemIndex, (lon, lat) => this.stage.groundElevation(lon, lat));
+    return chooseApproach(this.stage.stormTiles(), this.look, this.approach.target, (lon, lat) => this.stage.groundElevation(lon, lat));
   }
 
   private startState(): AircraftState {
@@ -854,11 +853,17 @@ export class Pilot {
     const low = altitude - floor < SLOPE_BELOW_M;
     // Time runs faster only well clear of the ground, never on it, and not for an aircraft coming apart.
     const warp = input.warp && altitude - floor > WARP_ABOVE_M && !harmed(this.damage) ? WARP : 1;
+    /* The seconds of flight this frame flies. Warped, all of it runs faster
+       alike, the turning and the climbing and the gusts with the distance:
+       the flight is the one it would have been, only sooner. Faster ground
+       alone flew a bank's turn four times as wide, and a climb four times as
+       flat, as the same bank and climb unwarped. */
+    const flown = dt * warp;
+    this.airTime += flown;
     // The rough air, and what the damage adds to it: a surface's jolt as it goes, and the buffet of what is left.
-    const rough = roughAir(telemetry.time, turbulence, air.draft, severity);
+    const rough = roughAir(this.airTime, turbulence, air.draft, severity);
     const shaken = shudder(this.damage);
     const env: Environment = {
-      warp,
       gust: state.onGround
         ? { roll: 0, pitch: 0, vertical: 0 }
         : { roll: rough.roll + shaken.roll, pitch: rough.pitch + shaken.pitch, vertical: rough.vertical + shaken.vertical },
@@ -869,8 +874,12 @@ export class Pilot {
       lost: this.damage.lost, flapsStuck: this.damage.flapsStuck,
     };
     const before = state;
-    for (let left = dt; left > 1e-6; left -= MAX_DT) state = step(state, input, Math.min(left, MAX_DT), env);
-    this.strain(state, floor, dt);
+    // The hands keep real time: what they ask for each second of flight is shared out over the seconds it now flies.
+    const asked = warp > 1
+      ? { ...input, pitch: input.pitch / warp, roll: input.roll / warp, yaw: input.yaw / warp, throttle: input.throttle / warp }
+      : input;
+    for (let left = flown; left > 1e-6; left -= MAX_DT) state = step(state, asked, Math.min(left, MAX_DT), env);
+    this.strain(state, floor, flown);
     // An autopilot does not fly a stall, nor a landing, nor an aircraft that has lost anything.
     if ((state.stalled || state.onGround || harmed(this.damage)) && this.autopilot !== null) this.act("autopilot");
     this.landed(before, state, dt);
@@ -902,7 +911,7 @@ export class Pilot {
     telemetry.draft = air.draft;
     telemetry.temperature = air.temperature;
     // Ice takes a couple of minutes to cover the glass, and goes nearly as slowly once the aircraft is out of what made it.
-    telemetry.frost = Math.min(1, Math.max(0, telemetry.frost + (air.icing > 0.05 ? air.icing / 150 : -1 / 110) * dt));
+    telemetry.frost = Math.min(1, Math.max(0, telemetry.frost + (air.icing > 0.05 ? air.icing / 150 : -1 / 110) * flown));
     const target = this.approach.target;
     if (target) {
       const { bearing, distance } = towards(state.lon, state.lat, target);

@@ -23,7 +23,7 @@ import { coresOf, flatOffset, markAltitude, marksNear } from "../../src/lib/stud
 import { BASE_RANGE_KM, cloudBase, condensationLevel } from "../../src/lib/studio/flight/cloudBase.ts";
 import { parseModel, VERTEX_BYTES } from "../../src/lib/studio/flight/model.ts";
 import {
-  ALTITUDE_RANGE, approachOf, atMach, briefing, flightLevel, headed, highGround, levelled, MACH_RANGE, movedTo, planFrom, position,
+  ALTITUDE_RANGE, approachOf, atMach, briefing, flightLevel, headed, highGround, levelled, machRange, movedTo, planFrom, position,
   retargeted, weatherOf,
 } from "../../src/lib/studio/flight/plan.ts";
 
@@ -227,14 +227,10 @@ test("the pitch stops at its limits", () => {
   assert.ok(down.verticalSpeed < -30);
 });
 
-test("the throttle moves with W and S, and time warp covers four times the ground", () => {
+test("the throttle moves with W and S", () => {
   const start = levelFlight(3, 43, 7300, 90, 220);
   near(fly(held(start, 0.2), 2, { ...NO_INPUT, throttle: 1 }).throttle, 0.9, 0.01);
   assert.equal(fly(start, 4, { ...NO_INPUT, throttle: -1 }).throttle, 0);
-  const plain = fly(start, 10);
-  const warped = fly(start, 10, NO_INPUT, { ...STILL_AIR, warp: 4 });
-  near(distanceM(3, 43, warped.lon, warped.lat) / distanceM(3, 43, plain.lon, plain.lat), 4, 0.01);
-  near(warped.altitude, plain.altitude, 1e-6);
 });
 
 test("the speed brake slows the aircraft, and a gust rocks it", () => {
@@ -516,20 +512,27 @@ test("the approach does not start inside another storm", () => {
 test("the start is raised over high ground, and with no weather it starts over where the reader looked", () => {
   near(startAltitude(7, 46, 90, () => 4800), 7800, 1e-9);
   assert.equal(startAltitude(7, 46, 90, () => null), START_ALTITUDE_M);
-  const clear = chooseApproach([], { lon: 4.6, lat: 43.3, bearing: 20 }, 0);
+  const clear = chooseApproach([], { lon: 4.6, lat: 43.3, bearing: 20 }, null);
   assert.equal(clear.target, null);
   assert.equal(clear.heading, 20);
   near(distanceM(clear.lon, clear.lat, 4.6, 43.3), 30_000, 10);
   near(bearingDeg(clear.lon, clear.lat, 4.6, 43.3), 20, 0.5);
 });
 
-test("the next system comes round in turn", () => {
-  const tiles = [tile(4.0, 44.0, 60), tile(12, 52, 45)];
+test("the next system comes round in turn, severest first, whatever is nearer the reader", () => {
+  const tiles = [tile(4.0, 44.0, 45), tile(12, 52, 62), tile(20, 48, 55)];
   const look = { lon: 4, lat: 44, bearing: 0 };
-  const first = chooseApproach(tiles, look, 0).target!;
-  const second = chooseApproach(tiles, look, 1).target!;
-  assert.notDeepEqual(first, second);
-  assert.deepEqual(chooseApproach(tiles, look, 2).target, first);
+  const first = chooseApproach(tiles, look, null).target!;
+  assert.equal(first.peakDbz, 62);
+  const second = chooseApproach(tiles, look, first).target!;
+  assert.equal(second.peakDbz, 55);
+  const third = chooseApproach(tiles, look, second).target!;
+  assert.equal(third.peakDbz, 45);
+  assert.deepEqual(chooseApproach(tiles, look, third).target, first);
+  // A storm moved a little since: still the one flown, and the next after it.
+  assert.equal(chooseApproach(tiles, look, { lon: first.lon + 0.3, lat: first.lat }).target!.peakDbz, 55);
+  // One no longer on the radar: back to the severest.
+  assert.equal(chooseApproach(tiles, look, { lon: -20, lat: 30 }).target!.peakDbz, 62);
 });
 
 /* ---- selection ---- */
@@ -803,7 +806,27 @@ test("another level keeps the Mach number, and both stay in what a flight starts
   near(machOf(high.tas, high.altitude), 0.7, 1e-9);
   assert.ok(high.tas < plan.tas);
   assert.equal(levelled(plan, 50_000).altitude, ALTITUDE_RANGE[1]);
-  near(machOf(atMach(plan, 2).tas, plan.altitude), MACH_RANGE[1], 1e-9);
+  near(machOf(atMach(plan, 2).tas, plan.altitude), machRange(plan.altitude)[1], 1e-9);
+  // A Mach number too slow for the level it is taken to is raised to the slowest that is not.
+  const slowLow = atMach(levelled(plan, 1600), 0);
+  const slowHigh = levelled(slowLow, ALTITUDE_RANGE[1]);
+  near(machOf(slowHigh.tas, slowHigh.altitude), machRange(ALTITUDE_RANGE[1])[0], 1e-9);
+});
+
+test("every level and speed the plan allows is flown as it was set: no stall, no overspeed, the height held", () => {
+  const KT = 1.943844;
+  for (let altitude = ALTITUDE_RANGE[0]; altitude <= ALTITUDE_RANGE[1] + 1; altitude += (ALTITUDE_RANGE[1] - ALTITUDE_RANGE[0]) / 6) {
+    for (const mach of machRange(altitude)) {
+      const start = levelFlight(3, 43, altitude, 90, mach * speedOfSound(altitude));
+      const ias = indicatedFromTrue(start.tas, altitude) * KT;
+      assert.ok(ias >= 219.9 && ias <= 340.1 && mach <= 0.8 + 1e-9, `${Math.round(altitude)} m M${mach.toFixed(3)} ${Math.round(ias)} kt`);
+      assert.ok(start.throttle < 0.97, `trim ${start.throttle} at ${Math.round(altitude)} m M${mach.toFixed(3)}`);
+      const later = fly(start, 60);
+      assert.ok(!later.stalled, `stalled at ${Math.round(altitude)} m M${mach.toFixed(3)}`);
+      assert.ok(Math.abs(later.altitude - altitude) < 30, `${Math.round(later.altitude - altitude)} m off at ${Math.round(altitude)} m M${mach.toFixed(3)}`);
+      assert.ok(Math.abs(later.tas - start.tas) < 3, `${(later.tas - start.tas).toFixed(1)} m/s off at ${Math.round(altitude)} m M${mach.toFixed(3)}`);
+    }
+  }
 });
 
 test("another storm is flown at from its own best side, at the level and speed already chosen", () => {

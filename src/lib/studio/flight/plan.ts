@@ -61,12 +61,35 @@ const FEET = 3.28084;
 const KNOTS = 1.943844;
 const NM = 1852;
 
-/** As low and as high as a flight starts, metres: FL050 to FL410. */
-export const ALTITUDE_RANGE: [number, number] = [5000 / FEET, 41_000 / FEET];
-/** As slow and as fast, Mach: slow enough to look, and short of the barber pole. */
-export const MACH_RANGE: [number, number] = [0.45, 0.82];
+/**
+ * As low and as high as a flight starts, metres: FL050 to FL350. Higher, the
+ * airliner as it is flown here (clean, heavy, no autothrust) cannot hold its
+ * height at any speed for long: it sinks hundreds of metres a minute, short
+ * of thrust or of wing.
+ */
+export const ALTITUDE_RANGE: [number, number] = [5000 / FEET, 35_000 / FEET];
+
+/**
+ * The speeds a flight starts at, as a crew holds them: no slower than 220 kt
+ * indicated, the clean wing's own manoeuvring speed with a margin over the
+ * stall for the storms' gusts; no faster than 340 kt, ten under the limit
+ * (VMO), nor Mach 0.80, two hundredths under the other (MMO), past which the
+ * control surfaces start to flutter off (damage.ts).
+ */
+const LEAST_KNOTS = 220;
+const MOST_KNOTS = 340;
+const MOST_MACH = 0.8;
+
+/** The Mach numbers a flight starts at, at a level: what the speeds above make of it there. */
+export function machRange(altitude: number): [number, number] {
+  const machAt = (knots: number) => machOf(trueFromIndicated(knots / KNOTS, altitude), altitude);
+  return [machAt(LEAST_KNOTS), Math.min(MOST_MACH, machAt(MOST_KNOTS))];
+}
 
 const clamp = (value: number, [low, high]: readonly [number, number]) => Math.min(Math.max(value, low), high);
+
+/** A true airspeed held to what a flight starts at, at a level, m/s. */
+const startable = (tas: number, altitude: number) => clamp(machOf(tas, altitude), machRange(altitude)) * speedOfSound(altitude);
 
 /** The plan the flight would fly unasked. */
 export function planFrom(approach: Approach, style: CloudStyle): FlightPlan {
@@ -76,7 +99,7 @@ export function planFrom(approach: Approach, style: CloudStyle): FlightPlan {
     lat: approach.lat,
     heading: approach.heading,
     altitude: clamp(approach.altitude, ALTITUDE_RANGE),
-    tas: START_TAS,
+    tas: startable(START_TAS, clamp(approach.altitude, ALTITUDE_RANGE)),
     target: approach.target,
     aimed: true,
     view: "cockpit",
@@ -112,14 +135,18 @@ export function headed(plan: FlightPlan, heading: number | null): FlightPlan {
   };
 }
 
-/** Another level, the Mach number kept: what a crew would mean by it. */
+/**
+ * Another level, the Mach number kept: what a crew would mean by it. Where
+ * that Mach number is too fast or too slow at the new level, the nearest one
+ * that is not.
+ */
 export function levelled(plan: FlightPlan, altitude: number): FlightPlan {
   const level = clamp(altitude, ALTITUDE_RANGE);
-  return { ...plan, altitude: level, tas: machOf(plan.tas, plan.altitude) * speedOfSound(level) };
+  return { ...plan, altitude: level, tas: startable(machOf(plan.tas, plan.altitude) * speedOfSound(level), level) };
 }
 
 export function atMach(plan: FlightPlan, mach: number): FlightPlan {
-  return { ...plan, tas: clamp(mach, MACH_RANGE) * speedOfSound(plan.altitude) };
+  return { ...plan, tas: clamp(mach, machRange(plan.altitude)) * speedOfSound(plan.altitude) };
 }
 
 /* A flight from a place, chosen for the reader: from a point on the map
@@ -193,9 +220,6 @@ export function cruiseSpeed(altitude: number): number {
 /** Whether a level is flown by its indicated speed in knots, or above the crossing by its Mach number. */
 const flownInKnots = (altitude: number) => trueFromIndicated(CRUISE_KNOTS / KNOTS, altitude) <= CRUISE_MACH * speedOfSound(altitude);
 
-/** The most indicated speed a link may start a flight at, m/s: 340 kt, ten under the limit. */
-const MOST_INDICATED = 340 / KNOTS;
-
 /**
  * The plan for a flight from a place, chosen for the reader where the start
  * leaves it open (lib/studio/flightLink.ts): at the next storm, nose on its
@@ -232,9 +256,8 @@ export function planHere(
   let tas = cruiseSpeed(altitude);
   if (start.speed) {
     tas = "mach" in start.speed ? start.speed.mach * speedOfSound(altitude) : trueFromIndicated(start.speed.knots / KNOTS, altitude);
-    tas = Math.min(tas, trueFromIndicated(MOST_INDICATED, altitude));
   }
-  tas = clamp(machOf(tas, altitude), MACH_RANGE) * speedOfSound(altitude);
+  tas = startable(tas, altitude);
   return {
     aircraft: "a320", lon, lat, heading, altitude, tas, target,
     aimed: start.heading === null && target !== null && !onCore,
