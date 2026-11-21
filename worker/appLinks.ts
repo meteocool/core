@@ -4,7 +4,9 @@
  * Digital Asset Links' assetlinks.json for Android App Links.
  *
  * A shared link (src/lib/shareLink.ts) is always the site's root with the
- * map's state in the query, so only that is claimed. The pages the apps load
+ * map's state in the query, so that is claimed; and a flight's link
+ * (src/lib/studio/flightLink.ts) is meteoair.html, which an app opens in its
+ * own meteoair mode (`CLAIM_FLIGHT_LINKS`). The pages the apps load
  * themselves (ios.html, android.html), the API paths they call and the bare
  * root, which is the website, stay in the browser.
  *
@@ -35,6 +37,32 @@ const ANDROID_PACKAGE = "com.meteocool";
  */
 const ANDROID_CERT_FINGERPRINTS: string[] = [];
 
+/**
+ * Whether the iOS app is handed meteoair.html links, flights' and the page's
+ * own. Off until an iOS release that opens them is out: this file is read
+ * from here, not from the app, so an older app would be handed them too and
+ * open the map, doing nothing with the flight. The Android app claims them
+ * in its own manifest, release by release, and needs nothing here.
+ */
+export const CLAIM_FLIGHT_LINKS = false;
+
+/** What the iOS app claims: the map's root with a query; and with `flights`, meteoair.html, with or without one. */
+export function appLinkComponents(flights: boolean): Array<Record<string, string>> {
+  return [
+    {
+      "/": "/",
+      // At least one character: a query is what makes the root a link
+      // to somewhere on the map rather than the website.
+      "?": "?*",
+      comment: "A shared map link: the root, with the map's state in the query",
+    },
+    ...(flights ? [
+      { "/": "/meteoair.html", comment: "A flight's link, or the flight's page: opened in the app's meteoair mode" },
+      { "/": "/meteoair", comment: "The same without its extension" },
+    ] : []),
+  ];
+}
+
 export const APPLE_APP_SITE_ASSOCIATION_PATH = "/.well-known/apple-app-site-association";
 export const ASSET_LINKS_PATH = "/.well-known/assetlinks.json";
 
@@ -43,15 +71,7 @@ export const appleAppSiteAssociation = {
     details: [
       {
         appIDs: [IOS_APP_ID],
-        components: [
-          {
-            "/": "/",
-            // At least one character: a query is what makes the root a link
-            // to somewhere on the map rather than the website.
-            "?": "?*",
-            comment: "A shared map link: the root, with the map's state in the query",
-          },
-        ],
+        components: appLinkComponents(CLAIM_FLIGHT_LINKS),
       },
     ],
   },

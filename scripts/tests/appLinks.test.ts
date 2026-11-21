@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { appLinksResponse, appleAppSiteAssociation, assetLinks } from "../../worker/appLinks.ts";
+import { appLinkComponents, appLinksResponse, appleAppSiteAssociation, assetLinks, CLAIM_FLIGHT_LINKS } from "../../worker/appLinks.ts";
 
 /**
  * A shared link opens in the apps only if these files come back as JSON, from
@@ -19,12 +19,14 @@ for (const path of ["/.well-known/apple-app-site-association", "/.well-known/ass
   });
 }
 
-test("the iOS app claims the map's root with a query, and nothing else", () => {
+test("the iOS app claims the map's root with a query, and meteoair.html only once it opens flights", () => {
   const [details] = appleAppSiteAssociation.applinks.details;
   assert.deepEqual(details.appIDs, ["4L2672L4VX.org.frcy.app.meteocool"]);
-  assert.equal(details.components.length, 1);
   assert.equal(details.components[0]["/"], "/");
   assert.equal(details.components[0]["?"], "?*");
+  assert.deepEqual(details.components, appLinkComponents(CLAIM_FLIGHT_LINKS));
+  assert.deepEqual(appLinkComponents(false).map((component) => component["/"]), ["/"]);
+  assert.deepEqual(appLinkComponents(true).map((component) => component["/"]), ["/", "/meteoair.html", "/meteoair"]);
 });
 
 test("the Android app is named by its package", () => {

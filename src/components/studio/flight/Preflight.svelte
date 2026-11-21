@@ -58,7 +58,7 @@ import {
 } from "../../../lib/studio/flight/spawn";
 import type { StormSystem } from "../../../lib/studio/flight/spawn";
 import { FLIGHT_BASEMAP } from "../../../lib/studio/store";
-import { flightLinkUrl } from "../../../lib/studio/flightLink";
+import { flightLinkOrigin, flightLinkUrl } from "../../../lib/studio/flightLink";
 import { startOf } from "../../../lib/studio/flight/plan";
 import { sendLink } from "../../../lib/share";
 import { flightLoad, loadMenuMusic, shareOf } from "../../../lib/studio/flight/preload";
@@ -472,7 +472,7 @@ function keydown(event: KeyboardEvent): void {
       <!-- A link that takes off from this plan, over the weather of whenever it is opened. -->
       <button type="button" class="chip glass glass-pill" title={$_("studio.flight.share.plan_title")}
         on:click={(event) => sendLink(
-          { url: flightLinkUrl(window.location.origin, startOf(plan, systems)), title: $_("studio.flight.share.title") },
+          { url: flightLinkUrl(flightLinkOrigin(window.location.origin), startOf(plan, systems)), title: $_("studio.flight.share.title") },
           event.currentTarget, { card: false, note: $_("studio.flight.share.note") },
         )}>
         <Icon icon={shareIcon()} /> {$_("studio.flight.share.plan")}

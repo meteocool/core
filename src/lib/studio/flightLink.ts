@@ -99,6 +99,18 @@ export function flightLinkQuery(start: FlightStart): string {
   return parts.join("&");
 }
 
+/**
+ * The site a flight's link is made on: the page's own, but on production
+ * always app.meteocool.com, whichever of its hostnames the page is on. That
+ * is the host the apps claim, so a link sent from meteocool.com opens a
+ * flight in the app of whoever has it, and the same flight in the browser
+ * for whoever has not. On next and demo, the deployment it was made on.
+ */
+export function flightLinkOrigin(here: string, production = import.meta.env?.MODE === "production" && !import.meta.env?.DEV): string {
+  return production ? APP_ORIGIN : here;
+}
+const APP_ORIGIN = "https://app.meteocool.com";
+
 /** The whole link, on the site at `origin`. */
 export function flightLinkUrl(origin: string, start: FlightStart, demo = demoWeather): string {
   // A flight over the demo's storm is over it again from the link, on whatever site it was flown (src/weatherSource.ts).

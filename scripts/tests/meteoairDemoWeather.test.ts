@@ -43,3 +43,10 @@ test("the demo's Lombardy storm is flown at from over the Alps, at FL130 and 256
   // Any other storm keeps the usual rules.
   assert.equal(showcasePlan({ ...storm, lon: 2.3, lat: 48.8 }, "realistic" as never), null);
 });
+
+test("a flight's link is made on app.meteocool.com on production, which the apps claim; elsewhere on its own site", async () => {
+  const { flightLinkOrigin } = await import("../../src/lib/studio/flightLink.ts");
+  assert.equal(flightLinkOrigin("https://meteocool.com", true), "https://app.meteocool.com");
+  assert.equal(flightLinkOrigin("https://app.meteocool.com", true), "https://app.meteocool.com");
+  assert.equal(flightLinkOrigin("https://next.meteocool.com", false), "https://next.meteocool.com");
+});

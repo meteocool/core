@@ -45,7 +45,7 @@ import { distanceM } from "../../lib/studio/flight/geo";
 import { stormSystems } from "../../lib/studio/flight/spawn";
 import { flightLoad, preloadFlight } from "../../lib/studio/flight/preload";
 import type { StormTile } from "../../lib/studio/flight/spawn";
-import { flightLinkUrl } from "../../lib/studio/flightLink";
+import { flightLinkOrigin, flightLinkUrl } from "../../lib/studio/flightLink";
 import { cropOf } from "../../lib/studio/record";
 import { radarMapHref } from "../../lib/studio/flightPage";
 import { closeStudio } from "../../lib/studio/session";
@@ -249,7 +249,7 @@ if (asked) board(asked);
 function share(anchor: Element | null): void {
   if (!flown) return;
   const start = startOf(flown, stormSystems(stage.stormTiles()));
-  void sendLink({ url: flightLinkUrl(window.location.origin, start), title: $_("studio.flight.share.title") }, anchor,
+  void sendLink({ url: flightLinkUrl(flightLinkOrigin(window.location.origin), start), title: $_("studio.flight.share.title") }, anchor,
     { card: false, note: $_("studio.flight.share.note") });
 }
 
