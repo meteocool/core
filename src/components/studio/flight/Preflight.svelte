@@ -715,14 +715,14 @@ function keydown(event: KeyboardEvent): void {
   .chip.go:hover { background: color-mix(in srgb, var(--mc-orange) 88%, #fff); }
 
   /* Wide: the briefing in two columns, in half the height. */
-  @container mc-frame (min-width: 1300px) {
+  @container mc-frame (min-width: 1200px) {
     .briefing dl { columns: 2; }
   }
   /* Too short for the briefing under the rest without scrolling: none. */
-  @container mc-frame (min-width: 901px) and (max-width: 1299px) and (max-height: 790px) {
+  @container mc-frame (min-width: 901px) and (max-width: 1199px) and (max-height: 790px) {
     .briefing { display: none; }
   }
-  @container mc-frame (min-width: 1300px) and (max-height: 690px) {
+  @container mc-frame (min-width: 1200px) and (max-height: 690px) {
     .briefing { display: none; }
   }
   /* Narrower: one column, scrolled, the way off always at its foot. */

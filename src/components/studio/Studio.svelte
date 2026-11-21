@@ -328,7 +328,7 @@ function keydown(event: KeyboardEvent) {
 
 <svelte:window on:keydown={keydown} />
 
-<div class="studio" class:flying={$studioFlying} bind:clientWidth={width} bind:clientHeight={height}>
+<div class="studio" class:flying={$studioFlying} class:planning bind:clientWidth={width} bind:clientHeight={height}>
   {#if $studioFlying && pilot}
     <FlightDeck {pilot} {credits} {share} endsOnMap={back !== null} />
   {:else if loading}
@@ -376,6 +376,8 @@ function keydown(event: KeyboardEvent) {
   .studio > :global(*) { pointer-events: auto; }
   /* The flight deck covers the page's own chrome, over which it is drawn. */
   .studio.flying { z-index: var(--mc-z-frame); }
+  /* And so does the flight's plan, full screen over it too. */
+  .studio.planning { z-index: var(--mc-z-frame); }
   .studio.flying > :global(*) { pointer-events: none; }
 
   /* The frame: a hairline with everything outside it dimmed by one large shadow. */
