@@ -51,8 +51,9 @@ import { FlightSound } from "./sound";
 import { alarmsOf, alarmStep, NO_ALARMS, silence, silencedOf } from "./alarms";
 import type { AlarmMemory } from "./alarms";
 import type { AircraftScreen } from "../../../layers/aircraftLayer";
-import { COCKPIT_CONTROLS, controlAlong } from "./cockpit";
-import type { CockpitControl, CockpitPick } from "./cockpit";
+import { COCKPIT_CONTROLS, controlAlong, onQuad, touchAlong } from "./cockpit";
+import type { CockpitControl, CockpitPick, ScreenTouch } from "./cockpit";
+import { chartStorms } from "./efb";
 import { merged } from "./controls";
 import { NO_INPUT } from "./physics";
 import type { ControlInput } from "./physics";
@@ -135,6 +136,9 @@ const LOOK_PER_PX = 0.16;
 
 /** How far the mouse drags the stick for it to be all the way over, or the thrust levers for them to move as fast as they go, CSS pixels. */
 const HAND_FULL_PX = 90;
+/** The mouse moved no further than this on the tablet is a tap, CSS pixels; and a second click this soon after one is another, ms. */
+const TOUCH_STILL_PX = 4;
+const TOUCH_TWICE_MS = 500;
 
 const clamp = (value: number, [low, high]: readonly [number, number]) => Math.min(Math.max(value, low), high);
 
@@ -250,6 +254,12 @@ export interface Telemetry {
    * which the one being looked into.
    */
   marks: Array<{ mark: StormMark; x: number; y: number; distance: number; target: boolean; inspected: boolean }>;
+  /**
+   * What the captain's tablet charts (efb.ts): the storms round the
+   * aircraft, the marked ones with what was measured of them; and the
+   * system flown at, its middle and how far it reaches, km.
+   */
+  chart: { storms: StormMark[]; target: { lon: number; lat: number; radiusKm: number } | null };
   /** A cut to black and back, 0 to 1; a lightning flash, 0 to 1. */
   fade: number;
   flash: number;
@@ -368,8 +378,8 @@ export class Pilot {
   private levers: Levers = { ...LEVERS_AT_REST };
   /** The stick, pedals and lever as last read. */
   private input: ReturnType<Keys["read"]> | null = null;
-  /** The cockpit's live screens, which the deck draws; see `setScreens`. */
-  private screens: AircraftScreen[] = [];
+  /** The cockpit's live screens, which the deck draws, and a hand uses where one has a `touch`; see `setScreens`. */
+  private screens: Array<AircraftScreen & { touch?: ScreenTouch }> = [];
   /** The storms marked in the view, chosen now and then (`slow`) and placed every frame (`seen`). */
   private marked: StormMark[] = [];
   /** The storm being looked into, and how; see `inspect`. */
@@ -401,7 +411,7 @@ export class Pilot {
     this.telemetry = {
       state: this.startState(), ias: 0, mach: 0, ground: null, radarAltitude: null, target: null, dbz: null,
       cloud: 0, rain: 0, turbulence: 0, severity: 0, hail: 0, ice: 0, frost: 0, draft: 0, temperature: 0, fps: 60, quality: 1,
-      storms: stage.stormTiles(), marks: [], fade: 0, flash: 0, brake: false, time: 0, gear: 0, flapLever: 0, rolled: 0,
+      storms: stage.stormTiles(), marks: [], chart: { storms: [], target: null }, fade: 0, flash: 0, brake: false, time: 0, gear: 0, flapLever: 0, rolled: 0,
     };
   }
 
@@ -703,6 +713,8 @@ export class Pilot {
 
   /** Look where the view began again. */
   recentre(): void {
+    // Twice on the tablet is two taps on it, not a look ahead.
+    if (performance.now() - this.touchedAt < TOUCH_TWICE_MS) return;
     this.head = { ...COCKPIT_LOOK };
     this.orbit = { ...OUTSIDE_LOOK };
     this.distance = OUTSIDE_DISTANCE;
@@ -712,6 +724,10 @@ export class Pilot {
 
   /** The stick, a pedal or the thrust levers of the flight deck with the mouse held on it, and what that asks of the aircraft; see `hold`. */
   private hand: { hold: NonNullable<CockpitControl["hold"]>; input: ControlInput } | null = null;
+  /** The tablet with the mouse held on it: which screen, where on it and in the view it was pressed, and whether it has been dragged since. */
+  private touching: { screen: number; across: number; down: number; x: number; y: number; moved: boolean } | null = null;
+  /** When the tablet was last touched, ms (`performance.now`): a second click straight after is another tap, not a look ahead. */
+  private touchedAt = -Infinity;
   /** The autobrake armed (X, its MED button): after a landing the wheels are braked without a foot on them. */
   private autobrake = true;
   /** The parking brake set (K, its handle): the wheels held where they stand. */
@@ -724,11 +740,30 @@ export class Pilot {
    */
   controlAt(x: number, y: number): CockpitPick | null {
     if (get(flightStatus).view !== "cockpit") return null;
+    return controlAlong(SEAT, this.sightAt(x, y));
+  }
+
+  /** The way a point of the view is looked along from the seat, in the aircraft's frame. */
+  private sightAt(x: number, y: number): [number, number, number] {
     const canvas = this.stage.canvas();
     const [width, height] = [canvas?.clientWidth || 1, canvas?.clientHeight || 1];
     // Rough air shakes the cockpit and the eye in it alike: from the seat, a control is where the head's turn alone puts it.
     const head = { heading: this.head.yaw, pitch: this.head.pitch, roll: 0 };
-    return controlAlong(SEAT, lookedAlong(head, x / width, y / height, this.zoomed, width / height));
+    return lookedAlong(head, x / width, y / height, this.zoomed, width / height);
+  }
+
+  /**
+   * The screen a hand can use at a point of the view (the captain's
+   * tablet), where it is in front of any control there: which, and where on
+   * it. Null where there is none.
+   */
+  private touchAt(x: number, y: number): { screen: number; across: number; down: number } | null {
+    if (get(flightStatus).view !== "cockpit") return null;
+    const sight = this.sightAt(x, y);
+    const touched = touchAlong(SEAT, sight, this.screens);
+    const control = touched && controlAlong(SEAT, sight);
+    if (!touched || (control && control.distance < touched.distance)) return null;
+    return { screen: touched.index, across: touched.across, down: touched.down };
   }
 
   /**
@@ -737,6 +772,12 @@ export class Pilot {
    * none; one that is held, not clicked, is left alone.
    */
   press(x: number, y: number): CockpitPick | null {
+    const touched = this.touchAt(x, y);
+    if (touched) {
+      this.touchedAt = performance.now();
+      this.screens[touched.screen].touch?.tap(touched.across, touched.down);
+      return null;
+    }
     const pick = this.controlAt(x, y);
     const press = pick && (COCKPIT_CONTROLS[pick.name] as CockpitControl).press;
     // A lever's forward half moves it forward, its aft half aft.
@@ -751,6 +792,12 @@ export class Pilot {
    * whether there was one to take hold of.
    */
   hold(x: number, y: number): boolean {
+    // The mouse held on the tablet: a tap where it lets go without moving, or a drag across it.
+    const touched = this.touchAt(x, y);
+    if (touched) {
+      this.touching = { ...touched, x, y, moved: false };
+      return true;
+    }
     const pick = this.controlAt(x, y);
     const control = pick && (COCKPIT_CONTROLS[pick.name] as CockpitControl);
     if (!pick || !control?.hold) return false;
@@ -766,6 +813,15 @@ export class Pilot {
    * back as fast, as W and S do.
    */
   moveHeld(dx: number, dy: number): void {
+    const touching = this.touching;
+    if (touching) {
+      // Where the mouse is now on the tablet's plane, past its edges too.
+      const screen = this.screens[touching.screen];
+      const now = screen && onQuad(SEAT, this.sightAt(touching.x + dx, touching.y + dy), screen.corners);
+      touching.moved ||= Math.hypot(dx, dy) > TOUCH_STILL_PX;
+      if (now && touching.moved) screen.touch?.drag([touching.across, touching.down], [now.across, now.down]);
+      return;
+    }
     const hand = this.hand;
     if (!hand) return;
     const unit = (pixels: number) => Math.min(Math.max(pixels / HAND_FULL_PX, -1), 1);
@@ -775,6 +831,14 @@ export class Pilot {
 
   /** Let go of the control held: the stick and the pedals spring back, the levers stay where they were put. */
   release(): void {
+    const touching = this.touching;
+    this.touching = null;
+    if (touching) {
+      this.touchedAt = performance.now();
+      const touch = this.screens[touching.screen]?.touch;
+      if (touching.moved) touch?.release();
+      else touch?.tap(touching.across, touching.down);
+    }
     this.hand = null;
     this.handOn = null;
   }
@@ -801,7 +865,7 @@ export class Pilot {
   }
 
   /** The pictures on the cockpit's screens, drawn by the deck every frame. */
-  setScreens(screens: AircraftScreen[]): void {
+  setScreens(screens: Array<AircraftScreen & { touch?: ScreenTouch }>): void {
     this.screens = screens;
   }
 
@@ -1268,10 +1332,14 @@ export class Pilot {
     const warp = get(flightStatus).warp ? WARP : 1;
     this.terrain = terrainAhead(telemetry.state, (lon, lat) => this.stage.groundElevation(lon, lat), warp);
     telemetry.storms = this.stage.stormTiles();
-    this.marked = this.flightPlan.marks
-      ? marksNear(this.stage.trackedCells(), coresOf(telemetry.storms), telemetry.state.lon, telemetry.state.lat, telemetry.state.heading)
-      : [];
+    const [cells, cores] = [this.stage.trackedCells(), coresOf(telemetry.storms)];
+    this.marked = this.flightPlan.marks ? marksNear(cells, cores, telemetry.state.lon, telemetry.state.lat, telemetry.state.heading) : [];
     this.measureMarks();
+    const target = this.approach.target;
+    telemetry.chart = {
+      storms: chartStorms(this.marked, cells, cores, telemetry.state.lon, telemetry.state.lat),
+      target: target && { lon: target.lon, lat: target.lat, radiusKm: target.radiusKm },
+    };
     const looked = this.inspected;
     if (looked) {
       // The storm looked into keeps its mark whatever else is nearer, and is the same storm in a newer list.

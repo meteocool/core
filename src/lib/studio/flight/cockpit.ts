@@ -66,6 +66,13 @@ const OVER_PANEL = 0.0012;
 
 const PFD: Quad = [[15.629, -0.655, -0.394], [15.629, -0.459, -0.394], [15.579, -0.459, -0.213], [15.579, -0.655, -0.213]];
 const ND: Quad = [[15.629, -0.426, -0.394], [15.629, -0.232, -0.394], [15.579, -0.232, -0.213], [15.579, -0.426, -0.213]];
+/**
+ * The captain's tablet on the left console, beside the sidestick: the
+ * opening of its bezel, right of its keys, a 4:3 screen 24 cm across, tilted
+ * up towards the seat. The model's glass is a centimetre into the bezel;
+ * drawn in its opening, the picture fills it edge to edge from any seat.
+ */
+const EFB: Quad = [[14.9288, -1.0029, -0.5266], [15.1278, -0.873, -0.5633], [15.131, -0.8286, -0.3881], [14.932, -0.9586, -0.3515]];
 
 /**
  * The live screens, each as the four corners its picture is stretched
@@ -95,6 +102,8 @@ export const COCKPIT_SCREENS = {
   /** The flight management keyboards on the pedestal, their tops forward. */
   mcduCaptain: lifted([[15.4118, -0.2337, -0.0669], [15.4124, -0.1331, -0.0671], [15.319, -0.1332, -0.0516], [15.3184, -0.2337, -0.0514]], OVER_PANEL),
   mcduFo: lifted([[15.4118, 0.1318, -0.0669], [15.4124, 0.2334, -0.0671], [15.319, 0.2334, -0.0516], [15.3184, 0.1319, -0.0514]], OVER_PANEL),
+  /** The captain's tablet, a storm map (components/studio/flight/efbChart.ts); a hand uses it (`ScreenTouch`). */
+  efb: lifted(EFB, OVER_PANEL),
 } satisfies Record<string, Quad>;
 
 export type CockpitScreen = keyof typeof COCKPIT_SCREENS;
@@ -386,5 +395,59 @@ export function controlAlong(eye: Vec3, way: Vec3): CockpitPick | null {
       if (hit && hit.distance <= REACH_M && (!nearest || hit.distance < nearest.distance)) nearest = { name, face, ...hit };
     }
   }
+  return nearest;
+}
+
+/**
+ * What a screen a hand can use is told of it, in where on the screen, across
+ * and down it, 0 to 1 each: a tap, and a drag from where it began to where
+ * it is now (past the screen's edge too, as a finger slides off a tablet),
+ * and that drag let go of.
+ */
+export interface ScreenTouch {
+  tap(across: number, down: number): void;
+  drag(from: [number, number], to: [number, number]): void;
+  release(): void;
+}
+
+/**
+ * Where a line from `eye` along `way` meets the plane of a quad: across and
+ * down it (0 to 1 within it, and beyond them outside it), and how far off,
+ * metres. Null where it runs along the plane, meets it behind the eye, or
+ * meets the picture's back.
+ */
+export function onQuad(eye: Vec3, way: Vec3, corners: Quad): { across: number; down: number; distance: number } | null {
+  const across = minus(corners[1], corners[0]);
+  const down = minus(corners[3], corners[0]);
+  const normal: Vec3 = [
+    down[1] * across[2] - down[2] * across[1], down[2] * across[0] - down[0] * across[2], down[0] * across[1] - down[1] * across[0],
+  ];
+  const facing = dot(way, normal);
+  // The normal points towards whoever reads the picture: a line looking at it goes against it.
+  if (facing >= -1e-12) return null;
+  const reaches = dot(minus(corners[0], eye), normal) / facing;
+  if (reaches <= 0) return null;
+  const point = minus([eye[0] + way[0] * reaches, eye[1] + way[1] * reaches, eye[2] + way[2] * reaches], corners[0]);
+  const [aa, ab, bb] = [dot(across, across), dot(across, down), dot(down, down)];
+  const [pa, pb] = [dot(point, across), dot(point, down)];
+  const det = aa * bb - ab * ab;
+  return { across: (pa * bb - pb * ab) / det, down: (pb * aa - pa * ab) / det, distance: reaches * Math.hypot(...way) };
+}
+
+/**
+ * The screen a hand can use that a line of sight meets first, of those with
+ * a `touch`: which (its place in `screens`), where on it, and how far off.
+ * Null where it meets none within reach.
+ */
+export function touchAlong(
+  eye: Vec3, way: Vec3, screens: ReadonlyArray<{ corners: Quad; touch?: ScreenTouch }>,
+): { index: number; across: number; down: number; distance: number } | null {
+  let nearest: { index: number; across: number; down: number; distance: number } | null = null;
+  screens.forEach(({ corners, touch }, index) => {
+    if (!touch) return;
+    const hit = onQuad(eye, way, corners);
+    if (!hit || hit.across < 0 || hit.across > 1 || hit.down < 0 || hit.down > 1 || hit.distance > REACH_M) return;
+    if (!nearest || hit.distance < nearest.distance) nearest = { index, ...hit };
+  });
   return nearest;
 }

@@ -7,7 +7,8 @@
  * Only the primary flight display, the navigation display and the standby
  * instrument move with every frame; a page of numbers is redrawn a few
  * times a second, and the windows of the glareshield only when their text
- * changes. A canvas not redrawn is not sent to the GPU again either (its
+ * changes. The captain's tablet (efbChart.ts) is a few times a second too,
+ * and at once when a hand has done something on it. A canvas not redrawn is not sent to the GPU again either (its
  * `version` stays). The lights are parts of one small picture, taken once
  * from the model's own picture of them lit, and are shown or not.
  */
@@ -15,8 +16,10 @@ import { drawNd, drawPfd } from "./instruments";
 import { drawLowerEcam, drawUpperEcam } from "./ecam";
 import type { EngineReadout } from "./ecam";
 import { drawBar, drawBaro, drawFcu, drawIsis, drawMcdu } from "./panel";
+import { EfbChart } from "./efbChart";
 import { AIRCRAFT_FILES, COCKPIT_LIGHTS, COCKPIT_SCREENS, LIGHTS_TEXTURE } from "../../../lib/studio/flight/cockpit";
-import type { CockpitLight, CockpitLightName, CockpitScreen, TexturePart } from "../../../lib/studio/flight/cockpit";
+import type { CockpitLight, CockpitLightName, CockpitScreen, ScreenTouch, TexturePart } from "../../../lib/studio/flight/cockpit";
+import { EFB_HEIGHT, EFB_WIDTH } from "../../../lib/studio/flight/efb";
 import {
   airTemperatures, baroOf, cabinOf, ecamOf, egtOf, fcuOf, flashOn, flightPlanPage, fuelFlowOf, gearLights, n1Of, progressPage, utc,
 } from "../../../lib/studio/flight/displays";
@@ -52,12 +55,12 @@ function sheet(width: number, height: number, every: number): Sheet {
 
 type UvRect = [number, number, number, number];
 
-type SheetName = "pfd" | "nd" | "upper" | "lower" | "isis" | "fcu" | "baro" | "mcduCaptain" | "mcduFo";
+type SheetName = "pfd" | "nd" | "upper" | "lower" | "isis" | "fcu" | "baro" | "mcduCaptain" | "mcduFo" | "efb";
 
 /** What the screens take of the flight besides the telemetry. */
 export interface CockpitInputs {
   status: FlightStatus;
-  /** The radar scan on the map, ms since 1970; null before one is. */
+  /** The radar scan on the map, as scans are counted: seconds since 1970; null before one is. */
   scan: number | null;
   /** The brakes a hand sets on the flight deck (`Pilot.brakes`): the autobrake armed, the parking brake set. */
   brakes: { autobrake: boolean; parking: boolean };
@@ -68,8 +71,8 @@ const ROWS = { top: 0, height: 256, width: 832 };
 const BAR = { top: 256, height: 16, width: 64 };
 
 export class CockpitScreens {
-  /** What the map draws: every screen and light, the same objects throughout, changed in place. */
-  readonly screens: AircraftScreen[] = [];
+  /** What the map draws: every screen and light, the same objects throughout, changed in place; the tablet with its `touch`. */
+  readonly screens: Array<AircraftScreen & { touch?: ScreenTouch }> = [];
   private readonly sheets: Record<SheetName, Sheet> = {
     // The two that every flight had already, at their size.
     pfd: sheet(320, 320, 0),
@@ -81,7 +84,10 @@ export class CockpitScreens {
     baro: sheet(132, 60, 1),
     mcduCaptain: sheet(288, 272, 0.5),
     mcduFo: sheet(288, 272, 0.5),
+    efb: sheet(EFB_WIDTH, EFB_HEIGHT, 0.25),
   };
+  /** The captain's tablet: its storm map, and what a hand has done on it. */
+  private readonly efb = new EfbChart();
   private readonly atlas = sheet(ROWS.width, ROWS.height + BAR.height, Infinity);
   /** Each light's screens, and the parts of the lights' picture it shows lit and unlit (null: not drawn). */
   private readonly lights = new Map<CockpitLightName, { screens: AircraftScreen[]; lit: UvRect | null; unlit: UvRect | null }>();
@@ -106,6 +112,9 @@ export class CockpitScreens {
       this.screens.push(screen);
       this.bound.push([screen, this.sheets[name]]);
     }
+    const tablet = { source: this.sheets.efb.canvas, corners: COCKPIT_SCREENS.efb, version: 0, touch: this.efb };
+    this.screens.push(tablet);
+    this.bound.push([tablet, this.sheets.efb]);
     const part = (rect: TexturePart | null): UvRect | null => rect && [
       rect[0] / this.atlas.width, (rect[1] - ROWS.top) / this.atlas.height, rect[2] / this.atlas.width, (rect[3] - ROWS.top) / this.atlas.height,
     ];
@@ -137,10 +146,11 @@ export class CockpitScreens {
     image.src = `${AIRCRAFT_FILES}${LIGHTS_TEXTURE}`;
   }
 
-  /** Let go of the lights' picture as it loads, if the flight is over first. */
+  /** Let go of the lights' picture as it loads, if the flight is over first; and of the tablet's basemap. */
   dispose(): void {
     if (this.image) this.image.onload = null;
     this.image = null;
+    this.efb.dispose();
   }
 
   /** Draw what is due this frame, from the telemetry. */
@@ -203,10 +213,15 @@ export class CockpitScreens {
     this.redraw("baro", telemetry.time, (context, { width, height }) => drawBaro(context, width, height, baro), { key: baro });
 
     const groundSpeed = state.tas * Math.cos((state.flightPath * Math.PI) / 180);
-    const plan = flightPlanPage({ altitude: state.altitude, ias: telemetry.ias, target: telemetry.target, now, scan: inputs.scan });
+    // The pages count in milliseconds, the scans in seconds.
+    const scan = inputs.scan === null ? null : inputs.scan * 1000;
+    const plan = flightPlanPage({ altitude: state.altitude, ias: telemetry.ias, target: telemetry.target, now, scan });
     this.redraw("mcduCaptain", telemetry.time, (context, { width, height }) => drawMcdu(context, width, height, plan), { key: JSON.stringify(plan) });
     const progress = progressPage({ altitude: state.altitude, tas: state.tas, groundSpeed, mach: telemetry.mach, fuelUsed: this.fuelUsed });
     this.redraw("mcduFo", telemetry.time, (context, { width, height }) => drawMcdu(context, width, height, progress), { key: JSON.stringify(progress) });
+    this.redraw("efb", telemetry.time, (context) => this.efb.draw(context, telemetry, { warp: status.warp, scan, now }), {
+      key: String(this.efb.version), urgent: true,
+    });
 
     // The lights: shown or not, nothing redrawn.
     const loaded = this.atlas.version > 0;
