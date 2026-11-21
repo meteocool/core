@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { cameraOf, farToNear, walkOf } from "../../src/lib/drawOrder.ts";
 import { FETCH_TRIES, FetchRetries, RETRY_MS } from "../../src/lib/fetchRetries.ts";
-import { handOver, overlaps } from "../../src/lib/volumeHandover.ts";
+import { handOver, LISTING_MAX_MS, LISTING_QUIET_MS, overlaps, ScanListing } from "../../src/lib/volumeHandover.ts";
 import type { Placed } from "../../src/lib/volumeHandover.ts";
 import { fineWithin, footprintOnScreen } from "../../src/lib/volumeLevels.ts";
 import type { Bounds } from "../../src/lib/volumeLevels.ts";
@@ -120,9 +120,13 @@ test("a network's scan stays whole until all of its next scan is in, then turns 
   const other = at("ch", [10, 540, 360], 100, "ch");
   const wanted = [...next, other];
   const midway = handOver(wanted, [...old, next[0], other], [next[1]]);
-  // The storm that left still stands, with its scan; the new scan waits.
+  // The storm that left still stands, with its scan; the new scan waits where the old one stands.
   assert.deepEqual([...midway.keep].sort(), ["old-a", "old-gone"]);
   assert.deepEqual([...midway.hide], ["new-a"]);
+  // Where the old scan had nothing, the new one is drawn as it comes: a turn, a pan, is not kept waiting.
+  const fresh = at("new-fresh", [10, 600, 300], 400);
+  const turned = handOver([...wanted, fresh], [...old, next[0], fresh, other], [next[1]]);
+  assert.deepEqual([...turned.hide], ["new-a"]);
   const done = handOver(wanted, [...old, ...next, other], []);
   assert.equal(done.keep.size, 0);
   assert.equal(done.hide.size, 0);
@@ -143,6 +147,68 @@ test("another network's tiles never wait for, or hold back, this one's", () => {
 test("stand-ins past the byte limit go, the farthest first", () => {
   const { keep } = handOver([COARSE], CHILDREN, [COARSE], () => 10, 25);
   assert.deepEqual([...keep], ["f0", "f1"]);
+});
+
+test("a scan's first part all in does not end the scan before it while the rest is still being listed", () => {
+  // The old scan over three places; the new one listed so far at one of them, and in.
+  const old = [at("old-a", [10, 520, 370], 100), at("old-b", [10, 530, 380], 100), at("old-c", [10, 540, 390], 100)];
+  const part = at("new-a", [10, 520, 370], 400);
+  const other = at("ch", [10, 540, 360], 100, "ch");
+  const listing = new Map([["fr", 400]]);
+  const midway = handOver([part, other], [...old, part, other], [], () => 0, Infinity, listing);
+  assert.deepEqual([...midway.keep].sort(), ["old-a", "old-b", "old-c"]);
+  assert.deepEqual([...midway.hide], ["new-a"]);
+  // Listed whole, the network turns over.
+  const done = handOver([part, other], [...old, part, other], [], () => 0, Infinity, new Map());
+  assert.equal(done.keep.size, 0);
+  assert.equal(done.hide.size, 0);
+  // A network still listing holds back no other network, and keeps nothing of its own scan.
+  const own = handOver([part, other], [part, other], [], () => 0, Infinity, listing);
+  assert.equal(own.keep.size, 0);
+  assert.equal(own.hide.size, 0);
+});
+
+test("a network's scan is still being listed until its list has stopped growing a while", () => {
+  const fr = (path: string, scan: number) => at(path, [10, 520, 370], scan);
+  const listing = new ScanListing();
+  // The first list says nothing about parts: there was nothing before it to stand in.
+  listing.take([fr("a", 100), at("ch", null, 90, "ch")], 0);
+  assert.equal(listing.listing(0).size, 0);
+  assert.equal(listing.nextSettled(0), null);
+  // A new scan's first part.
+  listing.take([fr("b", 400), at("ch", null, 90, "ch")], 10_000);
+  assert.deepEqual([...listing.listing(10_000)], [["fr", 400]]);
+  assert.equal(listing.nextSettled(10_000), 10_000 + LISTING_QUIET_MS);
+  // The same answer again is no growth; a second part is.
+  listing.take([fr("b", 400)], 20_000);
+  assert.equal(listing.nextSettled(20_000), 10_000 + LISTING_QUIET_MS);
+  listing.take([fr("b", 400), fr("c", 400)], 30_000);
+  assert.equal(listing.nextSettled(30_000), 30_000 + LISTING_QUIET_MS);
+  assert.equal(listing.listing(30_000 + LISTING_QUIET_MS).size, 0);
+  // A list that never stops changing, nor its scans coming, still settles a while after it started listing.
+  for (let time = 40_000; time <= 10_000 + LISTING_MAX_MS; time += 10_000) {
+    listing.take([fr(`x${time}`, 400 + (time % 30_000 ? 0 : time))], time - 1);
+  }
+  assert.equal(listing.listing(10_000 + LISTING_MAX_MS - 1).size, 1);
+  assert.equal(listing.listing(10_000 + LISTING_MAX_MS).size, 0);
+  // An older answer landing late is no new scan, nor more of one.
+  const quiet = new ScanListing();
+  quiet.take([fr("a", 100)], 0);
+  quiet.take([fr("d", 500)], 300_000);
+  quiet.take([fr("b", 400)], 400_000);
+  assert.equal(quiet.listing(400_000).size, 0);
+});
+
+test("a scan settled at once stays settled for the same list, and lists again with a new part", () => {
+  const listing = new ScanListing();
+  listing.take([at("a", null, 100)], 0);
+  listing.take([at("b", null, 400)], 1000);
+  listing.settle();
+  assert.equal(listing.listing(1000).size, 0);
+  listing.take([at("b", null, 400)], 2000);
+  assert.equal(listing.listing(2000).size, 0);
+  listing.take([at("b", null, 400), at("c", null, 400)], 3000);
+  assert.deepEqual([...listing.listing(3000)], [["fr", 400]]);
 });
 
 /* ---- retries ---- */

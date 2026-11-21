@@ -76,7 +76,7 @@ import {
 import type { Place, Quarter, ScanFinds } from "../lib/cloudHistory";
 import { networkAt } from "../layers/networkAt";
 import { defaultPeel } from "../lib/peel";
-import { handOver } from "../lib/volumeHandover";
+import { handOver, ScanListing } from "../lib/volumeHandover";
 import { cloudMotion, columnDepth } from "../lib/cloudMotion";
 import type { Motion } from "../lib/cloudMotion";
 import type { Placed } from "../lib/volumeHandover";
@@ -372,6 +372,11 @@ const DRAPE_STEPS = 8;
 
 /** Which tier a volume is in: what the list says, else what its own header says, else openable. */
 const tierOf = (listed: { tier?: number }, cutaway: Cutaway) => listed.tier ?? cutaway.header.tier ?? 2;
+
+/** A volume as handing over sees it, from its listing or its header; see lib/volumeHandover.ts. */
+const placed = (path: string, at: { network?: string | null; tile?: readonly number[] | null; reference_time: string }): Placed => ({
+  path, network: networkOf(at), tile: at.tile ?? null, scan: scanTime(at.reference_time),
+});
 
 /** Every storm core with a volume: its box's outline, and the box to tap it by. */
 const CLOUD_SOURCE = "clouds";
@@ -840,6 +845,12 @@ export default class Cells3DCapability extends Capability {
 
   /** The next time the volumes that failed are asked for again; see `retryLater`. */
   private retryTimer: ReturnType<typeof setTimeout> | null = null;
+
+  /** Which networks' newest scans are still being listed in parts; see `handOver`. */
+  private readonly listing = new ScanListing();
+
+  /** The next time a network's scan has been listed whole, and the scan before it can go; see `settleLater`. */
+  private listingTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** When a link or a history step last pointed the camera; see `frameOpened`. */
   private cameraSetAt = -Infinity;
@@ -1516,6 +1527,8 @@ export default class Cells3DCapability extends Capability {
     this.volumes.stop();
     if (this.volumesTimer !== null) clearTimeout(this.volumesTimer);
     this.volumesTimer = null;
+    if (this.listingTimer !== null) clearTimeout(this.listingTimer);
+    this.listingTimer = null;
     this.detach();
     super.willLoseFocus();
   }
@@ -2359,9 +2372,6 @@ export default class Cells3DCapability extends Capability {
   private handOver(): { keep: Set<string>; hide: Set<string> } {
     const wanted = this.wanted();
     const listed = new Map(this.clouds.map((cloud) => [cloud.path, cloud]));
-    const placed = (path: string, at: { network?: string | null; tile?: readonly number[] | null; reference_time: string }): Placed => ({
-      path, network: networkOf(at), tile: at.tile ?? null, scan: scanTime(at.reference_time),
-    });
     // Nearest the aircraft while flying: the map's centre is then a point in the air ahead.
     const centre = this.flight && this.flightPose ? { lng: this.flightPose.lon, lat: this.flightPose.lat } : this.gl?.getCenter();
     const distance = ({ lon, lat }: { lon: number; lat: number }) => (centre
@@ -2375,10 +2385,31 @@ export default class Cells3DCapability extends Capability {
       .filter((cloud) => !this.cutaways.has(cloud.path))
       .map((cloud) => placed(cloud.path, cloud));
     const bytes = new Map([...this.cutaways].map(([path, { cutaway }]) => [path, cutaway.voxels.byteLength]));
+    // The newest scan's parts are waited for; an earlier scan's list is whole.
+    const listing = this.past === null && this.pastLoading === null ? this.listing.listing(Date.now()) : new Map<string, number>();
     return handOver(
       wanted.map((cloud) => placed(cloud.path, cloud)), held, pending, (volume) => bytes.get(volume.path) ?? 0,
-      this.flight ? FLIGHT_BYTES : RESIDENT_BYTES,
+      this.flight ? FLIGHT_BYTES : RESIDENT_BYTES, listing,
     );
+  }
+
+  /**
+   * Let the scan before go once its network's newest has been listed whole,
+   * which no new list says: a while with no part added (`ScanListing`).
+   */
+  private settleLater(): void {
+    if (this.listingTimer !== null) clearTimeout(this.listingTimer);
+    this.listingTimer = null;
+    const at = this.listing.nextSettled(Date.now());
+    if (at === null) return;
+    this.listingTimer = setTimeout(() => {
+      this.listingTimer = null;
+      if (this.shown) {
+        this.dropUnlisted();
+        this.pushClouds();
+      }
+      this.settleLater();
+    }, at - Date.now() + 1);
   }
 
   /**
@@ -3524,6 +3555,8 @@ export default class Cells3DCapability extends Capability {
       const network = networkOf(cloud);
       if (scan !== null && scan > (this.networkClocks.get(network) ?? -Infinity)) this.networkClocks.set(network, scan);
     }
+    this.listing.take(this.liveClouds.map((cloud) => placed(cloud.path, cloud)), Date.now());
+    this.settleLater();
     this.volumePath = this.liveClouds.find((cloud) => cloud.tile)?.path ?? this.volumePath;
     this.publishTime();
     // An earlier scan's, finished loading after a switch away cut it short.
@@ -3639,6 +3672,8 @@ export default class Cells3DCapability extends Capability {
     const was = this.past;
     this.past = null;
     if (was) {
+      // Picked, the newest is drawn as soon as it is in, not after its parts' wait.
+      this.listing.settle();
       this.clouds = this.liveClouds;
       this.pastFine.clear();
       this.forgetFaint();
@@ -4401,6 +4436,8 @@ export default class Cells3DCapability extends Capability {
     this.strikeTimer = null;
     if (this.volumesTimer !== null) clearTimeout(this.volumesTimer);
     this.volumesTimer = null;
+    if (this.listingTimer !== null) clearTimeout(this.listingTimer);
+    this.listingTimer = null;
     this.volumes.stop();
     this.unsubscribeTheme?.();
     this.unsubscribeTheme = null;
