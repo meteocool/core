@@ -20,6 +20,7 @@
  * the sound, and what the flight needs is loaded meanwhile
  * (lib/studio/flight/preload.ts), so that taking off seldom waits.
  */
+import logo from "../../../assets/logo.svg";
 import { onDestroy, onMount } from "svelte";
 import { _ } from "svelte-i18n";
 import { get } from "svelte/store";
@@ -302,6 +303,7 @@ function keydown(event: KeyboardEvent): void {
     disablepictureinpicture aria-hidden="true" tabindex="-1"></video>
   <header>
     <h2 class="title glass glass-pill"><Icon icon={faPlaneDeparture} /> {$_("studio.flight.plan.title")}</h2>
+    <p class="brand"><img src={logo} alt="" /><span><b>meteoair</b> <small>by meteocool.com</small></span></p>
     <div class="head-tools">
       <SoundSwitch look="chip" />
       <CloseDisc on:click={oncancel} />
@@ -394,8 +396,10 @@ function keydown(event: KeyboardEvent): void {
       <h3>{$_("studio.flight.plan.briefing")}</h3>
       <dl>
         {#each lines as line (line.item)}
-          <dt>{$_(`studio.flight.plan.brief.${line.item}`)}</dt>
-          <dd class:caution={line.caution}>{line.text}</dd>
+          <div>
+            <dt>{$_(`studio.flight.plan.brief.${line.item}`)}</dt>
+            <dd class:caution={line.caution}>{line.text}</dd>
+          </div>
         {/each}
       </dl>
       <p class="credit">{$_("studio.flight.model_credit")}</p>
@@ -487,11 +491,27 @@ function keydown(event: KeyboardEvent): void {
   }
   .preflight { isolation: isolate; }
   header {
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    justify-content: space-between;
     gap: 12px;
   }
+  header .title { justify-self: start; }
+  header .head-tools { justify-self: end; }
+  /* meteocool's, in the middle of the plan's head: the raindrop and the name. */
+  .brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    color: #fff;
+    font: 600 14px/1 var(--mc-font);
+    text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  }
+  .brand span { display: flex; align-items: baseline; gap: 8px; white-space: nowrap; }
+  .brand b { font: 700 23px/1 var(--mc-font); letter-spacing: -0.02em; }
+  .brand small { font-size: 14px; color: rgba(235, 235, 245, 0.78); }
+  .brand img { width: 38px; height: 38px; filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.45)); }
   .title {
     display: inline-flex;
     align-items: center;
@@ -506,12 +526,15 @@ function keydown(event: KeyboardEvent): void {
   .panes {
     display: grid;
     grid-template-columns: minmax(0, 1.25fr) minmax(330px, 1fr);
-    /* Never shorter than what is in them: the chart's column, its storm under it, spans the first two. */
-    grid-template-rows: auto auto 1fr;
+    /* The chart's column, its storm under it, beside the aircraft and the
+       fields and as tall as what is left of the screen; the briefing the
+       whole width under them, or, where it would not fit, not at all: the
+       plan is not scrolled on a desktop. */
+    grid-template-rows: auto minmax(auto, 1fr) auto;
     grid-template-areas:
       "chart aircraft"
       "chart fields"
-      "brief fields";
+      "brief brief";
     gap: var(--gap);
     min-height: 0;
     overflow-x: hidden;
@@ -539,7 +562,7 @@ function keydown(event: KeyboardEvent): void {
   .chart {
     flex: 1 1 auto;
     position: relative;
-    min-height: 300px;
+    min-height: 200px;
     overflow: hidden;
     background: #10151b;
   }
@@ -577,6 +600,7 @@ function keydown(event: KeyboardEvent): void {
 
   .fields {
     grid-area: fields;
+    align-self: start;
     display: flex;
     flex-direction: column;
     gap: calc(var(--gap) * 0.75);
@@ -634,11 +658,16 @@ function keydown(event: KeyboardEvent): void {
   }
   .briefing h3 { color: #9aa3ad; }
   .briefing dl {
-    display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
-    gap: 3px 14px;
     margin: 0;
+    column-gap: 40px;
     font: 12px/1.45 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  .briefing dl > div {
+    display: grid;
+    grid-template-columns: 9ch minmax(0, 1fr);
+    gap: 14px;
+    padding: 1.5px 0;
+    break-inside: avoid;
   }
   .briefing dt { color: #7fd4e4; }
   .briefing dd { margin: 0; }
@@ -685,6 +714,17 @@ function keydown(event: KeyboardEvent): void {
   }
   .chip.go:hover { background: color-mix(in srgb, var(--mc-orange) 88%, #fff); }
 
+  /* Wide: the briefing in two columns, in half the height. */
+  @container mc-frame (min-width: 1300px) {
+    .briefing dl { columns: 2; }
+  }
+  /* Too short for the briefing under the rest without scrolling: none. */
+  @container mc-frame (min-width: 901px) and (max-width: 1299px) and (max-height: 790px) {
+    .briefing { display: none; }
+  }
+  @container mc-frame (min-width: 1300px) and (max-height: 690px) {
+    .briefing { display: none; }
+  }
   /* Narrower: one column, scrolled, the way off always at its foot. */
   @container mc-frame (max-width: 900px) {
     .panes {
@@ -693,6 +733,12 @@ function keydown(event: KeyboardEvent): void {
       grid-template-areas: "chart" "aircraft" "fields" "brief";
     }
     .chart { min-height: 260px; }
+  }
+  @container mc-frame (max-width: 760px) {
+    .brand small { display: none; }
+  }
+  @container mc-frame (max-width: 560px) {
+    .brand span { display: none; }
   }
   /* A phone on its side is wide enough for the chart beside the rest again,
      which leaves a thumb somewhere to scroll the plan by that is not the chart.

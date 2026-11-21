@@ -499,9 +499,6 @@ onDestroy(() => {
       <div class="strip glass glass-tray">
         {#if more}
           <div class="row rare">
-            <button type="button" class="key" tabindex="-1" on:click={act("view")}>
-              <Icon icon={faEye} /><span>{$_("studio.flight.touch.view")}</span>
-            </button>
             <button type="button" class="key" tabindex="-1" on:click={act("next")}>
               <Icon icon={faCloudBolt} /><span>{$_("studio.flight.touch.next")}</span>
             </button>
@@ -551,6 +548,11 @@ onDestroy(() => {
           <button type="button" class="key word" class:lit={status.autopilot} tabindex="-1" aria-pressed={status.autopilot}
             aria-label={$_("studio.flight.keys.autopilot")} on:click={act("autopilot")}>
             <b>{$_("studio.flight.touch.autopilot")}</b>
+          </button>
+          <!-- The view, from the cockpit to outside and on: in reach without unfolding the rest. -->
+          <button type="button" class="key view" tabindex="-1" title={$_("studio.flight.keys.view")}
+            aria-label={$_("studio.flight.keys.view")} on:click={act("view")}>
+            <Icon icon={faEye} />
           </button>
           <button type="button" class="key toggle" tabindex="-1" aria-expanded={more}
             aria-label={$_(more ? "studio.flight.touch.less" : "studio.flight.touch.more")} on:click={() => { more = !more; }}>
