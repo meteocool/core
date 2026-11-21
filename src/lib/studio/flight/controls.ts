@@ -182,6 +182,10 @@ export class Keys {
   start(): void {
     const down = (event: Event) => {
       const key = event as KeyboardEvent;
+      // With Cmd down, a Mac sends no keyup for the other keys let go meanwhile (a screenshot's Cmd-Shift-4 over a held
+      // arrow): forgotten now, every held key would stay held for good, rolling the aircraft on its own. One still held
+      // comes back with its next repeat.
+      if (key.metaKey || key.key === "Meta") this.held.clear();
       if (typing(key.target) || key.metaKey || key.ctrlKey || key.altKey) return;
       if (!isFlightKey(key.code, key.key)) return;
       key.preventDefault();
@@ -195,6 +199,7 @@ export class Keys {
     };
     const up = (event: Event) => {
       const key = event as KeyboardEvent;
+      if (key.key === "Meta") this.held.clear();
       if (!this.held.delete(key.code)) return;
       key.preventDefault();
       key.stopPropagation();
@@ -234,6 +239,15 @@ export class Keys {
     if (this.padTimer !== null) clearInterval(this.padTimer);
     this.padTimer = null;
     this.padDown = [];
+  }
+
+  /**
+   * Forget the keys held: for a new aircraft, which starts with the stick
+   * centred whatever a lost keyup left behind. A key still down comes back
+   * with its next repeat.
+   */
+  letGo(): void {
+    this.held.clear();
   }
 
   /** What the keys held and the first gamepad ask, now. */

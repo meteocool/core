@@ -1284,6 +1284,10 @@ export class Pilot {
       this.flights += 1;
       this.damage = intact(this.flights);
       this.status({ lost: [] });
+      // And no hand on its controls: a key, or the mouse on the stick, held from the last one only by a lost release.
+      this.keys.letGo();
+      this.hand = null;
+      this.handOn = null;
       this.wreck = null;
       this.showing = null;
       this.fallen = null;
