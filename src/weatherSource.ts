@@ -32,3 +32,6 @@ export const demoFallbackBuild = !import.meta.env?.DEV && import.meta.env?.MODE 
 
 /** Whether this page shows the demo's weather in place of its own backend's. */
 export const demoWeather = demoFallbackBuild && typeof window !== "undefined" && weatherChoice(window.location) === "demo";
+
+/** Whether the weather on this page is the demo's recorded storm: on demo.meteocool.com, or in place of a live radar's. */
+export const demoBackend = import.meta.env?.MODE === "demo" || demoWeather;

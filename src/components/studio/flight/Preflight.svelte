@@ -50,7 +50,7 @@ import { destination, distanceM } from "../../../lib/studio/flight/geo";
 import { FLIGHT_STYLE } from "../../../lib/studio/flight/pilot";
 import {
   AIRCRAFT, ALTITUDE_RANGE, atMach, briefing, flightLevel, headed, levelled, machRange, movedTo, planFrom, retargeted,
-  STRIKE_WINDOW_MIN,
+  showcasePlan, STRIKE_WINDOW_MIN,
 } from "../../../lib/studio/flight/plan";
 import type { FlightPlan } from "../../../lib/studio/flight/plan";
 import {
@@ -67,6 +67,7 @@ import { shareAvailable, shareIcon } from "../../../lib/shareSupport";
 import { followSideways } from "../../../lib/sideways";
 import { lift } from "../../../lib/curtain";
 import { cloudsTime, shareDialog } from "../../../stores";
+import { demoBackend } from "../../../weatherSource";
 
 /** The 3D map: where the reader was looking, and the storms on the radar. */
 export let stage: Stage;
@@ -113,8 +114,8 @@ let tiles = stage.stormTiles();
 let strikes = recentStrikes();
 let systems = ranked(tiles, strikes);
 
-/** The plan the flight would fly unasked, from the storms listed now. */
-const proposed = (): FlightPlan => planFrom(
+/** The plan the flight would fly unasked, from the storms listed now: over the demo's storm, the start chosen for it by hand. */
+const proposed = (): FlightPlan => (demoBackend && systems.length ? showcasePlan(systems[0], FLIGHT_STYLE) : null) ?? planFrom(
   systems.length ? approachTo(systems[0], tiles, ground) : clearSkyStart(look.lon, look.lat, look.bearing, ground),
   FLIGHT_STYLE,
 );
@@ -193,7 +194,8 @@ function named(system: StormSystem): string {
 function setTarget(event: Event): void {
   const system = systems[Number((event.currentTarget as HTMLSelectElement).value)];
   if (!system) return;
-  change(retargeted(plan, system, tiles));
+  // The demo's storm from where it was chosen by hand to be flown at, however it was picked.
+  change((demoBackend ? showcasePlan(system, plan.style) : null) ?? retargeted(plan, system, tiles));
   frame();
 }
 

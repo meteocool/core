@@ -28,3 +28,18 @@ test("a flight over the demo's storm says so in its link", () => {
   assert.ok(flightLinkUrl("https://meteocool.com", start, true).endsWith("&weather=demo"));
   assert.ok(!flightLinkUrl("https://meteocool.com", start, false).includes("weather="));
 });
+
+test("the demo's Lombardy storm is flown at from over the Alps, at FL130 and 256 kt", async () => {
+  const { showcasePlan, flightLevel } = await import("../../src/lib/studio/flight/plan.ts");
+  const { indicatedFromTrue } = await import("../../src/lib/studio/flight/atmosphere.ts");
+  const { bearingDeg } = await import("../../src/lib/studio/flight/geo.ts");
+  const storm = { lon: 9.31, lat: 45.34, radiusKm: 80, peakDbz: 60, strength: 1, strikes: 85, tiles: 4, extent: [] };
+  const plan = showcasePlan(storm, "realistic" as never);
+  assert.ok(plan);
+  assert.ok(Math.abs(plan.lon - 10.24) < 1e-9 && Math.abs(plan.lat - 46.31) < 1e-9);
+  assert.equal(flightLevel(plan.altitude), "FL130");
+  assert.equal(Math.round(indicatedFromTrue(plan.tas, plan.altitude) * 1.943844), 256);
+  assert.ok(Math.abs(plan.heading - bearingDeg(10.24, 46.31, 9.31, 45.34)) < 1e-9 && plan.aimed);
+  // Any other storm keeps the usual rules.
+  assert.equal(showcasePlan({ ...storm, lon: 2.3, lat: 48.8 }, "realistic" as never), null);
+});

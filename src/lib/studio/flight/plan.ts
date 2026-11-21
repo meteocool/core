@@ -120,6 +120,37 @@ export const approachOf = (plan: FlightPlan): Approach => ({
   lon: plan.lon, lat: plan.lat, heading: plan.heading, altitude: plan.altitude, target: plan.target,
 });
 
+/**
+ * Starts chosen by hand for a recorded storm the demo replays, so that the
+ * first flight anyone takes in it is the good one: a storm system this near
+ * `near` (lon, lat) is flown at from `lon`, `lat`, at a level in feet and an
+ * indicated speed in knots, nose on it.
+ *
+ * Fitted to that one storm, on purpose. The rules that choose a start
+ * (spawn.ts) are for any weather at all; this is a showcase. Lombardy,
+ * 8 October 2026: the cells over the Po south of Milan, flown at from over
+ * the Alps north of them, the Valtellina and Lake Como on the way down.
+ */
+export const SHOWCASE_STARTS: ReadonlyArray<{
+  near: readonly [number, number]; withinKm: number; lon: number; lat: number; feet: number; knots: number;
+}> = [
+  { near: [9.4, 45.3], withinKm: 150, lon: 10.24, lat: 46.31, feet: 13_000, knots: 256 },
+];
+
+/** The hand-chosen start for a storm system (`SHOWCASE_STARTS`), if it has one; null for any other. */
+export function showcasePlan(target: StormSystem, style: CloudStyle): FlightPlan | null {
+  const chosen = SHOWCASE_STARTS.find(({ near, withinKm }) => distanceM(near[0], near[1], target.lon, target.lat) <= withinKm * 1000);
+  if (!chosen) return null;
+  const altitude = clamp(chosen.feet / FEET, ALTITUDE_RANGE);
+  return {
+    ...planFrom({
+      lon: chosen.lon, lat: chosen.lat, altitude, target,
+      heading: bearingDeg(chosen.lon, chosen.lat, target.lon, target.lat),
+    }, style),
+    tas: startable(trueFromIndicated(chosen.knots / KNOTS, altitude), altitude),
+  };
+}
+
 /** Another storm: the best way in to it, at the level and speed already chosen. */
 export function retargeted(plan: FlightPlan, system: StormSystem, tiles: readonly StormTile[]): FlightPlan {
   const { lon, lat, heading } = approachTo(system, tiles);
