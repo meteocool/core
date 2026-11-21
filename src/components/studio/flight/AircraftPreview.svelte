@@ -11,6 +11,7 @@ import { loadAircraft, makeAircraftRenderer } from "../../../layers/aircraftRend
 import type { AircraftRenderer } from "../../../layers/aircraftRenderer";
 import { AIRCRAFT_FILES, SUN } from "../../../lib/studio/flight/cockpit";
 import { inAircraft, outsideEye } from "../../../lib/studio/flight/view";
+import { frameDelta } from "../../../lib/sideways";
 
 /** What the picture is, for a reader who cannot see it. */
 export let label: string;
@@ -66,8 +67,10 @@ function pointerdown(event: PointerEvent): void {
 }
 function pointermove(event: PointerEvent): void {
   if (!held) return;
-  yaw = (yaw - event.movementX * 0.5 + 360) % 360;
-  pitch = Math.min(60, Math.max(-60, pitch - event.movementY * 0.3));
+  // Across the picture as drawn, on its side in the apps (lib/sideways.ts).
+  const [dx, dy] = frameDelta(event.movementX, event.movementY);
+  yaw = (yaw - dx * 0.5 + 360) % 360;
+  pitch = Math.min(60, Math.max(-60, pitch - dy * 0.3));
 }
 
 onMount(() => {

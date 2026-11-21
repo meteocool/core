@@ -10,7 +10,8 @@ import { get } from "svelte/store";
 import { cloudStyle, peelLevel, peelManual } from "../../stores";
 import { isMapStyle, mapStyleOf } from "../cloudStyle";
 import { isHandheld } from "../gpuBudget";
-import { flightRequest, studioOpen } from "./store";
+import { flightPlanAsked, flightRequest, studioOpen } from "./store";
+import { curtainDown, lower } from "../curtain";
 
 /** The peel as the reader had it before Studio took it. */
 let peelBefore: { manual: boolean; level: number } | null = null;
@@ -34,9 +35,23 @@ export function openStudio(): void {
   studioOpen.set(true);
 }
 
+/**
+ * Straight to the flight's plan, Studio's tools or not: the 3D map's own way
+ * to fly (`flightPlanAsked`). Through black, which the plan lifts once it is up.
+ */
+export function openFlightPlan(): void {
+  if (get(studioOpen) || curtainDown()) return;
+  void lower().then(() => {
+    if (get(studioOpen)) return;
+    flightPlanAsked.set(true);
+    openStudio();
+  });
+}
+
 export function closeStudio(): void {
   // A flight asked for and not flown yet goes with Studio, and is not flown the next time it opens.
   flightRequest.set(null);
+  flightPlanAsked.set(false);
   if (!get(studioOpen)) return;
   studioOpen.set(false);
   if (peelBefore) {

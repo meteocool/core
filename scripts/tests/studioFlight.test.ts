@@ -407,6 +407,24 @@ test("a wreck slides to a stop on the way it was going, whatever the controls as
   assert.ok(wrap180(low.heading) > 10, `swung to ${low.heading}`);
 });
 
+test("standing on a slope it sits as the ground does, and rotates from there", () => {
+  const env: Environment = { ...FIELD, flapLever: 1, tilt: { pitch: 3, roll: -4 } };
+  const standing = fly(parked(3, 43, 100, 90), 5, NO_INPUT, env);
+  near(standing.pitch, 3, 1e-3);
+  near(standing.roll, -4, 1e-3);
+  assert.equal(standing.alpha, 0);
+  // Rotated, the nose comes up off the slope, by no more than the tail allows.
+  let state = standing;
+  for (let t = 0; t < 60 && state.onGround; t += 0.05) {
+    state = step(state, { ...NO_INPUT, throttle: 1, pitch: state.tas > 72 ? 0.8 : 0 }, 0.05, env);
+    assert.ok(state.pitch - 3 <= TAIL_STRIKE + 1e-9 && state.pitch >= 3 - 1e-9, `pitch ${state.pitch}`);
+  }
+  assert.ok(!state.onGround, "it left the ground");
+  // A wreck comes to rest on it too.
+  const wrecked = fly({ ...standing, crash: "terrain", tas: 0 }, 20, NO_INPUT, env);
+  near(wrecked.pitch, 3, 0.01);
+});
+
 test("from standing: full thrust, the nose will not come up before there is air over the tail, and rotated it flies", () => {
   const env: Environment = { ...FIELD, flapLever: 1 };
   let state = parked(3, 43, 100, 90);

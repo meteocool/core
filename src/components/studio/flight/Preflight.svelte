@@ -4,10 +4,19 @@
  * take off from.
  *
  * A chart with the start and the way to the storm drawn on it, which a click
- * moves; the aircraft, turning; where and how the flight begins; what the
- * map is drawn with; and a briefing that reads all of it back as a crew
- * would be handed it. The plan and the briefing are lib/studio/flight/plan.ts;
+ * moves; the aircraft, turning; where and how the flight begins; and a
+ * briefing that reads all of it back as a crew would be handed it.
+ *
+ * The whole screen, as a simulator's menu is: the map behind it blurred out
+ * of reading, and each part of the plan a pane of glass over it. What the
+ * flight draws is not asked: the imagery under it, its storms in the sky's
+ * own style, the radar painted on the ground and the storms ahead marked
+ * (the flight's own keys still change the last two). The plan and the briefing are lib/studio/flight/plan.ts;
  * the flight that takes it is lib/studio/flight/pilot.ts.
+ *
+ * A menu: the menus' music plays while it is up, with a switch for all of
+ * the sound, and what the flight needs is loaded meanwhile
+ * (lib/studio/flight/preload.ts), so that taking off seldom waits.
  */
 import { onDestroy, onMount } from "svelte";
 import { _ } from "svelte-i18n";
@@ -26,11 +35,9 @@ import CloseDisc from "../../CloseDisc.svelte";
 import Icon from "../../Icon.svelte";
 import Segmented from "../../Segmented.svelte";
 import AircraftPreview from "./AircraftPreview.svelte";
+import SoundSwitch from "./SoundSwitch.svelte";
 import { radarColour } from "./instruments";
 import { labelsOnly } from "../../../layers/vector";
-import { BASE_LAYERS } from "../../../lib/baseLayers";
-import { MAP_STYLES } from "../../../lib/cloudStyle";
-import type { CloudStyle } from "../../../lib/cloudStyle";
 import { tileBounds } from "../../../lib/volumeBox";
 import type { Stage } from "../../../lib/studio/director";
 import { indicatedFromTrue, machOf } from "../../../lib/studio/flight/atmosphere";
@@ -43,17 +50,23 @@ import {
 import type { FlightPlan } from "../../../lib/studio/flight/plan";
 import { approachTo, clearSkyStart, rankSystems, stormSystems } from "../../../lib/studio/flight/spawn";
 import type { StormSystem } from "../../../lib/studio/flight/spawn";
-import { STUDIO_BASEMAP } from "../../../lib/studio/store";
+import { FLIGHT_BASEMAP } from "../../../lib/studio/store";
 import { flightLinkUrl } from "../../../lib/studio/flightLink";
 import { startOf } from "../../../lib/studio/flight/plan";
 import { sendLink } from "../../../lib/share";
+import { loadMenuMusic, preloadFlight } from "../../../lib/studio/flight/preload";
+import { claimMenuMusic } from "../../../lib/studio/flight/soundtrack";
 import { shareAvailable, shareIcon } from "../../../lib/shareSupport";
-import { cloudsTime, mapBaseLayer, shareDialog } from "../../../stores";
+import { followSideways } from "../../../lib/sideways";
+import { lift } from "../../../lib/curtain";
+import { cloudsTime, shareDialog } from "../../../stores";
 
 /** The 3D map: where the reader was looking, and the storms on the radar. */
 export let stage: Stage;
 export let ontakeoff: (plan: FlightPlan) => void;
 export let oncancel: () => void;
+/** Off the flight's plan altogether, back to meteocool's map; where given, in place of the plan's Cancel. */
+export let onback: (() => void) | null = null;
 
 const FEET = 3.28084;
 const KNOTS = 1.943844;
@@ -149,19 +162,6 @@ function setTarget(event: Event): void {
   frame();
 }
 
-/* The map's layers, as the flight will draw them. The basemap is Studio's
-   own setting, kept as the reader leaves it here; the storms' style is the
-   flight's alone. The ground's relief is always under a flight, and rough
-   air always in its storms. */
-const BASEMAPS = ["system", ...BASE_LAYERS.filter((name) => name !== "topographic")];
-const chosenBasemap = (_resolved?: string) => window.settings.getString<string>("studioBaseLayer", STUDIO_BASEMAP);
-let basemap = chosenBasemap();
-$: basemap = chosenBasemap($mapBaseLayer);
-function setBasemap(event: Event): void {
-  basemap = (event.currentTarget as HTMLSelectElement).value;
-  window.settings.set("studioBaseLayer", basemap);
-}
-const STYLES: CloudStyle[] = [...MAP_STYLES];
 const VIEWS: Array<FlightPlan["view"]> = ["cockpit", "outside"];
 
 /* The chart. */
@@ -229,12 +229,16 @@ function drawStorms(): void {
   }));
 }
 
+onDestroy(claimMenuMusic());
+
 onMount(() => {
+  void loadMenuMusic();
+  preloadFlight().catch(() => undefined);
   drawStorms();
   chart = new OlMap({
     target: chartElement ?? undefined,
     layers: [
-      window.lm.baseLayerFactory(get(mapBaseLayer)),
+      window.lm.baseLayerFactory(FLIGHT_BASEMAP),
       // Over the basemap, whose imagery is raised over a plain one's ground; the storms under the place names, the plan over them.
       new VectorLayer({ source: stormSource, opacity: 0.5, zIndex: 90 }),
       labelsOnly(),
@@ -243,12 +247,16 @@ onMount(() => {
     controls: [],
     view: new View({ center: fromLonLat([plan.lon, plan.lat]), zoom: 7, enableRotation: false }),
   });
+  // Read in the picture as drawn, on its side in the apps (lib/sideways.ts).
+  followSideways(chart);
   // A click is where the flight starts.
   chart.on("singleclick", (event) => {
     const [lon, lat] = toLonLat(event.coordinate);
     change(movedTo(plan, lon, lat));
   });
   frame();
+  // Up from the black it was come to through (lib/curtain.ts).
+  lift();
 });
 
 onDestroy(() => {
@@ -272,38 +280,41 @@ function keydown(event: KeyboardEvent): void {
 
 <svelte:window on:keydown|capture={keydown} />
 
-<div class="preflight">
-  <section class="sheet glass glass-tray glass-reading" aria-label={$_("studio.flight.plan.title")}>
-    <header>
-      <h2><Icon icon={faPlaneDeparture} /> {$_("studio.flight.plan.title")}</h2>
+<section class="preflight" aria-label={$_("studio.flight.plan.title")}>
+  <header>
+    <h2 class="title glass glass-pill"><Icon icon={faPlaneDeparture} /> {$_("studio.flight.plan.title")}</h2>
+    <div class="head-tools">
+      <SoundSwitch look="chip" />
       <CloseDisc on:click={oncancel} />
-    </header>
+    </div>
+  </header>
 
-    <div class="chart">
+  <div class="panes">
+    <div class="pane chart glass glass-tray">
       <div class="map" bind:this={chartElement} aria-label={$_("studio.flight.plan.chart")} role="application"></div>
       <p class="hint">{$_("studio.flight.plan.chart_hint")}</p>
     </div>
 
-    <div class="side">
-      <div class="aircraft">
-        <div class="preview">
-          <AircraftPreview label={$_("studio.flight.plan.preview", { values: { name: aircraft.name } })} />
-        </div>
-        <div class="about">
-          <h3>{$_("studio.flight.plan.aircraft")}</h3>
-          <!-- One to choose from so far, shown as the one chosen. -->
-          <p class="name">{aircraft.name} <span>meteowings</span></p>
-          <p class="specs">
-            {$_("studio.flight.plan.specs", { values: {
-              length: aircraft.length.toFixed(1), span: aircraft.span.toFixed(1), mach: aircraft.cruise.toFixed(2).slice(1),
-              ceiling: Math.round(aircraft.ceiling / 100),
-            } })}
-          </p>
-        </div>
+    <div class="pane aircraft glass glass-tray">
+      <div class="preview">
+        <AircraftPreview label={$_("studio.flight.plan.preview", { values: { name: aircraft.name } })} />
       </div>
+      <div class="about">
+        <h3>{$_("studio.flight.plan.aircraft")}</h3>
+        <!-- One to choose from so far, shown as the one chosen. -->
+        <p class="name">{aircraft.name} <span>meteowings</span></p>
+        <p class="specs">
+          {$_("studio.flight.plan.specs", { values: {
+            length: aircraft.length.toFixed(1), span: aircraft.span.toFixed(1), mach: aircraft.cruise.toFixed(2).slice(1),
+            ceiling: Math.round(aircraft.ceiling / 100),
+          } })}
+        </p>
+      </div>
+    </div>
 
-      <h3>{$_("studio.flight.plan.flight")}</h3>
-      <div class="fields">
+    <!-- The flight, a pane of glass for each of what it asks. -->
+    <div class="fields" role="group" aria-label={$_("studio.flight.plan.flight")}>
+      <div class="field glass glass-tray">
         <label for="preflight-target">{$_("studio.flight.plan.target")}</label>
         {#if systems.length}
           <select id="preflight-target" value={String(target)} on:change={setTarget}>
@@ -314,7 +325,9 @@ function keydown(event: KeyboardEvent): void {
         {:else}
           <span class="value">{$_("studio.flight.clear_sky")}</span>
         {/if}
+      </div>
 
+      <div class="field glass glass-tray">
         <label for="preflight-level">{$_("studio.flight.plan.level")}</label>
         <div class="slider">
           <input id="preflight-level" type="range" min={Math.round((ALTITUDE_RANGE[0] * FEET) / 100)}
@@ -322,7 +335,9 @@ function keydown(event: KeyboardEvent): void {
             on:input={(event) => change(levelled(plan, (Number(event.currentTarget.value) * 100) / FEET))} />
           <output for="preflight-level">{flightLevel(plan.altitude)} · {Math.round((plan.altitude * FEET) / 100) * 100} ft</output>
         </div>
+      </div>
 
+      <div class="field glass glass-tray">
         <label for="preflight-speed">{$_("studio.flight.plan.speed")}</label>
         <div class="slider">
           <!-- Only the speeds the level allows: never one that stalls the wing or tears the surfaces off it. -->
@@ -330,7 +345,9 @@ function keydown(event: KeyboardEvent): void {
             on:input={(event) => change(atMach(plan, Number(event.currentTarget.value)))} />
           <output for="preflight-speed">M{mach.toFixed(2).slice(1)} · {Math.round(indicatedFromTrue(plan.tas, plan.altitude) * KNOTS)} kt</output>
         </div>
+      </div>
 
+      <div class="field glass glass-tray">
         <label for="preflight-heading">{$_("studio.flight.plan.heading")}</label>
         <div class="slider">
           <input id="preflight-heading" type="range" min="0" max="359" step="1" value={Math.round(plan.heading) % 360}
@@ -342,44 +359,17 @@ function keydown(event: KeyboardEvent): void {
             </button>
           {/if}
         </div>
+      </div>
 
+      <div class="field glass glass-tray">
         <span class="label" id="preflight-view">{$_("studio.flight.plan.view")}</span>
         <Segmented compact stretch label={$_("studio.flight.plan.view")}
           options={VIEWS.map((view) => ({ value: view, label: $_(`studio.flight.plan.${view}`) }))}
           value={plan.view} on:change={(event) => change({ ...plan, view: event.detail })} />
       </div>
-
-      <h3>{$_("studio.flight.plan.layers")}</h3>
-      <div class="fields">
-        <label for="preflight-basemap">{$_("studio.basemap")}</label>
-        <select id="preflight-basemap" value={basemap} on:change={setBasemap}>
-          {#each BASEMAPS as name (name)}
-            <option value={name}>
-              {$_(`settings.base_layers.${name}`)}{name === "system" ? ` · ${$_(`settings.base_layers.${$mapBaseLayer}`)}` : ""}
-            </option>
-          {/each}
-        </select>
-
-        <span class="label">{$_("style_3d.title")}</span>
-        <Segmented compact stretch label={$_("style_3d.title")}
-          options={STYLES.map((style) => ({ value: style, label: $_(`style_3d.${style}`) }))}
-          value={plan.style} on:change={(event) => change({ ...plan, style: event.detail })} />
-
-        <span class="label">{$_("studio.flight.plan.radar")}</span>
-        <label class="check">
-          <input type="checkbox" checked={plan.radarOnGround} on:change={(event) => change({ ...plan, radarOnGround: event.currentTarget.checked })} />
-          {$_("studio.flight.plan.radar_on_ground")}
-        </label>
-
-        <span class="label">{$_("studio.flight.plan.marks")}</span>
-        <label class="check">
-          <input type="checkbox" checked={plan.marks} on:change={(event) => change({ ...plan, marks: event.currentTarget.checked })} />
-          {$_("studio.flight.plan.marks_on")}
-        </label>
-      </div>
     </div>
 
-    <div class="briefing">
+    <div class="pane briefing glass glass-tray">
       <h3>{$_("studio.flight.plan.briefing")}</h3>
       <dl>
         {#each lines as line (line.item)}
@@ -387,85 +377,98 @@ function keydown(event: KeyboardEvent): void {
           <dd class:caution={line.caution}>{line.text}</dd>
         {/each}
       </dl>
-    </div>
-
-    <footer>
       <p class="credit">{$_("studio.flight.model_credit")}</p>
-      {#if $shareAvailable}
-        <!-- A link that takes off from this plan, over the weather of whenever it is opened. -->
-        <button type="button" class="chip" title={$_("studio.flight.share.plan_title")}
-          on:click={(event) => sendLink(
-            { url: flightLinkUrl(window.location.origin, startOf(plan, systems)), title: $_("studio.flight.share.title") },
-            event.currentTarget, { card: false },
-          )}>
-          <Icon icon={shareIcon()} /> {$_("studio.flight.share.plan")}
-        </button>
-      {/if}
-      <button type="button" class="chip" on:click={oncancel}>{$_("studio.flight.plan.cancel")}</button>
-      <button type="button" class="chip go" on:click={() => ontakeoff(plan)}>
-        <Icon icon={faPlaneDeparture} /> {$_("studio.flight.plan.takeoff")}
+    </div>
+  </div>
+
+  <footer>
+    {#if $shareAvailable}
+      <!-- A link that takes off from this plan, over the weather of whenever it is opened. -->
+      <button type="button" class="chip glass glass-pill" title={$_("studio.flight.share.plan_title")}
+        on:click={(event) => sendLink(
+          { url: flightLinkUrl(window.location.origin, startOf(plan, systems)), title: $_("studio.flight.share.title") },
+          event.currentTarget, { card: false },
+        )}>
+        <Icon icon={shareIcon()} /> {$_("studio.flight.share.plan")}
       </button>
-    </footer>
-  </section>
-</div>
+    {/if}
+    {#if onback}
+      <button type="button" class="chip glass glass-pill" on:click={onback}>{$_("studio.flight.plan.back")}</button>
+    {:else}
+      <button type="button" class="chip glass glass-pill" on:click={oncancel}>{$_("studio.flight.plan.cancel")}</button>
+    {/if}
+    <button type="button" class="chip go" on:click={() => ontakeoff(plan)}>
+      <Icon icon={faPlaneDeparture} /> {$_("studio.flight.plan.takeoff")}
+    </button>
+  </footer>
+</section>
 
 <style>
+  /* The whole screen: the map behind blurred out of reading, the plan in panes over it. */
   .preflight {
+    --gap: clamp(8px, 1.4cqw, 14px);
     position: absolute;
     inset: 0;
     display: grid;
-    place-items: center;
-    padding: clamp(8px, 2.5vh, 28px) clamp(8px, 2.5vw, 28px);
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: var(--gap);
     box-sizing: border-box;
-    background: rgba(0, 0, 0, 0.35);
-    pointer-events: auto;
-  }
-  .sheet {
-    display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 1fr);
-    grid-template-rows: auto minmax(0, 1fr) auto auto;
-    grid-template-areas:
-      "head head"
-      "chart side"
-      "brief side"
-      "foot foot";
-    gap: 12px 18px;
-    width: min(1180px, 100%);
-    max-height: 100%;
-    box-sizing: border-box;
-    padding: 16px 18px 14px;
-    overflow: auto;
+    padding: clamp(10px, 2.4cqh, 28px) clamp(10px, 2.4cqw, 32px);
+    padding-left: max(clamp(10px, 2.4cqw, 32px), calc(var(--mc-safe-left, 0px) + 8px));
+    padding-right: max(clamp(10px, 2.4cqw, 32px), calc(var(--mc-safe-right, 0px) + 8px));
+    padding-bottom: max(clamp(10px, 2.4cqh, 28px), calc(var(--mc-safe-bottom, 0px) + 8px));
+    background: rgba(6, 9, 14, 0.32);
+    -webkit-backdrop-filter: blur(44px) saturate(1.25);
+    backdrop-filter: blur(44px) saturate(1.25);
     color: var(--mc-text);
     font: 13px/1.35 var(--mc-font);
+    pointer-events: auto;
   }
   header {
-    grid-area: head;
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
   }
-  h2 {
-    display: flex;
+  .title {
+    display: inline-flex;
     align-items: center;
     gap: 8px;
     margin: 0;
-    font: 700 17px/1.2 var(--mc-font);
+    padding: 9px 16px;
+    font: 700 16px/1.2 var(--mc-font);
   }
-  h2 :global(svg) { width: 16px; height: 16px; }
+  .title :global(svg) { width: 15px; height: 15px; color: var(--mc-orange); }
+  .head-tools { display: flex; align-items: center; gap: 10px; }
+
+  .panes {
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(330px, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-template-areas:
+      "chart aircraft"
+      "chart fields"
+      "brief fields";
+    gap: var(--gap);
+    min-height: 0;
+    overflow: auto;
+    /* Room for the panes' shadows, inside what scrolls. */
+    margin: -6px;
+    padding: 6px;
+  }
+  .pane { box-sizing: border-box; min-width: 0; }
   h3 {
-    margin: 12px 0 6px;
-    color: var(--mc-text-muted, inherit);
+    margin: 0 0 6px;
+    color: var(--mc-text-2, inherit);
     font: 700 11px/1.2 var(--mc-font);
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    opacity: 0.75;
   }
 
   .chart {
     grid-area: chart;
     position: relative;
     min-height: 300px;
-    border-radius: 12px;
     overflow: hidden;
     background: #10151b;
   }
@@ -483,31 +486,42 @@ function keydown(event: KeyboardEvent): void {
     pointer-events: none;
   }
 
-  .side { grid-area: side; min-width: 0; }
   .aircraft {
+    grid-area: aircraft;
     display: grid;
     grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
     align-items: center;
-    gap: 10px;
+    gap: 12px;
+    padding: 10px;
   }
   .preview {
     height: 132px;
-    border-radius: 12px;
+    border-radius: calc(var(--mc-radius-tray) - 6px);
+    overflow: hidden;
     background: linear-gradient(#2c66b8, #9fc4e8 78%, #d7e6f4);
   }
-  .about h3 { margin-top: 0; }
   .name { margin: 0; font: 700 15px/1.25 var(--mc-font); }
-  .name span { display: block; font-weight: 600; opacity: 0.7; }
-  .specs { margin: 6px 0 0; font-size: 12px; opacity: 0.8; }
+  .name span { display: block; font-weight: 600; color: var(--mc-text-2, inherit); }
+  .specs { margin: 6px 0 0; font-size: 12px; color: var(--mc-text-2, inherit); }
 
   .fields {
-    display: grid;
-    grid-template-columns: max-content minmax(0, 1fr);
-    align-items: center;
-    gap: 8px 12px;
+    grid-area: fields;
+    display: flex;
+    flex-direction: column;
+    gap: calc(var(--gap) * 0.75);
+    min-width: 0;
   }
-  .fields > label, .fields > .label { font-weight: 600; opacity: 0.85; }
-  .fields .value { opacity: 0.8; }
+  .field {
+    display: grid;
+    grid-template-columns: 88px minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    min-height: 50px;
+    box-sizing: border-box;
+    padding: 8px 12px 8px 16px;
+  }
+  .field > label, .field > .label { font-weight: 700; }
+  .field .value { color: var(--mc-text-2, inherit); }
   select {
     min-width: 0;
     height: var(--mc-pill-h);
@@ -532,17 +546,15 @@ function keydown(event: KeyboardEvent): void {
     text-align: right;
     white-space: nowrap;
   }
-  .check { display: flex; align-items: center; gap: 8px; font-weight: 400 !important; }
-  .check input { accent-color: var(--mc-orange); }
 
+  /* The briefing: the crew's printout, dark glass whatever the theme. */
   .briefing {
     grid-area: brief;
-    padding: 10px 14px 12px;
-    border-radius: 12px;
-    background: rgba(5, 7, 10, 0.78);
+    padding: 12px 16px;
+    background: rgba(5, 7, 10, 0.7);
     color: #dfe5ec;
   }
-  .briefing h3 { margin-top: 0; color: #9aa3ad; opacity: 1; }
+  .briefing h3 { color: #9aa3ad; }
   .briefing dl {
     display: grid;
     grid-template-columns: max-content minmax(0, 1fr);
@@ -553,15 +565,14 @@ function keydown(event: KeyboardEvent): void {
   .briefing dt { color: #7fd4e4; }
   .briefing dd { margin: 0; }
   .briefing dd.caution { color: #ffb340; }
+  .credit { margin: 10px 0 0; font-size: 11px; color: #8a939d; }
 
   footer {
-    grid-area: foot;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    gap: 8px;
+    gap: 10px;
   }
-  .credit { flex: 1; margin: 0; font-size: 11px; opacity: 0.6; }
   .chip {
     display: inline-flex;
     align-items: center;
@@ -578,42 +589,37 @@ function keydown(event: KeyboardEvent): void {
     white-space: nowrap;
     cursor: pointer;
   }
+  .chip.glass { background: var(--mc-glass-fill); border: 1px solid var(--mc-glass-edge); }
   .chip:hover { background: var(--mc-tint-hover); }
+  .chip.glass:hover { background: color-mix(in srgb, var(--mc-glass-fill) 80%, var(--mc-text) 8%); }
   .chip:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 2px; }
   .chip:disabled { cursor: default; opacity: 0.45; }
   .chip :global(svg) { width: 12px; height: 12px; }
-  .chip.go { padding: 0 18px; background: var(--mc-orange); color: #1a1205; }
+  footer .chip { height: 40px; padding: 0 18px; font-size: 13px; }
+  .chip.go { padding: 0 24px; background: var(--mc-orange); color: #1a1205; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); }
   .chip.go:hover { background: color-mix(in srgb, var(--mc-orange) 88%, #fff); }
 
-  @media (max-width: 900px) {
-    .sheet {
+  /* Narrower: one column, scrolled, the way off always at its foot. */
+  @container mc-frame (max-width: 900px) {
+    .panes {
       grid-template-columns: minmax(0, 1fr);
       grid-template-rows: auto;
-      grid-template-areas: "head" "chart" "side" "brief" "foot";
+      grid-template-areas: "chart" "aircraft" "fields" "brief";
     }
     .chart { min-height: 260px; }
   }
-  /* A screen the plan has to be scrolled on: the way off stays at its foot, whatever is scrolled. */
-  @media (max-width: 900px), (max-height: 560px) {
-    footer {
-      position: sticky;
-      bottom: -14px;
-      z-index: 1;
-      margin: 0 -18px -14px;
-      padding: 10px 18px 14px;
-      background: var(--mc-glass-fill-solid);
-      -webkit-backdrop-filter: blur(16px);
-      backdrop-filter: blur(16px);
-    }
-  }
   /* A phone on its side is wide enough for the chart beside the rest again,
      which leaves a thumb somewhere to scroll the plan by that is not the chart. */
-  @media (min-width: 640px) and (max-width: 900px) and (max-height: 560px) {
-    .sheet {
+  @container mc-frame (min-width: 640px) and (max-width: 900px) and (max-height: 560px) {
+    .panes {
       grid-template-columns: minmax(0, 1fr) minmax(300px, 1.1fr);
-      grid-template-areas: "head head" "chart side" "brief side" "foot foot";
+      grid-template-areas: "chart aircraft" "chart fields" "brief fields";
     }
     .chart { min-height: 200px; }
+  }
+  @container mc-frame (max-height: 560px) {
+    .preview { height: 96px; }
+    .title { padding: 7px 14px; font-size: 14px; }
   }
   /* Under a finger, what is pressed is a finger's size. */
   @media (pointer: coarse) {
@@ -621,15 +627,14 @@ function keydown(event: KeyboardEvent): void {
     .chip { padding: 0 16px; font-size: 13px; }
     .chip.go { padding: 0 22px; }
     .slider input { height: 32px; }
-    .check { min-height: 32px; }
-    footer .credit { font-size: 10px; }
   }
-  /* A phone held upright: the numbers beside a slider take less of its row. */
-  @media (max-width: 480px) {
-    .sheet { padding: 14px 14px 12px; }
-    footer { margin: 0 -14px -12px; padding: 10px 14px 12px; bottom: -12px; }
+  /* A phone held upright: a field's name over its control, and the numbers beside a slider take less of its row. */
+  @container mc-frame (max-width: 480px) {
+    .field { grid-template-columns: minmax(0, 1fr); gap: 4px; padding: 10px 14px; }
     .slider output { min-width: 0; }
     .slider { flex-wrap: wrap; row-gap: 2px; }
-    footer .credit { display: none; }
+    .aircraft { grid-template-columns: minmax(0, 1fr); }
+    footer { flex-wrap: wrap; }
+    footer .chip { flex: 1 1 auto; }
   }
 </style>

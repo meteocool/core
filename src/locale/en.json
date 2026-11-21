@@ -43,6 +43,8 @@
   "failed_3d": "The 3D map could not be loaded.",
   "guide_3d": {
     "title": "3D Map",
+    "fly": "Fly",
+    "fly_title": "Fly through these storms with meteoair",
     "back_to_map": "Back to main map",
     "open": "Controls and legend",
     "pill": "Legend",
@@ -203,6 +205,11 @@
         "controls": "Keys, gamepad or touch",
         "controls_text": "Pick a storm, a level and a speed on the flight plan, then take off. Record the flight as a video.",
         "back": "Back",
+        "loading": "Loading {percent}%",
+        "loading_title": "Loading the aircraft, its cockpit and the soundtrack: {percent}%",
+        "ready": "Ready for take-off",
+        "failed": "The flight did not load.",
+        "retry": "Try again",
         "fullscreen": "Full screen",
         "fullscreen_exit": "Leave full screen",
         "map": "meteocool.com",
@@ -226,11 +233,6 @@
         "view": "Seen from",
         "cockpit": "Cockpit",
         "outside": "Outside",
-        "layers": "Map",
-        "radar": "Radar",
-        "radar_on_ground": "Painted on the ground under the storms",
-        "marks": "Storms",
-        "marks_on": "Marked in the view, with distance",
         "briefing": "Briefing",
         "brief": {
           "route": "ROUTE",
@@ -247,6 +249,7 @@
           "remark": "RMK"
         },
         "cancel": "Cancel",
+        "back": "Back to meteocool",
         "takeoff": "Take off"
       },
       "aria": "Flight deck",
@@ -277,6 +280,20 @@
       "leave_title_plan": "End the flight, back to its plan (Esc)",
       "leave_title_map": "End the flight, back to the map (Esc)",
       "boarding": "Finding the storms…",
+      "loading": {
+        "title": "Preparing the flight",
+        "what": "The aircraft, its cockpit and the soundtrack",
+        "progress": "{loaded} of {total} MB",
+        "failed": "The flight did not load. Check the connection and try again.",
+        "retry": "Try again",
+        "back": "Back"
+      },
+      "sound": {
+        "on": "Sound on",
+        "off": "Sound off",
+        "on_title": "Music and sound are on: turn them off",
+        "off_title": "Music and sound are off: turn them on"
+      },
       "share": {
         "flight": "Share this flight's start",
         "plan": "Share",
@@ -464,6 +481,8 @@
       },
       "gear_low": "TOO LOW  GEAR",
       "sink": "SINK RATE",
+      "help": "Controls",
+      "help_title": "Show or hide the controls · H",
       "bank": "BANK ANGLE",
       "lost": {
         "title": "LOST: {parts}",
@@ -642,6 +661,8 @@
     "konrad_cells_hint": "KONRAD3D is the German Weather Service's (DWD) detection and tracking of thunderstorm cells in its radar network. What it draws are not realistic cloud volumes: each cell is its outline on the ground, stacked into tiers sized and raised to a few figures KONRAD3D reports per intensity level. They clash with the 3D map's radar volumes and arrive minutes after the radar, so we suggest leaving this off.",
     "full_resolution": "Full Resolution",
     "full_resolution_hint": "Draws the 3D map at the screen's full resolution. Sharper, but uses more than twice the graphics memory, so on some phones the map may crash and reload.",
+    "studio": "meteocool Studio",
+    "studio_hint": "Offers Studio on the 3D map: section planes, lenses and keyframed scenes of the storms, recorded to video. For a desktop.",
     "terrain": "Terrain",
     "terrain_hint": "Raises the 3D map into the ground's relief and shades its hills, at true scale. Downloads elevation tiles as you move the map.",
     "playback": "Playback",

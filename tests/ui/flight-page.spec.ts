@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./test";
-import { noGeocoder } from "./app";
+import { emptyAircraft, noGeocoder } from "./app";
 
 /**
  * The flight's own page: meteoair.html, and the web app opened at
@@ -53,8 +53,8 @@ test("a flight's link takes off at once from where it says, and once it is over 
   test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
   test.setTimeout(150_000);
   await noGeocoder(page);
-  // Without the aircraft's model: a software renderer draws it a frame every few seconds.
-  await page.route("**/models/a320/**", (route) => route.abort());
+  // An empty aircraft: a software renderer draws the real one a frame every few seconds.
+  await emptyAircraft(page);
   await page.goto(`/meteoair.html?${VIEW}&fly=50.4000,9.6000&hdg=090&alt=FL120&spd=280kt&view=outside`);
   const deck = page.getByRole("region", { name: "Flight deck" });
   // The storms waited for, with a word meanwhile; then in the air.
@@ -82,6 +82,55 @@ test("a flight's link takes off at once from where it says, and once it is over 
   expect(new URL(page.url()).search).toBe(`?${VIEW}`);
   // And the plan on screen has a link of its own to give.
   await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
+});
+
+test("the page loads the flight while the reader reads: the button says how far, waits when pressed early, and says when it failed",
+  async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
+    test.setTimeout(120_000);
+    await noGeocoder(page);
+    // The model fails first, then comes when the test says.
+    await page.route("**/models/a320/**", (route) => route.abort());
+    await page.goto(`/meteoair.html?${VIEW}`);
+    const status = landing(page).getByRole("status");
+    await expect(status).toContainText("The flight did not load", { timeout: 60_000 });
+    await page.unrouteAll({ behavior: "ignoreErrors" });
+    let release = () => {};
+    await emptyAircraft(page, new Promise<void>((resolve) => { release = resolve; }));
+    await status.getByRole("button", { name: "Try again" }).click();
+    await expect(status).toContainText(/Loading \d+%/);
+    // Pressed before it is done, the button waits and says so.
+    await board(page).click();
+    await expect(page.getByRole("button", { name: /^Loading \d+%$/ })).toHaveAttribute("aria-busy", "true");
+    await expect(landing(page)).toBeVisible();
+    release();
+    // Then on: the plan, with its own switch for the sound.
+    const plan = page.getByRole("region", { name: "Flight plan" });
+    await expect(plan).toBeVisible({ timeout: 60_000 });
+    await expect(plan.getByRole("button", { name: /^Sound (on|off)$/ })).toBeVisible();
+  });
+
+test("taking off is at once once the page has loaded the flight; the deck's sound button is the plan's switch", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
+  test.setTimeout(150_000);
+  await noGeocoder(page);
+  await emptyAircraft(page);
+  await page.goto(`/meteoair.html?${VIEW}`);
+  await expect(landing(page).getByRole("status")).toContainText("Ready for take-off", { timeout: 90_000 });
+  await board(page).click();
+  const plan = page.getByRole("region", { name: "Flight plan" });
+  await expect(plan).toBeVisible({ timeout: 60_000 });
+  // Off in the plan, off in the flight, and remembered.
+  await plan.getByRole("button", { name: /^Sound (on|off)$/ }).click();
+  await plan.getByRole("button", { name: "Take off" }).click();
+  // Nothing left to wait for: no loading screen, the deck at once.
+  await expect(page.getByRole("region", { name: "Flight deck" })).toBeVisible({ timeout: 5_000 });
+  await expect(page.getByRole("dialog", { name: "Preparing the flight" })).toHaveCount(0);
+  const sound = page.getByRole("region", { name: "Flight deck" }).getByRole("button", { name: "Sound on" });
+  const muted = await page.evaluate(() => localStorage.getItem("studioFlightMuted"));
+  await expect(sound).toHaveAttribute("aria-pressed", muted === "1" ? "false" : "true");
+  await sound.click();
+  await expect(sound).toHaveAttribute("aria-pressed", muted === "1" ? "true" : "false");
 });
 
 test("a link that asks for no flight anyone can fly is the page as ever", async ({ page }) => {

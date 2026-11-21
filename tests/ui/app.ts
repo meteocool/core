@@ -60,6 +60,24 @@ export async function noGeocoder(page: Page): Promise<void> {
 }
 
 /**
+ * The flight's aircraft with nothing in it: a model file with no meshes and
+ * no textures. A software renderer draws the real one a frame every few
+ * seconds, and the flight waits for a model before it takes off, so the
+ * flight's tests are handed this one; after `until`, where one is given.
+ */
+export async function emptyAircraft(page: Page, until?: Promise<unknown>): Promise<void> {
+  const header = Buffer.from(JSON.stringify({ title: "", author: "", licence: "", source: "", materials: [], chunks: [] }));
+  const length = Buffer.alloc(4);
+  length.writeUInt32LE(header.length);
+  const body = Buffer.concat([Buffer.from("MCM1"), length, header]);
+  await page.route("**/models/a320/**", async (route) => {
+    if (!route.request().url().endsWith(".bin")) return route.abort();
+    await until;
+    return route.fulfill({ body, contentType: "application/octet-stream" }).catch(() => undefined);
+  });
+}
+
+/**
  * How full each step's slot on the timeline is with tiles fetched ahead, 0 to
  * 1, oldest first, the unpublished tail included. Drawn, not announced: read
  * off the fill's scale.

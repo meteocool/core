@@ -104,7 +104,7 @@ export function planFrom(approach: Approach, style: CloudStyle): FlightPlan {
     aimed: true,
     view: "cockpit",
     style,
-    radarOnGround: false,
+    radarOnGround: true,
     marks: true,
   };
 }
@@ -261,7 +261,7 @@ export function planHere(
   return {
     aircraft: "a320", lon, lat, heading, altitude, tas, target,
     aimed: start.heading === null && target !== null && !onCore,
-    view: start.view, style, radarOnGround: false, marks: true,
+    view: start.view, style, radarOnGround: true, marks: true,
   };
 }
 

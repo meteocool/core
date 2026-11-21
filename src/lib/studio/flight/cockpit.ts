@@ -6,8 +6,8 @@
 import type { FlightAction } from "./controls";
 import type { Vec3 } from "./view";
 
-/** Where the model and its textures are served from. */
-export const AIRCRAFT_FILES = `${import.meta.env?.BASE_URL ?? "/"}models/a320/`;
+/** Where the model and its textures are served from (assets.ts, which the flight's loading reads without the rest of this). */
+export { AIRCRAFT_FILES } from "./assets";
 
 /** Where each engine's exhaust leaves it: where a condensation trail begins. */
 export const EXHAUSTS: Vec3[] = [[-1.2, -5.75, 1.9], [-1.2, 5.75, 1.9]];

@@ -21,6 +21,8 @@ import { onDestroy, onMount } from "svelte";
 import { _ } from "svelte-i18n";
 import { faRightFromBracket } from "@fortawesome/free-solid-svg-icons/faRightFromBracket";
 import { faVolumeXmark } from "@fortawesome/free-solid-svg-icons/faVolumeXmark";
+import { faVolumeHigh } from "@fortawesome/free-solid-svg-icons/faVolumeHigh";
+import { faQuestion } from "@fortawesome/free-solid-svg-icons/faQuestion";
 import { faExpand } from "@fortawesome/free-solid-svg-icons/faExpand";
 import { faCompress } from "@fortawesome/free-solid-svg-icons/faCompress";
 import Icon from "../../Icon.svelte";
@@ -43,6 +45,7 @@ import { fullscreen, fullscreenSupported } from "../../../lib/fullscreen";
 import { shareAvailable, shareIcon } from "../../../lib/shareSupport";
 import { flightMuted } from "../../../lib/studio/flight/sound";
 import { touchCapable, touchControls } from "../../../lib/studio/flight/touch";
+import { frameDelta, pointWithin } from "../../../lib/sideways";
 
 export let pilot: Pilot;
 /** The credits the map shows, which the deck shows in its place. */
@@ -176,10 +179,9 @@ const CLICK_PX = 4;
 /** What kind of hand a control takes, for the pointer over it: a click, or what it holds. */
 $: hand = over && !turning ? (COCKPIT_CONTROLS[over.name] as CockpitControl).hold ?? "press" : null;
 
-/** Where a mouse's event is in the view, CSS pixels from its top left. */
+/** Where a mouse's event is in the view, CSS pixels from its top left: in the picture as drawn, on its side in the apps (lib/sideways.ts). */
 function within(event: MouseEvent): [number, number] {
-  const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
-  return [event.clientX - box.left, event.clientY - box.top];
+  return pointWithin(event, event.currentTarget as HTMLElement);
 }
 
 function pointerdown(event: PointerEvent): void {
@@ -199,11 +201,12 @@ function pointermove(event: PointerEvent): void {
   } else if (pressed.holding) {
     pilot.moveHeld(x - pressed.x, y - pressed.y);
   } else {
-    pressed.moved += Math.abs(event.movementX) + Math.abs(event.movementY);
+    const [dx, dy] = frameDelta(event.movementX, event.movementY);
+    pressed.moved += Math.abs(dx) + Math.abs(dy);
     if (!turning && pressed.moved <= CLICK_PX) return;
     turning = true;
     over = null;
-    pilot.lookBy(event.movementX, event.movementY);
+    pilot.lookBy(dx, dy);
   }
 }
 function pointerup(event: PointerEvent): void {
@@ -429,6 +432,17 @@ const WARNINGS = {
 
   {#if status.view !== "clean"}
     <div class="corner">
+      <!-- The controls, on a card: H, and the touch strip's ?, are the same. -->
+      <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => pilot.act("help")}
+        title={$_("studio.flight.help_title")} aria-label={$_("studio.flight.help")} aria-pressed={status.keys}>
+        <Icon icon={faQuestion} />
+      </button>
+      <!-- The sound, the music's with it, on or off: M, and the menus' switch, are the same. -->
+      <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => pilot.act("mute")}
+        title={$_($flightMuted ? "studio.flight.sound.off_title" : "studio.flight.sound.on_title")}
+        aria-label={$_("studio.flight.sound.on")} aria-pressed={!$flightMuted}>
+        <Icon icon={$flightMuted ? faVolumeXmark : faVolumeHigh} />
+      </button>
       {#if canFullscreen}
         <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => pilot.act("fullscreen")}
           title={$_($fullscreen ? "studio.flight.fullscreen_exit" : "studio.flight.fullscreen")}
@@ -585,9 +599,9 @@ const WARNINGS = {
   .grade.firm { background: rgba(255, 179, 64, 0.25); color: #ffb340; }
   .grade.hard { background: rgba(255, 69, 58, 0.25); color: #ff453a; }
   .corner-nw { top: 16px; left: 16px; }
-  .corner-ne { top: 16px; right: 120px; }
+  .corner-ne { top: 16px; right: 204px; }
   /* Clear of the whole-screen disc as well, where there is one. */
-  .corner-ne.beside-screen { right: 162px; }
+  .corner-ne.beside-screen { right: 246px; }
   .corner-sw { bottom: 32px; left: 16px; }
   .corner-se { bottom: 32px; right: 16px; }
 
@@ -598,7 +612,7 @@ const WARNINGS = {
     bottom: 124px;
   }
   /* A low window has less room between its corners. */
-  @media (max-height: 560px) {
+  @container mc-frame (max-height: 560px) {
     .flight-deck > :global(.flight-minimap) { --flight-minimap-size: 144px; }
   }
 
@@ -690,7 +704,7 @@ const WARNINGS = {
   .flight-deck.inspecting .alerts { top: max(13%, 84px); }
   .flight-deck.inspecting .rec { top: 78px; }
   /* In a window too narrow for it between the speed and the altitude, it goes under them. */
-  @media (max-width: 1100px) {
+  @container mc-frame (max-width: 1100px) {
     .flight-deck > .inspect { top: 60px; }
     .flight-deck.inspecting .alerts { top: max(13%, 130px); }
     .flight-deck.inspecting .rec { top: 124px; }
@@ -837,20 +851,20 @@ const WARNINGS = {
      buttons between them. What stood there stands along the top instead, and
      inside whatever a phone's screen cuts off its corners and its edges. */
   .flight-deck.touch {
-    --deck-left: max(16px, calc(env(safe-area-inset-left, 0px) + 6px));
-    --deck-right: max(14px, calc(env(safe-area-inset-right, 0px) + 6px));
-    --deck-top: max(12px, env(safe-area-inset-top, 0px));
+    --deck-left: max(16px, calc(var(--mc-safe-left) + 6px));
+    --deck-right: max(14px, calc(var(--mc-safe-right) + 6px));
+    --deck-top: max(12px, var(--mc-safe-top));
   }
   .flight-deck.touch .corner-nw { top: var(--deck-top); left: var(--deck-left); }
   .flight-deck.touch .corner-sw { top: var(--deck-top); bottom: auto; left: calc(var(--deck-left) + 180px); }
-  .flight-deck.touch .corner-ne { top: var(--deck-top); right: calc(var(--deck-right) + 106px); }
-  .flight-deck.touch .corner-ne.beside-screen { right: calc(var(--deck-right) + 148px); }
+  .flight-deck.touch .corner-ne { top: var(--deck-top); right: calc(var(--deck-right) + 190px); }
+  .flight-deck.touch .corner-ne.beside-screen { right: calc(var(--deck-right) + 232px); }
   .flight-deck.touch .corner-se { top: calc(var(--deck-top) + 46px); bottom: auto; right: var(--deck-right); }
   .flight-deck.touch .corner { top: calc(var(--deck-top) - 2px); right: var(--deck-right); }
   /* The strip's own button says whether the sound is off. */
   .flight-deck.touch .muted { display: none; }
   /* Over the strip, opened or not. */
-  .flight-deck.touch .landing { bottom: calc(max(14px, env(safe-area-inset-bottom, 0px)) + 112px); }
+  .flight-deck.touch .landing { bottom: calc(max(14px, var(--mc-safe-bottom)) + 112px); }
   /* The credits between the thumbs, under the strip. */
   .flight-deck.touch .credits { right: auto; left: 50%; max-width: 46%; text-align: center; transform: translateX(-50%); }
   /* The map from outside: under the readouts on the left, over the lever. */
@@ -866,7 +880,7 @@ const WARNINGS = {
   .flight-deck.touch .leave.full { width: 36px; }
 
   /* A phone: less of everything, and only what a flight is flown by. */
-  @media (max-height: 520px), (max-width: 560px) {
+  @container mc-frame (max-height: 520px) or (max-width: 560px) {
     .flight-deck.touch .readouts > div { gap: 1px 8px; padding: 5px 9px; }
     .flight-deck.touch .readouts dt { font-size: 10px; }
     .flight-deck.touch .readouts dd { font-size: 13px; }
@@ -876,7 +890,7 @@ const WARNINGS = {
     .flight-deck.touch > :global(.flight-minimap) { --flight-minimap-size: 104px; top: calc(var(--deck-top) + 46px); }
   }
   /* On its side there is no room left between the top row's readouts. */
-  @media (max-height: 520px) {
+  @container mc-frame (max-height: 520px) {
     .flight-deck.touch .warning { padding: 5px 12px; font-size: 16px; }
     .flight-deck.touch .landing { padding: 8px 12px 9px; }
     .flight-deck.touch .landing p { gap: 10px; font-size: 12px; }
@@ -886,7 +900,7 @@ const WARNINGS = {
     .flight-deck.touch.inspecting .alerts { top: calc(var(--deck-top) + 96px); }
   }
   /* Held upright, the top row is two: the heading goes under the speed. */
-  @media (max-width: 560px) {
+  @container mc-frame (max-width: 560px) {
     .flight-deck.touch .corner-sw { top: calc(var(--deck-top) + 46px); left: var(--deck-left); }
     .flight-deck.touch .corner-ne, .flight-deck.touch .corner-ne.beside-screen { top: calc(var(--deck-top) + 46px); right: var(--deck-right); }
     .flight-deck.touch .corner-se { top: calc(var(--deck-top) + 92px); }

@@ -16,6 +16,13 @@ import { i18nReady } from "../locale/i18n";
 import { unsupportedBrowser } from "../lib/browserSupport";
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
 import { requestNativeSettings } from "../lib/nativeBridge";
+import { enterFlightPage, followFlightPageHash, isFlightPageHash, showFlightPage } from "../lib/studio/flightPage";
+
+// `#meteoair` makes this the flight's own page in the app as on the web (lib/studio/flightPage.ts):
+// settled before the app is made, and again whenever the hash changes its mind.
+const flightPage = isFlightPageHash(window.location.hash);
+if (flightPage) enterFlightPage();
+followFlightPageHash(flightPage);
 
 initNetworkStatus();
 initRequestTiming();
@@ -43,8 +50,9 @@ const app = unsupportedBrowser ? null : i18nReady.then(() => mount(App, {
   target: document.body,
   props: {
     device: "android",
-    postInitCb() {
+    postInitCb(layermanager) {
       if (dd.isAndroid()) requestNativeSettings();
+      if (flightPage) void showFlightPage(layermanager);
     },
   },
 }));

@@ -87,17 +87,22 @@ magenta, violet.
 
 SWEEP = {
     # The middle of the band of stripes, seen from the side: forward and up,
-    # metres. It starts low behind the wing, runs back well under the windows
-    # and under the rear door, clear of the belly, rises right behind the
-    # door, and runs up the fin just behind its leading edge, off its tip.
+    # metres. It starts behind the wing, runs back on the flat of the side,
+    # well under the windows and just under the rear door (whose sill is a
+    # quarter of a metre under the widest of the fuselage), rises right
+    # behind the door, and runs up the fin just behind its leading edge, off
+    # its tip. Lower, on the fuselage's curve towards the belly, the stripes
+    # were squeezed from below and the lowest of them cut off where it turns.
     "guide": [
-        (-4.6, -1.2), (-8.0, -1.15), (-10.0, -1.08), (-11.4, -1.0), (-12.45, -0.92), (-13.35, -0.35), (-13.75, 0.9), (-13.9, 2.3),
+        (-4.6, -0.8), (-8.0, -0.78), (-10.0, -0.76), (-11.4, -0.74), (-12.45, -0.72), (-13.3, -0.3), (-13.75, 0.9), (-13.9, 2.3),
         (-14.45, 3.6), (-15.5, 5.0), (-16.4, 6.1), (-17.3, 7.2), (-18.3, 8.45),
     ],
     # Each stripe's width and the white between them: at the start, and at the fin's tip, the band fanning out as it climbs.
     "stripe": (0.068, 0.13), "gap": (0.018, 0.032),
-    # Each stripe starts a little after the one under it, and grows to its width over this length.
-    "stagger": 0.55, "grow": 1.6,
+    # Where the band starts, one clean cut across all of it, leaning back: each stripe
+    # starts this much after the one under it. (Each further back, and each growing
+    # to its width, read as a band broken off.)
+    "stagger": 0.09,
 }
 WINGLET = {"from": 0.35, "to": 2.3}
 """The stripes up each wingtip's fence, metres above where it leaves the wing."""
@@ -443,11 +448,11 @@ def paint_hull(canvas: np.ndarray, texels: tuple, logo_svg: str, ramp: list, tex
     from_edge = across + (count * pitch - (pitch - stripe_m)) / 2
     stripe = np.floor(from_edge / pitch).astype(int)
     within = from_edge - stripe * pitch
-    grown = np.clip((along - stripe * SWEEP["stagger"]) / SWEEP["grow"], 0, 1)
-    width = stripe_m * (grown * grown * (3 - 2 * grown))
+    width = stripe_m
     on = (stripe >= 0) & (stripe < count) & (within < width) & (along < run[-1] - 0.05)
-    # Each edge a texel soft.
-    edge = np.clip(np.minimum(within, width - within) / texel_m + 0.5, 0, 1)
+    # Each edge a texel soft, the cut at the start too.
+    start = (along - (stripe + 0.5) * SWEEP["stagger"]) / texel_m + 0.5
+    edge = np.clip(np.minimum(np.minimum(within, width - within) / texel_m + 0.5, start), 0, 1)
     paint = np.zeros((len(side), 4), np.float32)
     colour = np.asarray(ramp, np.float32)[np.clip(stripe, 0, count - 1)] / 255
     alpha = (on * edge)[:, None]

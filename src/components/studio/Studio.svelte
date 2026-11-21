@@ -18,6 +18,15 @@
  * opens on a note while the radar's storms come in, plans the flight from
  * the start it was given, and is in the air; and when that flight ends, the
  * reader is back where they asked from, not in Studio's tools.
+ *
+ * Either way a flight takes off with everything it needs loaded
+ * (lib/studio/flight/preload.ts): what is not there yet is waited for on a
+ * loading screen (flight/FlightLoading.svelte), and the flight starts with
+ * all of it at once.
+ *
+ * And from one of the flight's scenes to the next (its plan, its loading, the
+ * flight, and back) the screen goes to black and comes up again, as a
+ * simulator's does (lib/curtain.ts).
  */
 import { onDestroy } from "svelte";
 import { get } from "svelte/store";
@@ -26,6 +35,7 @@ import StudioPanel from "./StudioPanel.svelte";
 import StudioTimeline from "./StudioTimeline.svelte";
 import FlightDeck from "./flight/FlightDeck.svelte";
 import Preflight from "./flight/Preflight.svelte";
+import FlightLoading from "./flight/FlightLoading.svelte";
 import { Director } from "../../lib/studio/director";
 import type { Stage } from "../../lib/studio/director";
 import { FLIGHT_STYLE, Pilot } from "../../lib/studio/flight/pilot";
@@ -33,16 +43,20 @@ import { planHere, startOf } from "../../lib/studio/flight/plan";
 import type { FlightPlan } from "../../lib/studio/flight/plan";
 import { distanceM } from "../../lib/studio/flight/geo";
 import { stormSystems } from "../../lib/studio/flight/spawn";
+import { flightLoad, preloadFlight } from "../../lib/studio/flight/preload";
 import type { StormTile } from "../../lib/studio/flight/spawn";
 import { flightLinkUrl } from "../../lib/studio/flightLink";
 import { cropOf } from "../../lib/studio/record";
+import { radarMapHref } from "../../lib/studio/flightPage";
 import { closeStudio } from "../../lib/studio/session";
 import { STUDIO_SUPPORT } from "../../lib/studio/support";
 import {
-  flightRequest, studioAspect, studioFlightOnly, studioFlying, studioPlaying, studioRecording,
+  flightPlanAsked, flightRequest, studioAspect, studioFlightOnly, studioFlying, studioPlaying, studioRecording,
 } from "../../lib/studio/store";
 import type { FlightRequest } from "../../lib/studio/store";
 import { sendLink } from "../../lib/share";
+import { holdSideways } from "../../lib/sideways";
+import { curtainDown, lower, throughBlack } from "../../lib/curtain";
 
 /** The 3D map. */
 export let stage: Stage;
@@ -59,33 +73,92 @@ let pilot: Pilot | null = null;
  * (flight/Preflight.svelte). On the flight's own page that is where Studio
  * opens, and what a flight comes back to.
  */
-let planning = $studioFlightOnly && !get(flightRequest);
+let planning = ($studioFlightOnly && !get(flightRequest)) || get(flightPlanAsked);
+/** Studio up for the flight alone: the flight's own page, or the 3D map's Fly (`flightPlanAsked`). */
+$: flightAlone = $studioFlightOnly || $flightPlanAsked;
 
 /** The plan the flight under way took off with: what its link gives (`share`). */
 let flown: FlightPlan | null = null;
 /** Where the reader goes when the flight under way ends, for one asked for with somewhere to go back to. */
 let back: (() => void) | null = null;
 
+/** How long the black is held at take-off while the flight's first frames come in, and at other changes of scene, ms. */
+const TAKEOFF_HOLD_MS = 450;
+const SCENE_HOLD_MS = 200;
+
+/** A change of scene, through black; none while another is under way. */
+function cut(change: () => void, hold = SCENE_HOLD_MS): void {
+  if (curtainDown()) return;
+  void throughBlack(change, hold);
+}
+
+/** The plan taken off with while what the flight needs finishes loading; null when none waits. */
+let loading: FlightPlan | null = null;
+
 /** To the flight's plan: a scene playing stops first. Not while one records. */
 function plan(): void {
-  if (pilot || boarding || $studioRecording !== null) return;
+  if (pilot || boarding || loading || $studioRecording !== null) return;
   director.pause();
   planning = true;
 }
 
-/** Take off, as planned. */
+/** Take off, as planned: at once where everything is loaded, else once it is. */
 function fly(flightPlan: FlightPlan): void {
   planning = false;
-  if (pilot) return;
+  if (pilot || loading) return;
+  if (get(flightLoad).state === "ready") {
+    takeOff(flightPlan);
+    return;
+  }
+  loading = flightPlan;
+  preloadFlight().then(() => {
+    if (loading !== flightPlan) return;
+    void throughBlack(() => {
+      if (loading !== flightPlan) return;
+      loading = null;
+      takeOff(flightPlan);
+    }, TAKEOFF_HOLD_MS);
+  }, () => undefined);
+}
+
+/** Loading failed: another try, with the same plan. */
+function retry(): void {
+  const waiting = loading;
+  loading = null;
+  if (waiting) fly(waiting);
+}
+
+/** Not flown after all: from the loading screen back where the flight was asked from, or to its plan. */
+function unload(): void {
+  loading = null;
+  const going = back;
+  back = null;
+  if (going) going();
+  else planning = true;
+}
+
+function takeOff(flightPlan: FlightPlan): void {
   flown = flightPlan;
-  pilot = new Pilot(stage, { credits, modelCredit: $_("studio.flight.model_credit"), onLeave: land }, flightPlan);
+  pilot = new Pilot(stage, { credits, modelCredit: $_("studio.flight.model_credit"), onLeave: () => cut(land) }, flightPlan);
   pilot.start();
 }
 
 /** Put the plan away: back to Studio's tools, or off the flight's own page's map altogether. */
 function cancel(): void {
   planning = false;
-  if ($studioFlightOnly) closeStudio();
+  if (flightAlone) closeStudio();
+}
+
+/** Back to meteocool's map: from the flight's own page, the page the map is on; from the 3D map's Fly, the 3D map. */
+function backToMap(): void {
+  if ($studioFlightOnly) {
+    if (curtainDown()) return;
+    void lower().then(() => {
+      window.location.href = radarMapHref();
+    });
+    return;
+  }
+  cut(cancel);
 }
 
 /**
@@ -100,7 +173,7 @@ function land(): void {
   const going = back;
   back = null;
   if (flying && going) going();
-  else if (flying && $studioFlightOnly) planning = true;
+  else if (flying && flightAlone) planning = true;
 }
 
 /* A flight asked for from outside: the radar's storms waited for, then off.
@@ -129,6 +202,8 @@ function board(request: FlightRequest): void {
   boarding = request;
   planning = false;
   director.pause();
+  // Loaded while the storms come in.
+  preloadFlight().catch(() => undefined);
   const began = performance.now();
   let last = signature(stage.stormTiles());
   let same = 0;
@@ -151,7 +226,7 @@ function board(request: FlightRequest): void {
     boarding = null;
     back = request.back ?? null;
     flightRequest.set(null);
-    fly(flightPlan);
+    void throughBlack(() => fly(flightPlan), TAKEOFF_HOLD_MS);
   };
   boardTimer = setTimeout(look, BOARD_POLL_MS);
 }
@@ -182,9 +257,22 @@ $: if (!$studioFlying && pilot) land();
 // The page's own chrome goes while flying; see global.css.
 $: document.documentElement.classList.toggle("mc-flying", $studioFlying);
 
+/* In the apps, whose web view stays upright, the flight is drawn on its
+   side from its plan to its end, and their buttons are put away; see
+   lib/sideways.ts. */
+let releaseSideways: (() => void) | null = null;
+$: aboard = Boolean(boarding || loading || planning || $studioFlying);
+$: if (aboard && !releaseSideways) releaseSideways = holdSideways();
+$: if (!aboard && releaseSideways) {
+  releaseSideways();
+  releaseSideways = null;
+}
+onDestroy(() => releaseSideways?.());
+
 onDestroy(() => {
   if (boardTimer !== null) clearTimeout(boardTimer);
   boarding = null;
+  loading = null;
   land();
   document.documentElement.classList.remove("mc-flying");
   director.dispose();
@@ -210,8 +298,8 @@ function keydown(event: KeyboardEvent) {
     }
     return;
   }
-  // The flight has keys of its own (lib/studio/flight/controls.ts), and so has its plan.
-  if ($studioFlying || planning) return;
+  // The flight has keys of its own (lib/studio/flight/controls.ts), and so have its plan and its loading.
+  if ($studioFlying || planning || loading) return;
   const target = event.target as HTMLElement | null;
   // A control with the focus keeps its own keys: Space presses a button.
   if (target?.closest("input, select, textarea, button, [role='radio'], [contenteditable]")) return;
@@ -233,14 +321,17 @@ function keydown(event: KeyboardEvent) {
 <div class="studio" class:flying={$studioFlying} bind:clientWidth={width} bind:clientHeight={height}>
   {#if $studioFlying && pilot}
     <FlightDeck {pilot} {credits} {share} endsOnMap={back !== null} />
+  {:else if loading}
+    <FlightLoading onretry={retry} onback={() => cut(unload)} />
   {:else if boarding}
     <!-- A flight asked for from the map or a link, waiting for its storms: a word, and nothing else in the way. -->
     <p class="boarding" role="status">
       <span class="spinner" aria-hidden="true"></span>{$_("studio.flight.boarding")}
     </p>
   {:else if planning}
-    <Preflight {stage} ontakeoff={fly} oncancel={cancel} />
-  {:else if !$studioFlightOnly}
+    <Preflight {stage} ontakeoff={(flightPlan) => cut(() => fly(flightPlan), TAKEOFF_HOLD_MS)} oncancel={() => cut(cancel)}
+      onback={flightAlone ? backToMap : null} />
+  {:else if !flightAlone}
   {#if frame && width && height}
     <div
       class="frame"
@@ -253,7 +344,7 @@ function keydown(event: KeyboardEvent) {
       <span>{$studioAspect}</span>
     </div>
   {/if}
-  <StudioPanel {director} onclose={closeStudio} onfly={plan} />
+  <StudioPanel {director} onclose={closeStudio} onfly={() => cut(plan)} />
   <StudioTimeline {director} {credits} />
   {#if $studioRecording !== null}
     <p class="rec" role="status">{$_("studio.recording_note")}</p>
@@ -268,6 +359,8 @@ function keydown(event: KeyboardEvent) {
     inset: 0;
     z-index: var(--mc-z-chrome);
     pointer-events: none;
+    /* What the flight's components size themselves by, upright or on its side (lib/sideways.ts). */
+    container: mc-frame / size;
   }
   .studio > :global(*) { pointer-events: auto; }
   /* The flight deck covers the page's own chrome, over which it is drawn. */

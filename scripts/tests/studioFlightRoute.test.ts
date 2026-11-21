@@ -101,10 +101,10 @@ test("a flight from a place starts there, nose on the next storm, in its cloud a
   near(wrap180(plan.heading - bearingDeg(3.2, 43.9, plan.target!.lon, plan.target!.lat)), 0, 1e-6);
   assert.ok(fl(plan.altitude) >= 160 && fl(plan.altitude) <= 240, `FL${fl(plan.altitude)}`);
   near(plan.tas, cruiseSpeed(plan.altitude), 1e-9);
-  // As the plan the flight would fly unasked has it: from the cockpit, the radar's colours off the ground, the storms marked.
+  // As the plan the flight would fly unasked has it: from the cockpit, the radar's colours on the ground, the storms marked.
   assert.equal(plan.view, "cockpit");
   assert.equal(plan.style, "sky");
-  assert.equal(plan.radarOnGround, false);
+  assert.equal(plan.radarOnGround, true);
   assert.equal(plan.marks, true);
   // A weak shower is flown low.
   const shower = planHere(open(9.5, 50.3), systems, flat, 0, "sky");

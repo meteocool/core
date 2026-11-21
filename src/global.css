@@ -178,3 +178,56 @@ html.mc-flight-page .maplibregl-ctrl-top-right {
   display: none !important;
 }
 html.mc-flight-page { --attributions-bottom-padding: 0px; }
+
+/* The frame the flight's components size themselves by (`@container
+   mc-frame`), where media queries would measure the screen: on the flight's
+   own page the page itself; elsewhere Studio's overlay. */
+html.mc-flight-page body { container: mc-frame / size; }
+
+/* The page on its side (lib/sideways.ts): <body> laid out as wide as the
+   screen is tall and as tall as it is wide, centred on it and turned a
+   quarter round, so the picture fills the upright screen on its side. The
+   sizes are the screen's, measured (--mc-sideways-w, --mc-sideways-h). The
+   safe area turns with it: in the picture's left is the screen's top with
+   the top of the phone to the left (cw), its bottom the other way (ccw). */
+html.mc-sideways {
+  overflow: hidden;
+  background: #05070a;
+}
+html.mc-sideways body {
+  position: fixed;
+  left: calc((var(--mc-sideways-w) - var(--mc-sideways-h)) / 2);
+  top: calc((var(--mc-sideways-h) - var(--mc-sideways-w)) / 2);
+  width: var(--mc-sideways-h);
+  height: var(--mc-sideways-w);
+  overflow: hidden;
+  container: mc-frame / size;
+  transform: rotate(90deg);
+  --mc-safe-top: env(safe-area-inset-right, 0px);
+  --mc-safe-right: env(safe-area-inset-bottom, 0px);
+  --mc-safe-bottom: env(safe-area-inset-left, 0px);
+  --mc-safe-left: env(safe-area-inset-top, 0px);
+  /* What glass.css works out of the insets, worked out again with these. */
+  --mc-tray-bottom: max(var(--mc-tray-gap), calc((var(--mc-safe-bottom) + var(--mc-tray-gap)) / 2));
+  --mc-top-stack: calc(var(--mc-safe-top) + var(--mc-gutter));
+}
+html.mc-sideways-ccw body {
+  transform: rotate(-90deg);
+  --mc-safe-top: env(safe-area-inset-left, 0px);
+  --mc-safe-right: env(safe-area-inset-top, 0px);
+  --mc-safe-bottom: env(safe-area-inset-right, 0px);
+  --mc-safe-left: env(safe-area-inset-bottom, 0px);
+}
+/* Turned over when the phone is: a half turn about the middle. */
+@media (prefers-reduced-motion: no-preference) {
+  html.mc-sideways-turning body { transition: transform 0.45s cubic-bezier(0.3, 0, 0.2, 1); }
+}
+/* The 3D map reads a pointer against the upright screen, which the page
+   cannot turn for it: it takes none while on its side. The flight's deck
+   over it reads its own. */
+html.mc-sideways .maplibregl-canvas-container,
+html.mc-sideways .maplibregl-canvas {
+  pointer-events: none;
+}
+/* A finger along a slider slides it (lib/sideways.ts): it is not the page's to pan by. */
+html.mc-sideways input[type="range"] { touch-action: none; }

@@ -14,6 +14,13 @@
  * from there as soon as the storms are in, with nothing of these words or of
  * the plan on the way. Once that flight is over, its part of the address
  * goes, so a reload is this page again rather than the same flight.
+ *
+ * The page is the flight's menu: the menus' music plays on it from the
+ * reader's first click or key (lib/studio/flight/soundtrack.ts), with a
+ * switch for it, and on through the plan, until the flight takes it over.
+ * And while the reader reads, everything the flight needs is loaded
+ * (lib/studio/flight/preload.ts): the button says how far that is, and a
+ * press before it is done waits for it.
  */
 import { onDestroy, onMount } from "svelte";
 import { get } from "svelte/store";
@@ -36,8 +43,21 @@ import { withoutFlightLink } from "../../lib/studio/flightLink";
 import type { FlightStart } from "../../lib/studio/flightLink";
 import type Cells3DCapability from "../../caps/Cells3DCapability";
 import { cells3dFailed, sharedActiveCap } from "../../stores";
+import { DeviceDetect } from "../../lib/DeviceDetect";
+import SoundSwitch from "../studio/flight/SoundSwitch.svelte";
+import { flightLoad, loadMenuMusic, preloadFlight, shareOf } from "../../lib/studio/flight/preload";
+import { claimMenuMusic } from "../../lib/studio/flight/soundtrack";
+import { curtainDown, lift, lower } from "../../lib/curtain";
 
 export let layerManager: LayerManager;
+
+/**
+ * Where the radar map is: meteocool.com on the web; in the apps, their own
+ * page without `#meteoair`, which loads it again as the app's map
+ * (lib/studio/flightPage.ts). A link to the website would take the app's
+ * view off to it.
+ */
+const mapHref = DeviceDetect.isApp() ? `${window.location.pathname}${window.location.search}` : "https://meteocool.com/";
 /** The flight the page's link asks for, if it asks for one. */
 export let link: FlightStart | null = null;
 
@@ -53,15 +73,55 @@ const offered = Boolean(layerManager.getCapability("cells3d"));
 /** Whether it will be flown by touch: the page says how, in place of the keys. */
 const byTouch = touchFirst();
 
-/* The flight's code is Studio's, fetched when Studio opens; here that is
-   what the page is for, so it is fetched while the reader reads, and the
-   plan comes up as soon as the 3D map has. */
+/* The menus' music at once: it is what is heard first. The flight's code is
+   Studio's, fetched when Studio opens, and its aircraft and music are large;
+   here the flight is what the page is for, so all of it is loaded while the
+   reader reads, once the page is up and the radar has had its first moments. */
+const LOAD_AFTER_MS = 600;
+let loadTimer: ReturnType<typeof setTimeout> | null = null;
 onMount(() => {
-  if (offered) void import("../studio/Studio.svelte").catch(() => undefined);
+  if (!offered) return;
+  void loadMenuMusic();
+  requestAnimationFrame(() => {
+    loadTimer = setTimeout(() => preloadFlight().catch(() => undefined), LOAD_AFTER_MS);
+  });
 });
+onDestroy(() => {
+  if (loadTimer !== null) clearTimeout(loadTimer);
+});
+
+/** Whether the reader has pressed the button before the flight was loaded: it goes once it is. */
+let waiting = false;
+$: percent = Math.floor(shareOf($flightLoad) * 100);
+$: if (waiting && $flightLoad.state === "ready") {
+  waiting = false;
+  aboard();
+}
 
 function board(): void {
   if (offered) layerManager.setTarget("cells3d", MAP_TARGET);
+}
+
+// The 3D map did not come up: no plan will lift the black, so its veil is shown at once.
+$: if ($cells3dFailed) lift();
+
+/** On board through black, as a simulator goes from its menu to the next: the plan lifts it once it is up. */
+function aboard(): void {
+  if (curtainDown()) return;
+  void lower().then(board);
+}
+
+/** The button: on board if everything is loaded, else once it is (and another try after a failure). */
+function plan(): void {
+  if (!offered) return;
+  if ($flightLoad.state === "ready") {
+    aboard();
+    return;
+  }
+  waiting = true;
+  preloadFlight().catch(() => {
+    waiting = false;
+  });
 }
 
 /** Whether the page is on its link's flight: from opening until that flight is over, or never got off. */
@@ -103,6 +163,16 @@ onDestroy(studioFlying.subscribe((flying) => {
 
 $: aloft = $sharedActiveCap === "cells3d" || linked;
 
+/* The theme plays while the page is a menu: its words, or the plan over the 3D map; not under a flight, nor while a link's flight boards. */
+let release: (() => void) | null = null;
+$: menu = offered && !$studioFlying && !linked;
+$: if (menu && !release) release = claimMenuMusic();
+$: if (!menu && release) {
+  release();
+  release = null;
+}
+onDestroy(() => release?.());
+
 const FEATURES = [
   { icon: faBolt, title: "live", text: "live_text" },
   { icon: faGauge, title: "deck", text: "deck_text" },
@@ -116,8 +186,12 @@ const FEATURES = [
       <p class="mark">
         <Icon icon={faPlaneDeparture} />
         <span>meteoair</span>
-        <a href="https://meteocool.com/">{$_("studio.flight.page.by")}</a>
+        <a href={mapHref}>{$_("studio.flight.page.by")}</a>
       </p>
+      <div class="tools">
+      {#if offered}
+        <SoundSwitch />
+      {/if}
       {#if fullscreenSupported()}
         <button type="button" class="screen" on:click={toggleFullscreen} aria-pressed={$fullscreen}
           title={$_($fullscreen ? "studio.flight.page.fullscreen_exit" : "studio.flight.page.fullscreen")}>
@@ -125,6 +199,7 @@ const FEATURES = [
           <span>{$_($fullscreen ? "studio.flight.page.fullscreen_exit" : "studio.flight.page.fullscreen")}</span>
         </button>
       {/if}
+      </div>
     </header>
 
     <main class="mc-selectable">
@@ -133,15 +208,31 @@ const FEATURES = [
 
       {#if offered}
         <div class="go">
-          <button type="button" class="board" on:click={board}>
-            <Icon icon={faPlaneDeparture} /> {$_("studio.flight.page.board")}
+          <button type="button" class="board" class:waiting on:click={plan} aria-busy={waiting}
+            title={$flightLoad.state === "ready" || $flightLoad.state === "failed" ? undefined
+              : $_("studio.flight.page.loading_title", { values: { percent } })}>
+            <Icon icon={faPlaneDeparture} />
+            {waiting ? $_("studio.flight.page.loading", { values: { percent } }) : $_("studio.flight.page.board")}
+            {#if $flightLoad.state === "loading"}
+              <span class="load" style:width={`${percent}%`} aria-hidden="true"></span>
+            {/if}
           </button>
           <p class="hint">{$_(byTouch ? "studio.flight.page.hint_touch" : "studio.flight.page.hint")}</p>
+          <p class="status" class:failed={$flightLoad.state === "failed"} role="status">
+            {#if $flightLoad.state === "loading"}
+              <span class="spinner" aria-hidden="true"></span>{$_("studio.flight.page.loading", { values: { percent } })}
+            {:else if $flightLoad.state === "ready"}
+              {$_("studio.flight.page.ready")}
+            {:else if $flightLoad.state === "failed"}
+              {$_("studio.flight.page.failed")}
+              <button type="button" class="retry" on:click={plan}>{$_("studio.flight.page.retry")}</button>
+            {/if}
+          </p>
         </div>
       {:else}
         <div class="go">
           <p class="hint grounded">{$_("studio.flight.page.unavailable")}</p>
-          <a class="board quiet" href="https://meteocool.com/">{$_("studio.flight.page.open_map")}</a>
+          <a class="board quiet" href={mapHref}>{$_("studio.flight.page.open_map")}</a>
         </div>
       {/if}
 
@@ -159,7 +250,7 @@ const FEATURES = [
     </main>
 
     <footer>
-      <a href="https://meteocool.com/">{$_("studio.flight.page.map")}</a>
+      <a href={mapHref}>{$_("studio.flight.page.map")}</a>
       <a href="imprint.html">{$_("studio.flight.page.imprint")}</a>
       <a href="privacy.html">{$_("studio.flight.page.privacy")}</a>
     </footer>
@@ -187,6 +278,10 @@ const FEATURES = [
     grid-template-rows: auto minmax(0, 1fr) auto;
     box-sizing: border-box;
     padding: clamp(18px, 3.2vh, 36px) clamp(20px, 4.5vw, 72px);
+    padding: clamp(18px, 3.2cqh, 36px) clamp(20px, 4.5cqw, 72px);
+    /* Clear of a notch on either side: a phone's, on its side. */
+    padding-left: max(clamp(20px, 4.5cqw, 72px), calc(var(--mc-safe-left) + 12px));
+    padding-right: max(clamp(20px, 4.5cqw, 72px), calc(var(--mc-safe-right) + 12px));
     background: linear-gradient(90deg, rgba(7, 11, 17, 0.92) 0%, rgba(7, 11, 17, 0.84) 30%, rgba(7, 11, 17, 0.4) 50%, rgba(7, 11, 17, 0) 68%);
     color: var(--ink);
     font-family: var(--mc-font);
@@ -210,6 +305,11 @@ const FEATURES = [
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+  }
+  .tools {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
   .screen {
     display: inline-flex;
@@ -259,6 +359,7 @@ const FEATURES = [
   h1 {
     margin: 0;
     font-size: clamp(34px, 4.6vw, 60px);
+    font-size: clamp(34px, 4.6cqw, 60px);
     font-weight: 750;
     line-height: 1.04;
     letter-spacing: -0.03em;
@@ -268,6 +369,7 @@ const FEATURES = [
     margin: 18px 0 0;
     color: var(--ink-2);
     font-size: clamp(15px, 1.25vw, 18px);
+    font-size: clamp(15px, 1.25cqw, 18px);
     line-height: 1.5;
     text-wrap: pretty;
   }
@@ -298,6 +400,51 @@ const FEATURES = [
   .board:hover { background: color-mix(in srgb, var(--mc-orange) 86%, #fff); transform: translateY(-1px); }
   .board:active { transform: translateY(0) scale(0.98); }
   .board:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+  /* What is loaded so far, along the button's foot; pressed early, it waits for the rest. */
+  .board { position: relative; overflow: hidden; }
+  .board .load {
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    height: 4px;
+    background: rgba(26, 18, 5, 0.55);
+    transition: width 0.2s ease;
+  }
+  .board.waiting { cursor: progress; }
+  .status {
+    flex-basis: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 18px;
+    margin: 0;
+    color: var(--ink-3);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+  }
+  .status.failed { color: #ffb4ae; }
+  .status .spinner {
+    width: 10px;
+    height: 10px;
+    border: 2px solid rgba(244, 246, 248, 0.3);
+    border-top-color: var(--mc-orange);
+    border-radius: 50%;
+    animation: landing-turn 0.9s linear infinite;
+  }
+  @keyframes landing-turn { to { transform: rotate(360deg); } }
+  .retry {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font: 600 12.5px/1 var(--mc-font);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .status .spinner { animation: none; }
+    .board .load { transition: none; }
+  }
   .board.quiet {
     background: rgba(255, 255, 255, 0.14);
     color: var(--ink);
@@ -369,10 +516,11 @@ const FEATURES = [
   }
 
   /* A narrow window: the wash comes up from the foot instead, and the words
-     stand at the bottom with the weather above them. */
-  @media (max-width: 760px) {
+     stand at the bottom with the weather above them. The page's own size,
+     which is not the screen's where it is drawn on its side (lib/sideways.ts). */
+  @container mc-frame (max-width: 760px) {
     .landing {
-      padding: 16px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+      padding: 16px 18px calc(18px + var(--mc-safe-bottom));
       background:
         linear-gradient(180deg, rgba(7, 11, 17, 0.7) 0%, rgba(7, 11, 17, 0) 14%),
         linear-gradient(0deg, rgba(7, 11, 17, 0.95) 0%, rgba(7, 11, 17, 0.88) 46%, rgba(7, 11, 17, 0.25) 74%, rgba(7, 11, 17, 0) 100%);
@@ -388,7 +536,7 @@ const FEATURES = [
     .lede { margin-top: 12px; }
     .go { margin-top: 20px; }
   }
-  @media (max-height: 620px) {
+  @container mc-frame (max-height: 620px) {
     ul { display: none; }
   }
 </style>

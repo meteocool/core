@@ -1,12 +1,14 @@
 /**
  * The page over the whole screen, where the browser lets a page ask for it:
  * the flight, and the page it has to itself. Not on an iPhone, whose Safari
- * gives a page no such thing.
+ * gives a page no such thing; nor in the apps, whose web view has the whole
+ * screen already, and does not turn with it (lib/sideways.ts).
  *
  * Asked for from a click or a key, as the browser requires; Escape is the
  * browser's own way back out, and reaches the page only once it is out.
  */
 import { readable } from "svelte/store";
+import { DeviceDetect as dd } from "./DeviceDetect";
 
 type FullscreenDocument = Document & {
   webkitFullscreenEnabled?: boolean;
@@ -20,7 +22,7 @@ const page = (): FullscreenDocument | null => (typeof document === "undefined" ?
 /** Whether this browser puts a page over the whole screen at all. */
 export function fullscreenSupported(): boolean {
   const doc = page();
-  return Boolean(doc && (doc.fullscreenEnabled ?? doc.webkitFullscreenEnabled));
+  return !dd.isApp() && Boolean(doc && (doc.fullscreenEnabled ?? doc.webkitFullscreenEnabled));
 }
 
 const isFullscreen = (): boolean => {

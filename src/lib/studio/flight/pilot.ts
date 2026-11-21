@@ -152,6 +152,8 @@ const LOW_M = 762;
 const STAND_M = WHEELS_BELOW_M / VERTICAL_SCALE;
 /** How far ahead the ground's slope is taken over, metres, and below what height it is asked for at all. */
 const SLOPE_RUN_M = 40;
+/** How far either side of where it stands the ground's lie under the aircraft is measured, metres. */
+const TILT_SPAN_M = 15;
 const SLOPE_BELOW_M = 60;
 /** Time runs no faster than it does this near the ground, metres: a landing is flown, not skipped. */
 const WARP_ABOVE_M = 300;
@@ -184,8 +186,12 @@ const WRECK_EYE = { distance: [70, 105], pitch: -20, round: [145, -145, 40, -40]
 /** How far under its middle a hull lying on its belly reaches, metres; and how long the gear takes to fold under one, seconds. */
 const BELLY_BELOW_M = 2.3;
 const GEAR_FOLDS_S = 0.4;
-/** How far the eye stays over the ground, outside, metres. */
-const EYE_OVER_GROUND_M = 1.2;
+/**
+ * How far the eye stays over the ground, outside, metres: over the drawn
+ * ground, whose heights between its own samples are not quite the ones it
+ * is asked for, with the map's nearest drawable distance to spare.
+ */
+const EYE_OVER_GROUND_M = 4;
 /** How much of a rough air's shaking a fast roll over the ground is, at most, and the speed it is that at, m/s. */
 const ROLL_SHAKE = 0.3;
 const ROLL_SHAKE_MS = 70;
@@ -832,7 +838,9 @@ export class Pilot {
     if (telemetry.time - this.slowAt >= SLOW_S) this.slow();
     this.place();
     for (const listener of this.listeners) listener(telemetry);
-    this.sound?.update(telemetry, get(flightStatus), dt);
+    this.sound?.update(telemetry, get(flightStatus), dt, {
+      ended: Boolean(telemetry.state.crash) || broken(this.damage), orbit: this.orbit.yaw,
+    });
   }
 
   /** A frame of flight: the weather, the physics, the ground. */
@@ -870,7 +878,7 @@ export class Pilot {
       autopilot: this.autopilot, gear: telemetry.gear, flapLever: telemetry.flapLever, speedbrake: this.speedbrake,
       // A wreck lies on its belly, not on its wheels.
       ground: floor + (state.crash ? BELLY_BELOW_M / VERTICAL_SCALE : STAND_M),
-      slope: low ? this.slopeAhead(state, floor) : 0, ice: telemetry.frost,
+      slope: low ? this.slopeAhead(state, floor) : 0, tilt: low ? this.tiltUnder(state) : undefined, ice: telemetry.frost,
       lost: this.damage.lost, flapsStuck: this.damage.flapsStuck,
     };
     const before = state;
@@ -990,6 +998,46 @@ export class Pilot {
   }
 
   /** How steeply the ground rises ahead of the aircraft, a rise over its run; level where the map has no ground there. */
+  /**
+   * The most an eye `distance` metres off the aircraft, turned `yaw` from its
+   * nose, may look up at it, degrees: as far as keeps it `EYE_OVER_GROUND_M`
+   * over the drawn ground, both under the aircraft and where the eye stands.
+   * The eye's offset is true metres; heights over the sea are drawn stretched.
+   */
+  private lowestOrbit(state: AircraftState, yaw: number, distance: number): number {
+    const groundAt = (lon: number, lat: number) => Math.max(this.stage.groundElevation(lon, lat) ?? 0, 0);
+    let pitch = this.orbit.pitch;
+    // Twice round: where the eye stands moves a little with how far up it looks.
+    for (let round = 0; round < 2; round += 1) {
+      const across = distance * Math.cos((pitch * Math.PI) / 180);
+      const [lon, lat] = destination(state.lon, state.lat, state.heading + yaw + 180, across);
+      const ground = Math.max(groundAt(state.lon, state.lat), groundAt(lon, lat));
+      const room = (state.altitude - ground) * VERTICAL_SCALE - EYE_OVER_GROUND_M;
+      pitch = Math.min(this.orbit.pitch, (Math.asin(clamp(room / distance, [-1, 1])) * 180) / Math.PI);
+    }
+    return pitch;
+  }
+
+  /**
+   * How the ground lies under the aircraft (`Environment.tilt`): its rise
+   * from tail to nose and its fall from the left main to the right, each
+   * over `TILT_SPAN_M` either side of where it stands, which is about as far
+   * as the drawn ground's own heights are apart. Level where the map has no
+   * heights there; the sea is level.
+   */
+  private tiltUnder(state: AircraftState): { pitch: number; roll: number } {
+    const at = (bearing: number) => {
+      const [lon, lat] = destination(state.lon, state.lat, bearing, TILT_SPAN_M);
+      const ground = this.stage.groundElevation(lon, lat);
+      return ground === null ? null : Math.max(ground, 0);
+    };
+    const [front, back, right, left] = [0, 180, 90, 270].map((turn) => at(state.heading + turn));
+    const degrees = (high: number | null, low: number | null) => (
+      high === null || low === null ? 0 : (Math.atan((high - low) / (2 * TILT_SPAN_M)) * 180) / Math.PI
+    );
+    return { pitch: degrees(front, back), roll: degrees(left, right) };
+  }
+
   private slopeAhead(state: AircraftState, floor: number): number {
     const [lon, lat] = destination(state.lon, state.lat, state.heading, SLOPE_RUN_M);
     const ahead = this.stage.groundElevation(lon, lat);
@@ -1290,9 +1338,11 @@ export class Pilot {
       pitch: state.pitch + noise(time * 13, 5) * 0.6 * shake,
       roll: state.roll + noise(time * 9, 6) * 0.8 * shake,
     };
-    // Outside, the eye stays over the ground: low down it is not let look up from under it.
-    const room = ((this.telemetry.radarAltitude ?? Infinity) + STAND_M) * VERTICAL_SCALE - EYE_OVER_GROUND_M;
-    const lowest = (Math.asin(Math.min(1, Math.max(0, room) / this.distance)) * 180) / Math.PI;
+    /* Outside, the eye stays over the ground: low down it is not let look up
+       from under it. Over the ground where it stands, which is the length of
+       the hull and more behind and below the aircraft, not only the ground
+       under the aircraft: a runway's far end, a slope, a valley's side. */
+    const lowest = this.lowestOrbit(state, this.orbit.yaw, this.distance);
     // A wreck's eye stands where it stood when the wreck came down, and does not swing round with it.
     const orbit = this.wreck
       ? { yaw: this.wreck.bearing - state.heading, pitch: this.wreck.pitch }

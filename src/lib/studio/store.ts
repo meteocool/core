@@ -19,6 +19,9 @@ import type { FlightStart } from "./flightLink";
  */
 export const STUDIO_BASEMAP = "satellite";
 
+/** The basemap a flight is flown over, and its plan drawn on, whatever Studio's or the map's is: the imagery, always. */
+export const FLIGHT_BASEMAP = "satellite";
+
 /** Whether the 3D map is in Studio. Its tools only on a desktop (`studioOffered`); for the flight alone, anywhere. */
 export const studioOpen = writable<boolean>(false);
 
@@ -75,6 +78,13 @@ export interface FlightRequest {
   back?: () => void;
 }
 export const flightRequest = writable<FlightRequest | null>(null);
+
+/**
+ * Whether Studio was opened for the flight's plan alone (the 3D map's Fly,
+ * `openFlightPlan` in session.ts): the plan comes up at once, a flight comes
+ * back to it, and putting it away leaves Studio again, its tools unseen.
+ */
+export const flightPlanAsked = writable<boolean>(false);
 
 /** Where a flight is seen from: the cockpit, outside the aircraft, or with no aircraft and nothing over the view. */
 export type FlightView = "cockpit" | "outside" | "clean";

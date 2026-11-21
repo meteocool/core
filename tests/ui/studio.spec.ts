@@ -38,6 +38,10 @@ async function openStudio(page: Page): Promise<void> {
 
 test.describe("on a desktop", () => {
   test.skip(({ isMobile }) => isMobile, "Studio is a desktop's");
+  // Studio's tools are a setting, off unless turned on.
+  test.beforeEach(async ({ page }) => {
+    await page.addInitScript(() => localStorage.setItem("studioEnabled", "true"));
+  });
 
   test("Studio takes the place of the 3D map's legend and peel, and gives it back", async ({ page }) => {
     await openStudio(page);

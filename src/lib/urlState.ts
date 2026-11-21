@@ -56,7 +56,7 @@ import { onWake } from "./wakeup";
 import { radarSite } from "./radarSites";
 import { decodeStudio, encodeStudio } from "./studio/scene";
 import { closeStudio, openStudio, studioOffered } from "./studio/session";
-import { studioFov, studioOpen, studioPlanes, studioPlayhead, studioScene, studioSelectedPlane } from "./studio/store";
+import { flightPlanAsked, studioFov, studioOpen, studioPlanes, studioPlayhead, studioScene, studioSelectedPlane } from "./studio/store";
 
 /** The setting each overlay is stored under, whose callback drives its store. */
 const OVERLAY_SETTINGS: Record<Overlay, string> = {
@@ -276,8 +276,8 @@ export function currentState(): LinkState | null {
     if (scan !== null && !tracked) state.time = scan;
     if (get(peelManual) && !storm) state.peel = get(peelLevel);
     state.style = get(cloudStyle);
-    // Studio, with the map as it stands and the scene made in it.
-    if (get(studioOpen) && !storm && view?.pitch !== undefined && view.bearing !== undefined) {
+    // Studio, with the map as it stands and the scene made in it; not Studio opened for a flight alone, which has no scene to keep.
+    if (get(studioOpen) && !get(flightPlanAsked) && !storm && view?.pitch !== undefined && view.bearing !== undefined) {
       state.studio = encodeStudio({
         still: {
           // MapLibre's own zoom, one under the flat map's.
@@ -767,7 +767,7 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
     // and the scan on the map, not how far looking for one has got.
     derived([peelManual, peelLevel], ([manual, level]) => (manual ? level : null)),
     derived(cloudsTime, (time) => time.shown),
-    studioOpen, studioPlanes, studioFov, studioScene,
+    studioOpen, flightPlanAsked, studioPlanes, studioFov, studioScene,
   ];
   const unsubscribers = watched.map((store) => store.subscribe(() => schedule()));
 

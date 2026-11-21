@@ -470,6 +470,12 @@ export interface Environment {
   ground?: number | null;
   /** How steeply that ground rises ahead, a rise over its run. */
   slope?: number;
+  /**
+   * How the ground under the aircraft lies, degrees: nose up where it rises
+   * ahead, and right wing down where it falls away to the right. What the
+   * wheels stand it at; level where not said.
+   */
+  tilt?: { pitch: number; roll: number };
   /** Ice on the airframe, 0 to 1: the wing lifts less and stalls sooner, it drags and weighs, and the engines choke on it. */
   ice?: number;
   /** What has come off the aircraft; nothing where not said. */
@@ -1004,11 +1010,12 @@ function wreck(state: AircraftState, h: number, env: Environment): AircraftState
   const swing = came && came.tas > 0 ? clamp(came.roll * WRECK_SWING, -WRECK_SWING_MOST, WRECK_SWING_MOST) * Math.min(1, tas / came.tas) : 0;
   const settle = lag(h, WRECK_SETTLES_S);
   // On its back it stays there; the right way up, it leans on the stump of a wing that is gone.
-  const rest = Math.abs(state.roll) > 90 ? Math.sign(state.roll) * 180 : airframeOf(env.lost).lean * WRECK_LEAN;
+  const tilt = env.tilt ?? { pitch: 0, roll: 0 };
+  const rest = Math.abs(state.roll) > 90 ? Math.sign(state.roll) * 180 : airframeOf(env.lost).lean * WRECK_LEAN + tilt.roll;
   // Close enough to where it comes to rest is there: a wreck that has stopped is the same from then on.
   const closing = (value: number, target: number) => (Math.abs(target - value) < 1e-3 ? target : value + (target - value) * settle);
   const spool = state.spool < 1e-3 ? 0 : state.spool * (1 - lag(h, 1.5));
-  const [altitude, pitch, rolled] = [closing(state.altitude, ground), closing(state.pitch, 0), closing(state.roll, rest)];
+  const [altitude, pitch, rolled] = [closing(state.altitude, ground), closing(state.pitch, tilt.pitch), closing(state.roll, rest)];
   if (state.tas === 0 && spool === state.spool && altitude === state.altitude && pitch === state.pitch && rolled === state.roll) return state;
   const [lon, lat] = tas > 0 ? destination(state.lon, state.lat, state.track, tas * h) : [state.lon, state.lat];
   return {
@@ -1031,12 +1038,15 @@ function roll(state: AircraftState, input: ControlInput, h: number, env: Environ
   // Rolling over ground too steep for it ends the flight; so does the gear coming up under it.
   const crash: Crash | null = gear < 0.99 ? "gear" : Math.abs(slope) > LANDING_LIMITS.slope && state.tas > 15 ? "terrain" : null;
 
-  // The nose: lifted by the stick once there is air enough over the tail, let down again without it.
+  // The nose: lifted by the stick once there is air enough over the tail, let down again without it. Lifted off
+  // the ground, that is: on a slope the wheels stand the aircraft as the slope does, and it rotates from there.
+  const tilt = env.tilt ?? { pitch: 0, roll: 0 };
+  const rotated = state.pitch - tilt.pitch;
   const authority = clamp(q / Q_ROTATION_PA - 0.5, 0, 1.2);
-  const pitchDemand = input.pitch > 0 ? input.pitch * ROTATION_RATE * authority : -NOSE_FALLS * (state.pitch > 0 ? 1 : 0);
+  const pitchDemand = input.pitch > 0 ? input.pitch * ROTATION_RATE * authority : -NOSE_FALLS * (rotated > 0 ? 1 : 0);
   const pitchRate = state.pitchRate + (pitchDemand - state.pitchRate) * lag(h, PITCH_LAG_S);
-  const pitch = clamp(state.pitch + pitchRate * h, 0, TAIL_STRIKE);
-  const alpha = pitch;
+  const alpha = clamp(rotated + pitchRate * h, 0, TAIL_STRIKE);
+  const pitch = alpha + tilt.pitch;
 
   const cl = liftAt(wing, alpha);
   const lift = q * WING_M2 * cl;
@@ -1060,7 +1070,8 @@ function roll(state: AircraftState, input: ControlInput, h: number, env: Environ
   // The nose wheel steers: briskly at a walk, and no harder than the tyres hold at speed.
   const steering = Math.min(STEERING_RATE, tas > 1 ? (STEERING_G * G) / tas / RADIANS : STEERING_RATE) * Math.min(1, tas / 3);
   const heading = wrap360(state.heading + input.yaw * steering * h);
-  const rolled = state.roll * (1 - lag(h, 0.3));
+  // Both mains on the ground: the wings lean as it does across.
+  const rolled = state.roll + (tilt.roll - state.roll) * lag(h, 0.3);
   const [lon, lat] = destination(state.lon, state.lat, heading, tas * h);
 
   const rolling: AircraftState = {

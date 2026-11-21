@@ -12,6 +12,7 @@ import GeolocateControl from "./GeolocateControl";
 import ShareControl from "./ShareControl";
 import { canShare } from "./shareSupport";
 import { haptic } from "./haptics";
+import { followSideways } from "./sideways";
 import { circular as circularPolygon } from "ol/geom/Polygon";
 
 import VectorLayer from "ol/layer/Vector";
@@ -345,6 +346,8 @@ export class LayerManager {
         }),
       controls,
     });
+    // The flight's page drawn on its side in the apps reads the map's pointer in the picture (lib/sideways.ts).
+    followSideways(newMap);
     /* Pressing and holding the map asks what the weather is doing there.
        Not a tap: a tap is how you dismiss things, re-centre and poke at a
        map, and every one of those threw the forecast strip

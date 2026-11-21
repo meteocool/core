@@ -17,8 +17,10 @@ import Guide3D from "./components/Guide3D.svelte";
 import BackFrom3D from "./components/BackFrom3D.svelte";
 import PeelSlider from "./components/PeelSlider.svelte";
 import { DEFAULT_CLOUD_STYLE, mapStyleOf } from "./lib/cloudStyle";
-import { STUDIO_BASEMAP, studioFlightOnly, studioOpen } from "./lib/studio/store";
-import { closeStudio, openStudio, studioOffered } from "./lib/studio/session";
+import {
+  FLIGHT_BASEMAP, STUDIO_BASEMAP, flightPlanAsked, studioFlightOnly, studioFlying, studioOpen,
+} from "./lib/studio/store";
+import { closeStudio, openFlightPlan, openStudio, studioOffered } from "./lib/studio/session";
 import Logo from "./components/Logo.svelte";
 import NowcastPlayback from "./components/NowcastPlayback.svelte";
 import ArchiveFrame from "./components/ArchiveFrame.svelte";
@@ -44,7 +46,7 @@ import {
   lightningLayerVisible, logoStyle,
   mapBaseLayer, mapExtent4326, modelCompareAt, networkStatus, playbackRunning, browsingFrames, precacheForecast, radarColormap, radarCrossfade,
   radarColorScheme, selectedStorm, sharedActiveCap, smallScreen, snowLayerVisible, terrain3dVisible,
-  toolbarVisible, fullResolution3d, unit, playbackFromStart, radarExplainerOpen, radarInfoOpen, meetYouCoolOpen,
+  toolbarVisible, fullResolution3d, studioEnabled, unit, playbackFromStart, radarExplainerOpen, radarInfoOpen, meetYouCoolOpen,
   shareDialog,
   siteMarksVisible, siteMode, srvManualMotion, zoomlevel, stationChoice, stationLayerVisible, selectedStation,
   motionLayerVisible,
@@ -294,8 +296,8 @@ window.settings = new Settings({
   studioBaseLayer: {
     type: "string",
     default: STUDIO_BASEMAP,
-    cb: (val) => {
-      if (get(studioOpen)) mapBaseLayer.set(resolveBaseLayer(val));
+    cb: () => {
+      if (get(studioOpen)) mapBaseLayer.set(drawnBaseLayer());
     },
   },
   radarColorMapping: {
@@ -358,6 +360,13 @@ window.settings = new Settings({
     default: false,
     cb: (value) => {
       fullResolution3d.set(Boolean(value));
+    },
+  },
+  studioEnabled: {
+    type: "boolean",
+    default: false,
+    cb: (value) => {
+      studioEnabled.set(Boolean(value));
     },
   },
   /* How the 3D map draws its storms (lib/cloudStyle.ts): one the map offers.
@@ -1427,14 +1436,23 @@ window.enterForeground = () => wake("native bridge");
    so the map has to as well or they end up disagreeing. Only while the basemap
    follows the system: writable.set() with an unchanged value notifies nobody,
    so the immediate first call here is a no-op. */
-/** The basemap on the map now: Studio's own while it is open, the map's otherwise. */
-const drawnBaseLayer = () => resolveBaseLayer(window.settings.get(get(studioOpen) ? "studioBaseLayer" : "mapBaseLayer"));
+/** Whether the map is the flight's: flying, or Studio up for the flight alone. */
+function flightsMap(): boolean {
+  return get(studioOpen) && (get(studioFlying) || get(flightPlanAsked) || get(studioFlightOnly));
+}
+/** The basemap on the map now: the flight's while it is the flight's, Studio's own while it is open, the map's otherwise. */
+function drawnBaseLayer(): string {
+  if (flightsMap()) return resolveBaseLayer(FLIGHT_BASEMAP);
+  return resolveBaseLayer(window.settings.get(get(studioOpen) ? "studioBaseLayer" : "mapBaseLayer"));
+}
 const baseLayerSub = colorSchemeDark.subscribe(() => {
   mapBaseLayer.set(drawnBaseLayer());
 });
 onDestroy(baseLayerSub);
-// Into Studio and out of it, the basemap changes hands.
-onDestroy(studioOpen.subscribe(() => mapBaseLayer.set(drawnBaseLayer())));
+// Into Studio and out of it, and into a flight and out of it, the basemap changes hands.
+for (const store of [studioOpen, studioFlying, flightPlanAsked, studioFlightOnly]) {
+  onDestroy(store.subscribe(() => mapBaseLayer.set(drawnBaseLayer())));
+}
 
 const refreshSub = tileRefreshSignal.subscribe((n) => {
   if (n > 0) lm.refreshTiles();
@@ -1610,7 +1628,8 @@ if (postInitCb) postInitCb(lm);
   {:else if !flightOnly}
     <!-- Not while a storm is open: a cut storm does not peel. -->
     {#if !$selectedStorm}
-      <PeelSlider openStudio={cells3d && studioOnOffer && !$smallScreen ? openStudio : null} />
+      <PeelSlider openStudio={cells3d && studioOnOffer && $studioEnabled && !$smallScreen ? openStudio : null}
+        openFlight={cells3d ? openFlightPlan : null} />
     {/if}
     <Guide3D />
   {/if}

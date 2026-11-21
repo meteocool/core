@@ -57,6 +57,7 @@ import {
 } from "../../../lib/studio/flight/touch";
 import type { Tilt } from "../../../lib/studio/flight/touch";
 import { flightStatus } from "../../../lib/studio/store";
+import { currentTurn, frameBox, framePoint, sidewaysTurn } from "../../../lib/sideways";
 
 export let pilot: Pilot;
 
@@ -115,12 +116,14 @@ let stickFinger: { id: number; x: number; y: number } | null = null;
 function stickDown(event: PointerEvent): void {
   if (stickFinger) return;
   take(event);
-  stickFinger = { id: event.pointerId, x: event.clientX, y: event.clientY };
+  const [x, y] = framePoint(event);
+  stickFinger = { id: event.pointerId, x, y };
 }
 function stickMove(event: PointerEvent): void {
   if (!stickFinger || event.pointerId !== stickFinger.id || !stickElement || !knob) return;
   const reach = (stickElement.clientWidth - knob.offsetWidth) / 2 + 6;
-  const read = stickInput(event.clientX - stickFinger.x, event.clientY - stickFinger.y, reach);
+  const [x, y] = framePoint(event);
+  const read = stickInput(x - stickFinger.x, y - stickFinger.y, reach);
   stick = { roll: read.roll, pitch: read.pitch };
   knob.style.transform = `translate(${read.x.toFixed(1)}px, ${read.y.toFixed(1)}px)`;
   send();
@@ -142,12 +145,12 @@ let rudderFinger: { id: number; x: number } | null = null;
 function rudderDown(event: PointerEvent): void {
   if (rudderFinger) return;
   take(event);
-  rudderFinger = { id: event.pointerId, x: event.clientX };
+  rudderFinger = { id: event.pointerId, x: framePoint(event)[0] };
 }
 function rudderMove(event: PointerEvent): void {
   if (!rudderFinger || event.pointerId !== rudderFinger.id || !rudderElement || !rudderKnob) return;
   const reach = (rudderElement.clientWidth - rudderKnob.offsetWidth) / 2;
-  const travel = Math.min(Math.max(event.clientX - rudderFinger.x, -reach), reach);
+  const travel = Math.min(Math.max(framePoint(event)[0] - rudderFinger.x, -reach), reach);
   yaw = axisInput(travel, reach);
   rudderKnob.style.transform = `translateX(${travel.toFixed(1)}px)`;
   send();
@@ -169,11 +172,11 @@ let fill: HTMLElement | null = null;
 let leverFinger: { id: number; share: number; off: number } | null = null;
 
 /** Where on the track a finger is, a share from the bottom: of the grip's travel, which is the track less the grip itself. */
-function shareAt(clientY: number): number {
+function shareAt(event: PointerEvent): number {
   if (!leverElement || !grip) return 0;
-  const box = leverElement.getBoundingClientRect();
+  const box = frameBox(leverElement);
   const travel = Math.max(1, box.height - grip.offsetHeight);
-  return 1 - (clientY - box.top - grip.offsetHeight / 2) / travel;
+  return 1 - (framePoint(event)[1] - box.top - grip.offsetHeight / 2) / travel;
 }
 
 /** Where the grip is drawn: under the finger, in the notch while that is anywhere in it; otherwise where it was put, or where the throttle is. */
@@ -204,7 +207,7 @@ function leverTo(share: number): void {
 function leverDown(event: PointerEvent): void {
   if (leverFinger) return;
   take(event);
-  const at = shareAt(event.clientY);
+  const at = shareAt(event);
   // Taken hold of by the grip, it moves with the thumb from where it is; pressed anywhere else on the track, it comes to the thumb.
   const off = at - gripShare();
   leverFinger = { id: event.pointerId, share: at, off: Math.abs(off) < 0.16 ? off : 0 };
@@ -213,7 +216,7 @@ function leverDown(event: PointerEvent): void {
 }
 function leverMove(event: PointerEvent): void {
   if (!leverFinger || event.pointerId !== leverFinger.id) return;
-  leverFinger.share = shareAt(event.clientY) - leverFinger.off;
+  leverFinger.share = shareAt(event) - leverFinger.off;
   leverTo(leverFinger.share);
 }
 function leverUp(event: PointerEvent): void {
@@ -265,9 +268,9 @@ let tiltRefused = false;
 let refusedTimer: ReturnType<typeof setTimeout> | null = null;
 let silentTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** How far the page is turned on the screen, degrees. */
-const turned = (): number => (typeof screen !== "undefined" && screen.orientation?.angle)
-  || Number((window as Window & { orientation?: number }).orientation ?? 0);
+/** How far the page is turned on the screen, degrees: by the browser, and on its side in the apps by the page itself (lib/sideways.ts). */
+const turned = (): number => ((typeof screen !== "undefined" && screen.orientation?.angle)
+  || Number((window as Window & { orientation?: number }).orientation ?? 0)) + currentTurn();
 
 function tilted(event: DeviceOrientationEvent): void {
   if (event.beta === null || event.gamma === null) return;
@@ -343,7 +346,8 @@ const onView = (target: EventTarget | null) => target instanceof Element && targ
 
 function viewDown(event: PointerEvent): void {
   if (event.pointerType !== "touch" || !onView(event.target)) return;
-  fingers = [...fingers.filter((finger) => finger.id !== event.pointerId), { id: event.pointerId, x: event.clientX, y: event.clientY }];
+  const [x, y] = framePoint(event);
+  fingers = [...fingers.filter((finger) => finger.id !== event.pointerId), { id: event.pointerId, x, y }];
   spread = null;
 }
 function viewMove(event: PointerEvent): void {
@@ -351,9 +355,10 @@ function viewMove(event: PointerEvent): void {
   if (!finger) return;
   // Read here, from where the finger was: the deck's surface would read a mouse's movement off it, and both fingers of a pinch.
   event.stopPropagation();
-  const [dx, dy] = [event.clientX - finger.x, event.clientY - finger.y];
-  finger.x = event.clientX;
-  finger.y = event.clientY;
+  const [x, y] = framePoint(event);
+  const [dx, dy] = [x - finger.x, y - finger.y];
+  finger.x = x;
+  finger.y = y;
   if (fingers.length === 1) {
     pilot.lookBy(dx, dy);
   } else if (fingers.length === 2) {
@@ -390,7 +395,8 @@ function holdLandscape(): void {
     // Not a browser that holds a page any way up: the reader turns the phone.
   }
 }
-$: if ($fullscreen && $touchControls) holdLandscape();
+// Not where the page is drawn on its side for a web view that does not turn (lib/sideways.ts): it is landscape already.
+$: if ($fullscreen && $touchControls && !$sidewaysTurn) holdLandscape();
 
 const act = (action: FlightAction) => () => pilot.act(action);
 
@@ -398,6 +404,8 @@ const listeners: Array<[EventTarget, string, EventListener, boolean]> = [];
 let unlisten: (() => void) | null = null;
 let portraitQuery: MediaQueryList | null = null;
 const turnedPortrait = () => { portrait = Boolean(portraitQuery?.matches); };
+// The page turned over on its side with the phone is the phone turned over too: held anew, read anew.
+onDestroy(sidewaysTurn.subscribe(() => turnedOver()));
 
 onMount(() => {
   if (touchFirst()) touchControls.set(true);
@@ -557,7 +565,7 @@ onDestroy(() => {
 
       {#if tiltRefused}
         <p class="said" role="status">{$_("studio.flight.touch.tilt_refused")}</p>
-      {:else if portrait}
+      {:else if portrait && !$sidewaysTurn}
         {#if canFullscreen && !$fullscreen}
           <button type="button" class="said turn" tabindex="-1" on:click={toggleFullscreen}>
             <Icon icon={faRotate} /> {$_("studio.flight.touch.turn_fullscreen")}
@@ -576,9 +584,9 @@ onDestroy(() => {
      is still the eye's to turn. */
   .touch {
     --thumb: 60px;
-    --edge-left: max(14px, calc(env(safe-area-inset-left, 0px) + 6px));
-    --edge-right: max(18px, calc(env(safe-area-inset-right, 0px) + 8px));
-    --edge-bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) + 4px));
+    --edge-left: max(14px, calc(var(--mc-safe-left) + 6px));
+    --edge-right: max(18px, calc(var(--mc-safe-right) + 8px));
+    --edge-bottom: max(14px, calc(var(--mc-safe-bottom) + 4px));
     position: absolute;
     inset: 0;
     color: #f2f4f7;
@@ -619,6 +627,7 @@ onDestroy(() => {
     position: relative;
     width: var(--thumb);
     height: clamp(128px, 39vh, 220px);
+    height: clamp(128px, 39cqh, 220px);
     border-radius: 16px;
     overflow: hidden;
   }
@@ -858,25 +867,25 @@ onDestroy(() => {
   .touch.clean :is(.lever, .rudder, .stick, .hold).held { opacity: 0.4; }
 
   /* A tablet's thumbs are no larger, but there is room to find the controls by. */
-  @media (min-width: 1000px) and (min-height: 700px) {
+  @container mc-frame (min-width: 1000px) and (min-height: 700px) {
     .touch { --thumb: 68px; }
     .stick { width: 172px; height: 172px; }
     .stick .knob { width: 70px; height: 70px; }
   }
 
   /* Held upright there is no room between the thumbs: the strip goes over them. */
-  @media (orientation: portrait) and (max-width: 700px) {
-    .strip { bottom: calc(var(--edge-bottom) + clamp(128px, 39vh, 220px) + 78px); }
+  @container mc-frame (orientation: portrait) and (max-width: 700px) {
+    .strip { bottom: calc(var(--edge-bottom) + clamp(128px, 39cqh, 220px) + 78px); }
     .stick { width: 132px; height: 132px; }
   }
   /* A small phone on its side: a little less of the stick and of each button, for the strip to fit between the thumbs. */
-  @media (max-width: 720px) and (orientation: landscape) {
+  @container mc-frame (max-width: 720px) and (orientation: landscape) {
     .stick { width: 132px; height: 132px; }
     .stick .knob { width: 56px; height: 56px; }
     .rare .key { min-width: 40px; padding: 0 3px; }
   }
   /* Too narrow for the rarer buttons in one row: two rows of four. */
-  @media (max-width: 440px) {
+  @container mc-frame (max-width: 440px) {
     .rare { flex-wrap: wrap; }
     .rare .key { flex: 1 0 22%; }
   }

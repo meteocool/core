@@ -3,12 +3,16 @@
  * when it may play, and the mute.
  *
  * A browser lets a page make sound only once the reader has done something
- * on it, so the context is made on taking off, which is a click or a key.
- * Where it is still not allowed to play, the next key or click starts it.
- * It falls silent while the flight is paused, while the tab is hidden and
- * while muted, and is suspended then, costing nothing; leaving the flight
- * fades it out and closes it. Where there is no Web Audio at all, the
- * flight is silent and nothing else changes.
+ * on it. The context is the page's one (soundtrack.ts), made by then, or on
+ * taking off, which is a click or a key; where it is still not allowed to
+ * play, the next key or click starts it. The flight falls silent while the
+ * tab is hidden and while muted, and the context is suspended then, costing
+ * nothing; paused, only the soundtrack plays on, lower and darker. Leaving
+ * the flight fades it out and lets go of its graph. Where there is no Web
+ * Audio at all, the flight is silent and nothing else changes.
+ *
+ * The soundtrack plays through the flight's graph, so a recording carries
+ * it; the mix sets it to the flight (soundMix.ts, `mixMusic`).
  *
  * What it plays is the mix's (soundMix.ts) made audible by the graph
  * (soundGraph.ts); what the reader has silenced (alarms.ts) the mix leaves
@@ -20,33 +24,29 @@
  * recording of the flight carries the tones and the whoops but not the
  * words.
  */
-import { get, writable } from "svelte/store";
+import { get } from "svelte/store";
 import type { FlightStatus } from "../store";
 import type { FlightAction } from "./controls";
 import type { Telemetry } from "./pilot";
-import { SoundGraph } from "./soundGraph";
+import { MUSIC_LEAVE_S, SoundGraph } from "./soundGraph";
 import type { SoundCue } from "./soundGraph";
 import { CalloutQueue, initialMemory, mixSound, VOLUME } from "./soundMix";
 import type { Callout, SoundInput, SoundMemory, Spoken } from "./soundMix";
+import { flightMuted, musicAvailable, pageAudio, plugMusic, setFlightMuted, wantMusic } from "./soundtrack";
 
-/** Whether the reader turned the flight's sound off: kept for the next flight too. */
-const MUTED_KEY = "studioFlightMuted";
+/** Whether the flight's sound is off, the music's with it (soundtrack.ts); the deck shows it. */
+export { flightMuted };
 
-function storedMuted(): boolean {
-  try {
-    return localStorage.getItem(MUTED_KEY) === "1";
-  } catch {
-    return false;
-  }
+/** What of the flight's picture the sound follows besides the telemetry: whether it is a wreck, and which way the eye outside looks. */
+export interface SoundScene {
+  ended: boolean;
+  orbit: number;
 }
-
-/** Whether the flight's sound is off; the deck shows it. */
-export const flightMuted = writable(storedMuted());
 
 /** How long a pause's or a mute's fade takes before the context is suspended, ms. */
 const SUSPEND_MS = 320;
-/** How long leaving fades out before the context is closed, ms. */
-const CLOSE_MS = 450;
+/** How long leaving fades out before the graph is let go, ms: the music's fade, the longest. */
+const CLOSE_MS = MUSIC_LEAVE_S * 1000 + 200;
 
 /** The interface's sound for an action, if it has one: a master light pressed clicks as a key does. */
 const CUES: Partial<Record<FlightAction, SoundCue>> = {
@@ -75,19 +75,24 @@ export class FlightSound {
   /** The cockpit's voice: whose turn it is, what the browser is saying for it now, and whether the browser cannot speak after all. */
   private readonly voice = new CalloutQueue();
   private utterance: SpeechSynthesisUtterance | null = null;
+  /** Whether the voice, or a tone in its place, is saying a callout now: the music goes down under it. */
+  private saying = false;
+  /** Takes the soundtrack out of the graph again. */
+  private unplug: (() => void) | null = null;
   private voiceless = typeof speechSynthesis === "undefined";
   private readonly listeners: Array<[EventTarget, string, EventListener, boolean]> = [];
 
   constructor() {
     try {
-      const Context = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Context) return;
-      this.context = new Context({ latencyHint: "interactive" });
+      this.context = pageAudio();
+      if (!this.context) return;
       // Everything goes out through one node, so that a recording can listen at it too; see `stream`.
       this.out = this.context.createGain();
       this.out.connect(this.context.destination);
       this.graph = new SoundGraph(this.context, this.out);
+      this.unplug = plugMusic(this.graph.musicInputs());
     } catch {
+      this.out?.disconnect();
       this.context = null;
       this.graph = null;
       return;
@@ -107,7 +112,7 @@ export class FlightSound {
   }
 
   /** A frame of the flight, after it has flown: set the sound to it. */
-  update(telemetry: Telemetry, status: FlightStatus, dt: number): void {
+  update(telemetry: Telemetry, status: FlightStatus, dt: number, scene?: SoundScene): void {
     if (!this.graph || this.disposed) return;
     const { state } = telemetry;
     const input: SoundInput = {
@@ -130,6 +135,13 @@ export class FlightSound {
       height: telemetry.radarAltitude ?? Infinity,
       sink: -state.verticalSpeed,
       onGround: state.onGround,
+      cloud: telemetry.cloud,
+      severity: telemetry.severity,
+      hail: telemetry.hail,
+      speaking: this.saying,
+      lost: status.lost.length,
+      ended: scene?.ended ?? Boolean(state.crash),
+      orbit: scene?.orbit,
     };
     this.strike = false;
     this.memory ??= initialMemory(input, status);
@@ -148,13 +160,16 @@ export class FlightSound {
   act(action: FlightAction, status: FlightStatus): void {
     if (!this.graph || this.disposed) return;
     if (action === "pause") {
+      // Heard as the flight was before the pause: once paused, its own sounds are not.
+      const heard = this.playing();
       this.paused = status.paused;
       if (this.paused) {
-        // The click first, then the rest fades and the context is suspended.
-        if (this.playing()) this.graph.cue("pause");
+        // The click first, then the rest fades: the soundtrack on, lower, or the context suspended.
+        if (heard) this.graph.cue("pause");
         this.graph.setWorld(0);
         this.silence();
       }
+      this.graph.setMusicPaused(this.paused);
       this.sync();
       if (!this.paused && this.playing()) this.graph.cue("resume");
       return;
@@ -212,19 +227,16 @@ export class FlightSound {
   /** M: sound off, or on again; remembered for the next flight. */
   toggleMute(): void {
     this.muted = !this.muted;
-    flightMuted.set(this.muted);
-    try {
-      if (this.muted) localStorage.setItem(MUTED_KEY, "1");
-      else localStorage.removeItem(MUTED_KEY);
-    } catch {
-      // Storage blocked: muted for this flight only.
-    }
+    setFlightMuted(this.muted);
     if (this.muted) this.silence();
     this.sync();
     if (!this.muted && this.playing()) this.graph?.cue("unmute");
   }
 
-  /** Leave: fade out, and close the context. */
+  /**
+   * Leave: fade out, and let go of the graph. The context is the page's and
+   * stays: the plan's music takes up where the flight leaves off.
+   */
   dispose(): void {
     if (this.disposed) return;
     this.disposed = true;
@@ -232,22 +244,29 @@ export class FlightSound {
     this.listeners.length = 0;
     this.silence();
     if (this.suspendTimer !== null) clearTimeout(this.suspendTimer);
-    const { context, graph } = this;
-    if (!context || !graph) return;
-    graph.setVolume(0, context.currentTime, 0.08);
+    wantMusic(false);
+    const { context, graph, out } = this;
+    if (!context || !graph || !out) return;
+    graph.leave();
     setTimeout(() => {
+      this.unplug?.();
+      this.unplug = null;
       graph.dispose();
-      void context.close().catch(() => undefined);
+      out.disconnect();
+      this.tap?.disconnect();
+      this.tap = null;
     }, CLOSE_MS);
   }
 
-  /** Whether the sound may be heard now. */
+  /** Whether the context should run: something is to be heard, the flight's sounds or, paused, the soundtrack. */
   private wanted(): boolean {
-    return !this.disposed && !this.paused && !this.muted && !(typeof document !== "undefined" && document.hidden);
+    return !this.disposed && !this.muted && !(typeof document !== "undefined" && document.hidden)
+      && (!this.paused || musicAvailable());
   }
 
+  /** Whether the flight's own sounds are heard now. */
   private playing(): boolean {
-    return this.wanted() && this.context?.state === "running";
+    return this.wanted() && !this.paused && this.context?.state === "running";
   }
 
   /**
@@ -259,9 +278,10 @@ export class FlightSound {
     if (!context || !graph || this.disposed) return;
     if (this.suspendTimer !== null) clearTimeout(this.suspendTimer);
     this.suspendTimer = null;
+    wantMusic(this.wanted());
     if (this.wanted()) {
       if (context.state !== "running") void context.resume().catch(() => undefined);
-      graph.setWorld(1);
+      graph.setWorld(this.paused ? 0 : 1);
       graph.setVolume(VOLUME, context.currentTime, 0.12);
       return;
     }
@@ -277,11 +297,12 @@ export class FlightSound {
 
   /**
    * Have the browser's voice say nothing, now, while the take-off's click
-   * or key is still being handled: some browsers let a page speak only
-   * once it has from one, and the first words are slow to come anywhere.
+   * or key is still being handled: Safari lets a page speak only once it
+   * has from one, and the first words are slow to come there.
    */
   private prime(): void {
-    if (this.voiceless) return;
+    // Only Safari's is so strict; elsewhere, on a Mac, a voice that speaks opens its own stream, and its opening clicks.
+    if (this.voiceless || !/Apple/.test(navigator.vendor ?? "")) return;
     try {
       const utterance = new SpeechSynthesisUtterance(" ");
       utterance.volume = 0;
@@ -302,7 +323,9 @@ export class FlightSound {
    * when it is over; a tone through the graph where it has none.
    */
   private utter(callout: Callout): void {
+    this.saying = true;
     const over = () => {
+      this.saying = false;
       if (this.disposed) return;
       const next = this.voice.done(callout, seconds());
       // What waited is only worth saying while the sound plays.
@@ -342,6 +365,7 @@ export class FlightSound {
 
   /** Stop the browser's voice, if it is one of ours it is saying. */
   private stopSpeaking(): void {
+    this.saying = false;
     if (!this.utterance) return;
     this.utterance = null;
     try {

@@ -69,13 +69,14 @@ const RELIEF_REACH_KM = 150;
 const LINK_KM = 60;
 
 /**
- * How far short of a system's edge the flight starts, km, and how close
- * another storm may stand to the start; and the furthest from its towers a
- * start may be, km, however far its rain reaches, which at four times the
- * speed is a couple of minutes' flight.
+ * How far short of a system's edge the flight starts, km: the storms
+ * towering ahead from the first moment, a little over two minutes out at cruise.
+ * How close another storm may stand to the start; and the furthest from its
+ * towers a start may be, km, however far its rain reaches, which at four
+ * times the speed is about a minute's flight.
  */
-export const START_KM = 50;
-export const MAX_START_KM = 120;
+export const START_KM = 30;
+export const MAX_START_KM = 80;
 const CLEAR_KM = 15;
 
 /** How high it starts: FL240, low enough for the relief to read with the storms towering over it. */

@@ -3,7 +3,7 @@ import { createEventDispatcher } from "svelte";
 import { _ } from "svelte-i18n";
 import GlassPanel from "./GlassPanel.svelte";
 import {
-  cells3dVisible, cellLayerVisible, cloudStyle, fullResolution3d, mapBaseLayer,
+  cells3dVisible, cellLayerVisible, cloudStyle, fullResolution3d, studioEnabled, mapBaseLayer,
   siteMarksVisible, motionLayerVisible,
   playbackFromStart, radarColormap, terrain3dVisible,
 } from "../stores";
@@ -131,9 +131,15 @@ function setTerrain3d(value: boolean) {
 
 /* Only where there is a cap to lift: a desktop always draws at full resolution. */
 const handheld = isHandheld();
+/** Studio's tools are a desktop's (lib/studio/session.ts, `studioOffered`); so is the setting that offers them. */
+const studioOnOffer = !handheld;
 
 function setFullResolution3d(value: boolean) {
   window.settings.set("layer3dFullResolution", value);
+}
+
+function setStudioEnabled(value: boolean) {
+  window.settings.set("studioEnabled", value);
 }
 
 function setPlaybackFromStart(value: boolean) {
@@ -430,6 +436,20 @@ function setPlaybackFromStart(value: boolean) {
         </label>
       </div>
       <p class="hint">{$_("settings.full_resolution_hint")}</p>
+    {/if}
+    {#if studioOnOffer}
+      <div class="group">
+        <label class="row">
+          <span class="label">{$_("settings.studio")}</span>
+          <input
+            type="checkbox"
+            role="switch"
+            class="switch"
+            checked={$studioEnabled}
+            on:change={(event) => setStudioEnabled(event.currentTarget.checked)} />
+        </label>
+      </div>
+      <p class="hint">{$_("settings.studio_hint")}</p>
     {/if}
   {/if}
 

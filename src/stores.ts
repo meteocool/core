@@ -300,6 +300,12 @@ export const meetYouCoolOpen = writable<boolean>(false);
  */
 export const fullResolution3d = writable<boolean>(false);
 /**
+ * Whether meteocool Studio's tools are offered on the 3D map (lib/studio):
+ * a setting, off unless the reader turns it on. The flight is offered
+ * without it, from the 3D map's own tray.
+ */
+export const studioEnabled = writable<boolean>(false);
+/**
  * The 3D map's peel, 0 every storm whole to 1 down to its core (lib/peel.ts).
  * It stands where the style on the map starts it until the reader moves the
  * slider, which sets `peelManual`: from then on it is theirs, whatever the

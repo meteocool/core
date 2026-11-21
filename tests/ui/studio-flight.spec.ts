@@ -1,5 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./test";
+import { emptyAircraft } from "./app";
 
 /**
  * Studio's flight: the 3D map from the cockpit of an airliner. On a desktop
@@ -51,11 +52,47 @@ test.describe("on a desktop", () => {
   // about how much of it there is.
   test.use({ viewport: { width: 1024, height: 640 } });
 
-  // Without the aircraft's model: half a million triangles drawn by a
-  // software renderer leave the flight a frame every few seconds, and
-  // nothing here is about what the aircraft looks like.
+  // An empty aircraft: half a million triangles drawn by a software
+  // renderer leave the flight a frame every few seconds, and nothing here is
+  // about what the aircraft looks like.
   test.beforeEach(async ({ page }) => {
-    await page.route("**/models/a320/**", (route) => route.abort());
+    await emptyAircraft(page);
+    // Studio's tools are a setting, off unless turned on.
+    await page.addInitScript(() => localStorage.setItem("studioEnabled", "true"));
+  });
+
+  test("with Studio off, the 3D map's Fly opens the flight's plan, and putting it away is the 3D map again", async ({ page }) => {
+    test.slow();
+    await page.addInitScript(() => localStorage.setItem("studioEnabled", "false"));
+    await page.goto(MAP_3D);
+    const fly = page.getByRole("button", { name: "Fly", exact: true });
+    await expect(fly).toBeVisible({ timeout: 90_000 });
+    await expect(page.getByRole("button", { name: "Studio", exact: true })).toHaveCount(0);
+    await fly.click();
+    await expect(flightPlan(page)).toBeVisible({ timeout: 20_000 });
+    await expect(panel(page)).toHaveCount(0);
+    await flightPlan(page).getByRole("button", { name: "Back to meteocool" }).click();
+    await expect(flightPlan(page)).toHaveCount(0);
+    await expect(panel(page)).toHaveCount(0);
+    await expect(fly).toBeVisible();
+  });
+
+  test("taken off before the flight has loaded, a loading screen says how far, and the flight starts once it has", async ({ page }) => {
+    test.slow();
+    let release = () => {};
+    // Over the empty aircraft of every test here: held until the test lets it come.
+    await emptyAircraft(page, new Promise<void>((resolve) => { release = resolve; }));
+    await page.goto(MAP_3D);
+    await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
+    await expect(panel(page)).toBeVisible({ timeout: 20_000 });
+    await takeOff(page);
+    const loading = page.getByRole("dialog", { name: "Preparing the flight" });
+    await expect(loading).toBeVisible();
+    await expect(loading.getByRole("progressbar")).toHaveAttribute("aria-valuenow", /^\d+$/);
+    await expect(deck(page)).toHaveCount(0);
+    release();
+    await expect(deck(page)).toBeVisible({ timeout: 30_000 });
+    await expect(loading).toHaveCount(0);
   });
 
   test("Fly puts the flight deck up and flies the camera, and Escape brings Studio back as it was", async ({ page }) => {
@@ -211,7 +248,7 @@ test.describe("on a desktop", () => {
     await expect.poll(() => new URL(page.url()).searchParams.get("latLonZ")).toBe(VIEW);
   });
 
-  test("the flight starts over the plain map; O and the plan paint the radar on the ground, J sets the flaps, and landing puts it back", async ({ page }) => {
+  test("the flight paints the radar on the ground, O takes it off and back, J sets the flaps, and landing puts it back", async ({ page }) => {
     test.slow();
     await page.goto(MAP_3D);
     await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
@@ -221,15 +258,15 @@ test.describe("on a desktop", () => {
     await expect(flightPlan(page)).toBeVisible();
     // The briefing reads the plan back, the cloud base among it.
     await expect(flightPlan(page).getByText("CLD BASE")).toBeVisible();
-    // Not painted on the ground unless asked for.
-    await expect(flightPlan(page).getByLabel("Painted on the ground under the storms")).not.toBeChecked();
+    // The plan asks nothing of how the map is drawn: the radar is painted on the ground, which O takes off and puts back.
+    await expect(flightPlan(page).getByRole("combobox", { name: "Basemap" })).toHaveCount(0);
     await flightPlan(page).getByRole("button", { name: "Take off" }).click();
     await expect(deck(page)).toBeVisible();
-    expect(await offGround()).toBe(true);
-    await page.keyboard.press("o");
     await expect.poll(offGround).toBe(false);
     await page.keyboard.press("o");
     await expect.poll(offGround).toBe(true);
+    await page.keyboard.press("o");
+    await expect.poll(offGround).toBe(false);
     // How fast the flight is drawn is on the deck.
     await expect(deck(page).getByText(/\d+ fps/)).toBeVisible({ timeout: 15_000 });
     // A step of flaps: the lever's place reads out while they travel and after.

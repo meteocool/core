@@ -20,6 +20,18 @@
  * outside is muffled and the cockpit's own sounds (its alerts, the creaks
  * of the panels) are clear; from outside the engines and the wind are full
  * and there are no cockpit sounds; the clean view is outside's, gentler.
+ *
+ * The soundtrack (soundtrack.ts) is mixed here too, as a film's score is to
+ * its pictures (`mixMusic`): fullest in the clean view, the most cinematic;
+ * softer from outside; from the cockpit soft and narrow, as heard through a
+ * headset over the cabin's noise. Dense cloud muffles it and breaking out
+ * into clear air opens it up again in a swell, as taking off does; a storm's
+ * worst air and its hail take it down so the storm is heard, and so do the
+ * cockpit's voice and its alarms (an alarm silenced no longer does); time
+ * running faster and a slow turn round the aircraft bring it up; on the
+ * ground it is low until the take-off roll; a wreck silences it, until the
+ * next start. And how difficult the flight has become (`tensionOf`) slowly
+ * crossfades the theme into the suspenseful piece and back.
  */
 import type { FlightAlarm, FlightStatus, FlightView } from "../store";
 import { kindOf } from "./alarms";
@@ -59,6 +71,18 @@ export interface SoundInput {
   sink?: number;
   /** Whether the wheels are on the ground. */
   onGround?: boolean;
+  /** How thick the cloud round the aircraft is, 0 to 1. */
+  cloud?: number;
+  /** How much rougher than rough the air is, 0 to 1 (weather.ts), and the hail going past, 0 to 1. */
+  severity?: number;
+  hail?: number;
+  /** Whether the cockpit's voice is saying something now. */
+  speaking?: boolean;
+  /** How many surfaces have come off the airframe; and whether what is left is a wreck, on the ground or broken up. */
+  lost?: number;
+  ended?: boolean;
+  /** Which way the eye outside looks round the aircraft, degrees: how fast that turns is the orbit. */
+  orbit?: number;
 }
 
 export type SoundStatus = Pick<FlightStatus, "view" | "warnings" | "alarms" | "silenced" | "paused" | "autopilot" | "warp" | "low">;
@@ -84,6 +108,34 @@ export interface SoundMemory {
   /** The alarms heard a frame ago: raised, and not silenced. */
   heard: FlightAlarm[];
   voice: VoiceMemory;
+  music: MusicMemory;
+}
+
+/** What the soundtrack's mix carries from one frame to the next. */
+export interface MusicMemory {
+  /** What was heard a frame ago: the level, the band (Hz), and the theme's thinning (a low-pass, Hz). */
+  gain: number;
+  high: number;
+  low: number;
+  /**
+   * How difficult the flight is, 0 to 1, eased twice over (`drive` the first
+   * time), so that it sets off gently as well as arriving gently; and whether
+   * it counts as difficult (it takes more to start than to keep).
+   */
+  drive: number;
+  tension: number;
+  tense: boolean;
+  /** Seconds the aircraft has been low over the ground, and with several warnings at once. */
+  lowFor: number;
+  warnedFor: number;
+  /** Seconds lately spent in thick cloud, whether in it, and a swell's envelope, 0 to 1. */
+  clouded: number;
+  inCloud: boolean;
+  swell: number;
+  /** Whether it was in the air; which way the eye outside looked, and how fast it was turning, degrees a second. */
+  aloft: boolean;
+  orbit: number;
+  turning: number;
 }
 
 /** What the cockpit's voice carries from one frame to the next. */
@@ -182,6 +234,21 @@ export interface SoundLevels {
   warp: number;
   /** The pull-up warning, the stall's cricket and shaker, and the master warning's continuous repetitive chime. */
   alerts: { gain: number; terrain: boolean; stall: boolean; chime: boolean };
+  music: MusicLevels;
+}
+
+/**
+ * The soundtrack: how loud (0 to 1, against its loudest), the band it is
+ * heard in (a high-pass and a low-pass, Hz); the theme's share and its
+ * thinning (a low-pass, Hz), and the suspenseful piece's share.
+ */
+export interface MusicLevels {
+  gain: number;
+  high: number;
+  low: number;
+  theme: number;
+  themeLow: number;
+  tension: number;
 }
 
 /** The loudness everything is played at unmuted, against full scale: well under it. */
@@ -260,6 +327,177 @@ const SAY: Record<CalloutKind, { rank: number; keep: number }> = {
 const callout = (kind: CalloutKind, words: string): Callout => ({ kind, words, ...SAY[kind] });
 
 /**
+ * How each view hears the soundtrack: how loud, and the band (Hz). From the
+ * cockpit through a headset over the cabin's noise; outside, the score of a
+ * film; the clean view, the picture alone, the most cinematic, fullest.
+ */
+const MUSIC_VIEWS: Record<FlightView, { gain: number; high: number; low: number }> = {
+  // Over the engines' and the airflow's drone, which sit low and wide: a headset's band, and loud enough to be heard over them.
+  cockpit: { gain: 0.62, high: 180, low: 6500 },
+  outside: { gain: 0.8, high: 20, low: 18000 },
+  clean: { gain: 1, high: 20, low: 20000 },
+};
+/** The widest the band opens, Hz. */
+const MUSIC_LOW_MOST = 20000;
+/** How fast the music follows: down (a duck under the voice or an alarm), up, and its band; time constants, seconds. */
+const MUSIC_DOWN_S = 0.3;
+const MUSIC_UP_S = 1.4;
+const MUSIC_BAND_S = 0.35;
+/** A wreck: how fast the music goes. */
+const MUSIC_GONE_S = 0.5;
+/** Under the cockpit's voice, and under an alarm heard, the music's share. */
+const UNDER_VOICE = 0.55;
+const UNDER_ALARM = 0.35;
+/** Cloud this thick is thick, and below this the aircraft is out of it; this long in it, seconds, and coming out swells. */
+const CLOUD_IN = 0.55;
+const CLOUD_OUT = 0.2;
+const CLOUDED_S = 4;
+/** A swell: how much louder at its height, and how fast it dies away (a time constant, seconds). */
+export const SWELL = 0.4;
+const SWELL_S = 7;
+/** A turn round the aircraft this slow, degrees a second, is a camera's slow orbit, and brings the music up so much. */
+const ORBIT_SLOW: [number, number, number, number] = [1.5, 6, 40, 110];
+const ORBIT_UP = 0.2;
+/** Time running faster: the music this much louder. */
+const WARP_UP = 0.3;
+
+/**
+ * Tension: how difficult the flight is, 0 to 1. It takes this much to be
+ * difficult and goes only below this, so that it never flickers between the
+ * two; once difficult, the suspenseful piece is at least this much of the
+ * music. It comes in slowly, over tens of seconds, and goes more slowly still
+ * (each the time of its two easings together, seconds); faster as a wreck
+ * silences everything.
+ */
+export const TENSE_ON = 0.5;
+export const TENSE_OFF = 0.3;
+export const TENSE_LEAST = 0.6;
+export const TENSION_IN_S = 16;
+export const TENSION_OUT_S = 36;
+/** Below this height over the ground, metres (about 1,000 ft), for this long and up to this long, seconds, is a long low approach. */
+export const LOW_APPROACH_M = 300;
+export const LOW_APPROACH_S: [number, number] = [40, 120];
+/** Several warnings at once for this long and up to this long, seconds, is a flight in trouble. */
+export const WARNED_S: [number, number] = [8, 25];
+/** The theme under the suspenseful piece at its fullest: thinned to this share of it and through a low-pass this low, Hz; never cut. */
+const THEME_LEAST = 0.22;
+const THEME_LOW_LEAST = 900;
+
+/**
+ * How difficult the flight is now, 0 to 1, from what makes it so: near a
+ * strong storm or inside one, its worst air and its hail; the gear or the
+ * flaps jammed; surfaces lost; a long, low approach; several warnings held
+ * a while. Each is a chance of trouble, and they add as chances do.
+ */
+export function tensionOf(input: SoundInput, status: Pick<SoundStatus, "warnings">, lowFor: number, warnedFor: number): number {
+  const storm = input.storm;
+  const near = storm ? ramp(storm.peakDbz, 48, 62) * (1 - ramp(storm.distance, 8_000, 45_000)) : 0;
+  const inside = ramp(input.dbz ?? -Infinity, 40, 55);
+  const worst = Math.max(input.severity ?? 0, ramp(input.turbulence, ROUGH_TURBULENCE, 0.9), input.hail ?? 0, ramp(input.dbz ?? -Infinity, ...HAIL_DBZ));
+  const parts = [
+    0.8 * near, inside, worst,
+    status.warnings.includes("gearJammed") ? 0.55 : 0,
+    status.warnings.includes("flapsJammed") ? 0.45 : 0,
+    input.lost ? Math.min(1, 0.45 + 0.15 * input.lost) : 0,
+    0.75 * ramp(lowFor, ...LOW_APPROACH_S),
+    0.8 * ramp(warnedFor, ...WARNED_S),
+  ];
+  return 1 - parts.reduce((calm, part) => calm * (1 - clamp01(part)), 1);
+}
+
+/** Ease towards a value with a time constant; a step of nothing leaves it. */
+const ease = (from: number, to: number, dt: number, tau: number) => from + (to - from) * (1 - Math.exp(-dt / tau));
+const easeLog = (from: number, to: number, dt: number, tau: number) => Math.exp(ease(Math.log(from), Math.log(to), dt, tau));
+
+/** What the soundtrack starts a flight from: silent, coming in, and calm. */
+export function initialMusic(): MusicMemory {
+  return {
+    gain: 0, high: 20, low: MUSIC_LOW_MOST, drive: 0, tension: 0, tense: false, lowFor: 0, warnedFor: 0, clouded: 0, inCloud: false, swell: 0,
+    aloft: true, orbit: NaN, turning: 0,
+  };
+}
+
+/**
+ * The soundtrack in a frame: its levels, and what to remember for the next.
+ * `alarmed` is whether an alarm is heard in the cockpit now; `view` and the
+ * rest of the status as the frame's.
+ */
+export function mixMusic(
+  memory: MusicMemory, input: SoundInput, status: SoundStatus, alarmed: boolean, dt: number,
+): { music: MusicLevels; memory: MusicMemory } {
+  const view = MUSIC_VIEWS[status.view];
+  const onGround = input.onGround ?? false;
+  const cloud = clamp01(input.cloud ?? 0);
+
+  // Cloud: time in thick cloud counts up, and coming out of it after a while swells; so does leaving the ground.
+  const inCloud = memory.inCloud ? cloud > CLOUD_OUT : cloud >= CLOUD_IN;
+  let clouded = inCloud ? memory.clouded + dt : memory.clouded * Math.exp(-dt / 20);
+  let swell = memory.swell * Math.exp(-dt / SWELL_S);
+  if (memory.inCloud && !inCloud && clouded >= CLOUDED_S) {
+    swell = 1;
+    clouded = 0;
+  }
+  const aloft = !onGround;
+  if (aloft && !memory.aloft && !input.ended) swell = 1;
+
+  // A slow orbit outside: how fast the eye turns round, smoothed; a drag's jerks are not one.
+  let turning = memory.turning;
+  if (input.orbit !== undefined && Number.isFinite(memory.orbit) && dt > 0) {
+    const turned = ((input.orbit - memory.orbit + 540) % 360) - 180;
+    turning = ease(turning, Math.abs(turned) / dt, dt, 0.6);
+  }
+  const orbiting = status.view === "cockpit" ? 0 : ramp(turning, ORBIT_SLOW[0], ORBIT_SLOW[1]) * (1 - ramp(turning, ORBIT_SLOW[2], ORBIT_SLOW[3]));
+
+  // Tension, with its hysteresis and its slow ways.
+  const low = aloft && (input.height ?? Infinity) < LOW_APPROACH_M;
+  const lowFor = low ? memory.lowFor + dt : Math.max(0, memory.lowFor - 3 * dt);
+  const warnedFor = status.warnings.length >= 2 ? memory.warnedFor + dt : Math.max(0, memory.warnedFor - 2 * dt);
+  const difficulty = tensionOf(input, status, lowFor, warnedFor);
+  const tense = memory.tense ? difficulty >= TENSE_OFF : difficulty >= TENSE_ON;
+  const wanted = tense ? Math.max(TENSE_LEAST, difficulty) : 0;
+  const tauTension = (input.ended ? 2 : wanted > memory.drive ? TENSION_IN_S : TENSION_OUT_S) / 2;
+  const drive = ease(memory.drive, wanted, dt, tauTension);
+  const tension = ease(memory.tension, drive, dt, tauTension);
+
+  // The level: the view's, under the weather, over a swell, a slow orbit and time running faster, ducked by the voice and the alarms.
+  const worst = Math.max(ramp(input.turbulence, ROUGH_TURBULENCE, 1), input.severity ?? 0, ramp(input.dbz ?? -Infinity, ...HAIL_DBZ), input.hail ?? 0);
+  let gain = view.gain * (1 - 0.3 * cloud) * (1 - 0.2 * input.rain) * (1 - 0.6 * clamp01(worst));
+  gain *= (1 + SWELL * swell) * (1 + ORBIT_UP * orbiting) * (status.warp ? 1 + WARP_UP : 1);
+  // On the ground, low; the take-off roll brings it up.
+  if (onGround) gain *= 0.5 + 0.5 * ramp(input.rolling ?? 0, 15, 70);
+  const cockpit = status.view === "cockpit";
+  if (cockpit && alarmed) gain *= UNDER_ALARM;
+  else if (cockpit && input.speaking) gain *= UNDER_VOICE;
+  if (input.ended) gain = 0;
+  gain = Math.min(gain, 1.3);
+  const tau = input.ended ? MUSIC_GONE_S : gain < memory.gain ? MUSIC_DOWN_S : MUSIC_UP_S;
+  const level = ease(memory.gain, gain, dt, tau);
+
+  // The band: the view's, muffled by thick cloud, opened by a swell.
+  const lowTarget = Math.min(MUSIC_LOW_MOST, view.low * (1 - 0.82 * cloud ** 1.3) * (1 + 0.6 * swell) * (status.warp ? 1.3 : 1));
+  const lowNow = easeLog(memory.low, Math.max(lowTarget, 300), dt, MUSIC_BAND_S);
+  const highNow = easeLog(memory.high, view.high, dt, MUSIC_BAND_S);
+
+  // The crossfade: equal in power, the theme thinned and never cut.
+  const angle = (tension * Math.PI) / 2;
+  const music: MusicLevels = {
+    gain: level,
+    high: highNow,
+    low: lowNow,
+    theme: THEME_LEAST + (1 - THEME_LEAST) * Math.cos(angle),
+    themeLow: MUSIC_LOW_MOST * (THEME_LOW_LEAST / MUSIC_LOW_MOST) ** tension,
+    tension: Math.sin(angle),
+  };
+  return {
+    music,
+    memory: {
+      gain: level, high: highNow, low: lowNow, drive, tension, tense, lowFor, warnedFor, clouded, inCloud, swell, aloft,
+      orbit: input.orbit ?? memory.orbit, turning,
+    },
+  };
+}
+
+/**
  * The height under which coming down this fast, m/s, is "pull up" and no
  * longer "sink rate", metres: the inner curve of a ground proximity
  * warning's excessive descent rate mode, from about 1,700 ft/min at 280 ft
@@ -290,6 +528,7 @@ export function initialMemory(input: Pick<SoundInput, "throttle">, status: Pick<
       height: NaN, warned: [], banking: false, bankIn: 0, pulling: false, pullFor: 0, landing: false, retarding: false, retardIn: 0,
       groundFor: 0,
     },
+    music: initialMusic(),
   };
 }
 
@@ -525,6 +764,8 @@ export function mixSound(
   if (cockpit && !cutting && heard.some((alarm) => !memory.heard.includes(alarm) && kindOf(alarm).chime === "single")) {
     events.push({ kind: "chime" });
   }
+  const alarmed = heard.length > 0 || said.memory.pulling || has("stall");
+  const scored = mixMusic(memory.music, input, status, alarmed, dt);
   const levels: SoundLevels = {
     volume: muted || status.paused ? 0 : VOLUME,
     world: 1 - 0.85 * clamp01(input.fade),
@@ -541,6 +782,7 @@ export function mixSound(
       gain: cockpit ? 1 : 0, terrain: said.memory.pulling, stall: has("stall"),
       chime: cockpit && heard.some((alarm) => kindOf(alarm).chime === "continuous"),
     },
+    music: scored.music,
   };
   return {
     levels,
@@ -549,7 +791,7 @@ export function mixSound(
     quiet: said.quiet,
     memory: {
       spool, throttle: input.throttle, flash: input.flash, autopilot: status.autopilot, low: status.low, seatbelt, thunderQuiet,
-      gear, gearGoing, flaps, flapsFor, heard, voice: said.memory,
+      gear, gearGoing, flaps, flapsFor, heard, voice: said.memory, music: scored.memory,
     },
   };
 }

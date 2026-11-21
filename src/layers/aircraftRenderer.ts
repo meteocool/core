@@ -32,6 +32,7 @@ import { blastGlare, makeEffectsPass } from "./aircraftEffects";
 import type { EffectsPass } from "./aircraftEffects";
 import { perspective } from "../lib/studio/flight/view";
 import type { Vec3 } from "../lib/studio/flight/view";
+import { AIRCRAFT_BYTES, AIRCRAFT_MODEL, fetchAsset, forgetAsset } from "../lib/studio/flight/assets";
 
 /** How the aircraft is seen this frame. */
 export interface AircraftView {
@@ -267,17 +268,50 @@ const VEIL_COLOUR: Vec3 = [0.86, 0.89, 0.92];
    from what is already here. */
 let loading: Promise<{ model: AircraftModel; images: Array<ImageBitmap | null> }> | null = null;
 
-/** The aircraft's model and its textures, from where they are served; the same ones to every caller. */
-export function loadAircraft(base: string) {
+/** How much of the textures has come, bytes, and of how much; `known` once every one of them has said its size. */
+type TextureProgress = (loaded: number, total: number, known: boolean) => void;
+const textureListeners = new Set<TextureProgress>();
+let textureProgress: [number, number, boolean] = [0, 0, false];
+
+/**
+ * The aircraft's model and its textures, from where they are served, the
+ * textures decoded; the same ones to every caller. The model's bytes are the
+ * page's one fetch of them (lib/studio/flight/assets.ts), which the flight's
+ * loading may have begun already; `textures` hears how far the textures are.
+ */
+export function loadAircraft(base: string, textures?: TextureProgress) {
+  if (textures) {
+    textureListeners.add(textures);
+    textures(...textureProgress);
+  }
   loading ??= (async () => {
-    const response = await fetch(`${base}a320.bin`);
-    if (!response.ok) throw new Error(`aircraft model: ${response.status}`);
-    const model = parseModel(await response.arrayBuffer());
+    const model = parseModel(await fetchAsset(`${base}${AIRCRAFT_MODEL}`, AIRCRAFT_BYTES));
+    const files = model.materials.map(({ texture }) => texture).filter((texture): texture is string => Boolean(texture));
+    const sizes = new Map<string, [number, number]>();
+    const tell = () => {
+      let [loaded, total] = [0, 0];
+      for (const [got, of] of sizes.values()) {
+        loaded += got;
+        total += of;
+      }
+      textureProgress = [loaded, total, sizes.size === new Set(files).size];
+      for (const listener of textureListeners) listener(...textureProgress);
+    };
     const images = await Promise.all(model.materials.map(async ({ texture }) => {
       if (!texture) return null;
-      const file = await fetch(`${base}${texture}`);
-      if (!file.ok) return null;
-      return createImageBitmap(await file.blob(), { premultiplyAlpha: "none" });
+      try {
+        const url = `${base}${texture}`;
+        const bytes = await fetchAsset(url, 0, (got, of) => {
+          sizes.set(texture, [got, of]);
+          tell();
+        });
+        const image = await createImageBitmap(new Blob([bytes]), { premultiplyAlpha: "none" });
+        forgetAsset(url);
+        return image;
+      } catch {
+        // Drawn untextured.
+        return null;
+      }
     }));
     return { model, images };
   })();

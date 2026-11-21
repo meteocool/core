@@ -30,8 +30,17 @@
  *   blast, a long low rumble and the fire crackling after it), heard the
  *   same from every view.
  *
+ * - the soundtrack (soundtrack.ts): its theme and its suspenseful piece,
+ *   crossfaded by how difficult the flight is, and both heard as the view
+ *   and the weather hear them; the one sound here that is a recording.
+ *
  * Everything goes through one limiter, then the volume, then a soft clip
- * that keeps the last of a peak under full scale.
+ * that keeps the last of a peak under full scale; the music past the
+ * limiter, so that a thunderclap does not pump it.
+ *
+ * The noises and the tones that loop are made once for the page and shared
+ * by every flight (`prepareSounds`, which the flight's loading calls before
+ * take-off): made at a flight's start they held it up.
  */
 import type { SoundEvent, SoundLevels } from "./soundMix";
 
@@ -48,6 +57,8 @@ const TRIM = {
   wind: 0.55, brake: 0.55, roar: 0.5, turbulence: 0.9,
   rain: 0.22, patter: 0.32, hail: 0.5,
   thunder: 1.1, thump: 0.9, cabin: 0.8, alerts: 0.5, ui: 0.32, warp: 4, crash: 1,
+  // Mastered loud: at its fullest about as loud as the cruise's own sounds, over them only in the cleanest view.
+  music: 0.7,
 };
 
 /** How many hailstones a second at the hardest. */
@@ -280,6 +291,36 @@ function crackleBuffer(context: BaseAudioContext, seconds: number): AudioBuffer 
   return buffer;
 }
 
+/**
+ * A near strike's crack: the shock from each bend of the channel arriving a
+ * moment after the last, a dense run of N-waves that tears and then thins
+ * out, the later ones broader and so lower.
+ */
+function crackBuffer(context: BaseAudioContext, seconds: number): AudioBuffer {
+  const { sampleRate } = context;
+  const length = Math.round(seconds * sampleRate);
+  const buffer = context.createBuffer(1, length, sampleRate);
+  const data = buffer.getChannelData(0);
+  let at = 0;
+  while (at < length) {
+    const x = at / length;
+    const amplitude = at === 0 ? 1 : (1 - x) ** 1.4 * (0.2 + 0.8 * Math.random() ** 2);
+    const width = Math.max(4, Math.round(sampleRate * (0.0003 + (0.0008 + 0.003 * x) * Math.random())));
+    // Over-pressure, then under: a straight fall from one to the other, the edges eased.
+    for (let k = 0; k < width && at + k < length; k++) {
+      const edge = Math.min(1, k / 2, (width - k) / 2);
+      data[at + k] += amplitude * edge * (1 - (2 * k) / width);
+    }
+    // Hundreds a second at first, a few dozen by the end.
+    const rate = 420 * (30 / 420) ** x;
+    at += Math.max(1, Math.round((-Math.log(1 - Math.random()) / rate) * sampleRate));
+  }
+  let peak = 0;
+  for (const value of data) peak = Math.max(peak, Math.abs(value));
+  for (let i = 0; i < length; i++) data[i] *= (peak ? 1 / peak : 1) * Math.min(1, (length - i) / 400);
+  return buffer;
+}
+
 /** A thunder's rumble as an envelope: a few rolls, each later one weaker, over a long decay. */
 function rollCurve(seconds: number, onset: number, rolls: number): Float32Array {
   const points = 256;
@@ -316,6 +357,62 @@ function softClip(): Float32Array<ArrayBuffer> {
   return curve;
 }
 
+/**
+ * How far ahead of the context's clock a sound is started, seconds. Its fade
+ * in has to be still to come when the audio thread gets to it, and that
+ * thread runs ahead of the clock the page reads: by a few milliseconds in
+ * Chrome, by tens in Firefox, where a sound started five milliseconds ahead
+ * began at full level, which is a click.
+ */
+const LEAD_S = 0.03;
+
+/** How long the music takes to go after the flight has left, seconds. */
+export const MUSIC_LEAVE_S = 1.6;
+
+/** The loops every flight's graph plays from. */
+interface Buffers {
+  white: AudioBuffer;
+  pink: AudioBuffer;
+  brown: AudioBuffer;
+  hailTicks: AudioBuffer[];
+  wander: AudioBuffer;
+  gusts: AudioBuffer;
+  patter: AudioBuffer;
+  chime: AudioBuffer;
+  shaker: AudioBuffer;
+}
+
+let shared: Buffers | null = null;
+
+/**
+ * The loops, made once for the page. A buffer is no context's own: made on
+ * one, it plays on any, at its own rate.
+ */
+function buffersFor(context: BaseAudioContext): Buffers {
+  shared ??= {
+    white: noiseBuffer(context, 4.3, "white"),
+    pink: noiseBuffer(context, 5.1, "pink"),
+    brown: noiseBuffer(context, 6.7, "brown"),
+    hailTicks: [2600, 3300, 4100, 5200].map((ring) => clickBuffer(context, 0.03, ring, 0.004)),
+    wander: gustBuffer(context, 23),
+    gusts: gustBuffer(context, 17),
+    patter: patterBuffer(context, 3.7, 700),
+    chime: chimeBuffer(context, CRC_PERIOD_S, CRC_HZ),
+    shaker: shakerBuffer(context, 17),
+  };
+  return shared;
+}
+
+/** Make the loops now, ahead of a flight, on a context of their own: no click or key is needed for one that only renders. */
+export function prepareSounds(): void {
+  if (shared || typeof OfflineAudioContext === "undefined") return;
+  try {
+    buffersFor(new OfflineAudioContext(1, 1, 48000));
+  } catch {
+    // Made by the first flight instead.
+  }
+}
+
 export class SoundGraph {
   private readonly context: BaseAudioContext;
   private readonly targets = new Map<AudioParam, number>();
@@ -338,6 +435,11 @@ export class SoundGraph {
   private readonly alerts: {
     chime: GainNode; shaker: GainNode; cricket: GainNode; cricketGate: GainNode; terrain: GainNode;
     cricketAt: number; terrainOn: boolean; terrainSources: AudioScheduledSourceNode[];
+  };
+  /** The soundtrack's way through: each piece's input and level, the theme's thinning, then both through the view's band and a pause's dimming. */
+  private readonly music: {
+    theme: GainNode; tension: GainNode; themeGain: GainNode; themeLow: BiquadFilterNode; tensionGain: GainNode;
+    high: BiquadFilterNode; low: BiquadFilterNode; dim: BiquadFilterNode; hold: GainNode; gain: GainNode;
   };
   private readonly sources: AudioScheduledSourceNode[] = [];
   private hailAt = 0;
@@ -396,10 +498,25 @@ export class SoundGraph {
     this.scene = gain(0, limiter);
     this.ui = gain(TRIM.ui, limiter);
 
-    this.white = noiseBuffer(context, 4.3, "white");
-    const pink = noiseBuffer(context, 5.1, "pink");
-    this.brown = noiseBuffer(context, 6.7, "brown");
-    this.hailTicks = [2600, 3300, 4100, 5200].map((ring) => clickBuffer(context, 0.03, ring, 0.004));
+    const buffers = buffersFor(context);
+    this.white = buffers.white;
+    const pink = buffers.pink;
+    this.brown = buffers.brown;
+    this.hailTicks = buffers.hailTicks;
+
+    // The soundtrack, past the limiter: the theme thinned as the suspenseful piece comes up, then both as the view hears them.
+    const musicGain = gain(0, this.volume);
+    const hold = gain(1, musicGain);
+    const dim = filter("lowpass", 20000, 0.5, hold);
+    const band = filter("lowpass", 20000, 0.6, dim);
+    const below = filter("highpass", 20, 0.6, band);
+    const themeGain = gain(0, below);
+    const themeLow = filter("lowpass", 20000, 0.6, themeGain);
+    const tensionGain = gain(0, below);
+    this.music = {
+      theme: gain(1, themeLow), tension: gain(1, tensionGain), themeGain, themeLow, tensionGain, high: below, low: band, dim, hold,
+      gain: musicGain,
+    };
 
     this.filters = {
       engine: filter("lowpass", 16000, 0.5, this.scene),
@@ -431,7 +548,7 @@ export class SoundGraph {
     const high = oscillator("sine", 3500, highGain);
     // The fan never holds a speed exactly: its tone wanders a few cents.
     const wander = gain(7);
-    loop(gustBuffer(context, 23), wander, 0.6);
+    loop(buffers.wander, wander, 0.6);
     for (const fan of [...fans, high]) wander.connect(fan.detune);
     const buzz = gain(0, engine);
     const buzzOsc = oscillator("sawtooth", 70, filter("lowpass", 1400, 0.8, buzz));
@@ -443,7 +560,7 @@ export class SoundGraph {
     // The airflow, and what rough air does to it: everything in it goes through the buffet's swells.
     const buffet = gain(1, this.busses.wind);
     const depth = gain(0, buffet.gain);
-    this.gusts = loop(gustBuffer(context, 17), depth);
+    this.gusts = loop(buffers.gusts, depth);
     const windGain = gain(0, buffet);
     const windFilter = filter("bandpass", 600, 0.5, windGain);
     loop(pink, windFilter);
@@ -462,7 +579,7 @@ export class SoundGraph {
     loop(this.white, filter("highpass", 1800, 0.7, peak), 0.93);
     const patter = gain(0, this.scene);
     const patterFilter = filter("bandpass", 3000, 0.9, patter);
-    loop(patterBuffer(context, 3.7, 700), patterFilter);
+    loop(buffers.patter, patterFilter);
     this.rain = { hiss: rainHiss, patter, peak, patterFilter };
 
     // Time warp's whoosh.
@@ -474,9 +591,9 @@ export class SoundGraph {
     // The alerts that sound for as long as their warning lasts.
     const alerts = this.busses.alerts;
     const chime = gain(0, alerts);
-    loop(chimeBuffer(context, CRC_PERIOD_S, CRC_HZ), chime);
+    loop(buffers.chime, chime);
     const shaker = gain(0, alerts);
-    loop(shakerBuffer(context, 17), filter("lowpass", 600, 0.7, shaker));
+    loop(buffers.shaker, filter("lowpass", 600, 0.7, shaker));
     const cricketGate = gain(0, alerts);
     const cricket = gain(0, cricketGate);
     const chirp = gain(0.5, cricket);
@@ -528,6 +645,17 @@ export class SoundGraph {
     to(this.busses.cabin.gain, levels.cabin * TRIM.cabin);
     to(this.busses.alerts.gain, levels.alerts.gain * TRIM.alerts, 0.05);
 
+    // The music's changes are slow already (the mix eases them); scheduled a little ahead, they never jump.
+    const { music } = levels;
+    const ahead = time + LEAD_S;
+    const ease = (param: AudioParam, value: number) => this.to(param, value, ahead, 0.08);
+    ease(this.music.gain.gain, music.gain * TRIM.music);
+    ease(this.music.high.frequency, music.high);
+    ease(this.music.low.frequency, music.low);
+    ease(this.music.themeGain.gain, music.theme);
+    ease(this.music.themeLow.frequency, music.themeLow);
+    ease(this.music.tensionGain.gain, music.tension);
+
     this.setWarp(levels.warp > 0, time);
     this.hail(levels.rain.hail, time);
     this.repeat(levels.alerts, time);
@@ -543,9 +671,20 @@ export class SoundGraph {
     this.to(this.scene.gain, level, at, 0.04);
   }
 
+  /** Where the soundtrack's two pieces go in (soundtrack.ts). */
+  musicInputs(): { theme: AudioNode; tension: AudioNode } {
+    return { theme: this.music.theme, tension: this.music.tension };
+  }
+
+  /** A pause: the music on, lower and darker, as a game's under its pause; or as it was. */
+  setMusicPaused(paused: boolean, at = this.context.currentTime): void {
+    this.to(this.music.hold.gain, paused ? 0.45 : 1, at + LEAD_S, 0.3);
+    this.to(this.music.dim.frequency, paused ? 1100 : 20000, at + LEAD_S, 0.3);
+  }
+
   /** Start a sound of the flight's. */
   play(event: SoundEvent, time = this.context.currentTime): void {
-    const t = time + 0.01;
+    const t = time + LEAD_S;
     switch (event.kind) {
       case "thunder": this.thunder(event.distance, event.strength, t); break;
       case "thump": this.thump(event.strength, t); break;
@@ -587,7 +726,7 @@ export class SoundGraph {
 
   /** Start one of the interface's sounds. */
   cue(kind: SoundCue, time = this.context.currentTime): void {
-    const t = time + 0.005;
+    const t = time + LEAD_S;
     const ui = this.ui;
     const blip = (hz: number, at: number, seconds: number, level = 0.6, end?: number) => this.tone("sine", hz, at, seconds, level, ui, end);
     switch (kind) {
@@ -605,6 +744,16 @@ export class SoundGraph {
     }
   }
 
+  /**
+   * The flight left: its sounds out at once, and the music after them, more
+   * slowly, as a film's score outlasts its last picture.
+   */
+  leave(at = this.context.currentTime): void {
+    const t = at + LEAD_S;
+    for (const node of [this.scene, this.ui, this.busses.crash]) this.to(node.gain, 0, t, 0.05);
+    this.to(this.music.gain.gain, 0, t, MUSIC_LEAVE_S / 4);
+  }
+
   /** Stop everything and let go of the graph. */
   dispose(): void {
     for (const source of [...this.sources, ...this.alerts.terrainSources]) {
@@ -615,6 +764,7 @@ export class SoundGraph {
       }
     }
     this.volume.disconnect();
+    this.music.gain.disconnect();
   }
 
   /** Ease a parameter towards a value, and only when it moves: a frame mostly changes nothing. */
@@ -762,16 +912,20 @@ export class SoundGraph {
     const bus = this.busses.thunder;
     const near = distance < 0.35;
     if (near) {
-      const crack = context.createGain();
-      crack.gain.setValueAtTime(0, t);
-      crack.gain.linearRampToValueAtTime(0.9 * strength, t + 0.003);
-      crack.gain.setTargetAtTime(0, t + 0.01, 0.05);
-      // The tearing: a few more cracks in its first quarter second.
-      for (let i = 0, at = t + 0.03; i < 6; i++, at += 0.02 + Math.random() * 0.05) {
-        crack.gain.setTargetAtTime((0.3 + 0.5 * Math.random()) * strength, at, 0.002);
-        crack.gain.setTargetAtTime(0, at + 0.008, 0.03);
-      }
-      this.burst(this.white, t, 0.8, 1, bus, filterOf(context, "highpass", 600, 0.7), crack);
+      // The crack, its highest edge taken off by the air it crossed.
+      const crack = context.createBufferSource();
+      crack.buffer = crackBuffer(context, 0.45 + 0.4 * Math.random());
+      const level = context.createGain();
+      level.gain.value = 0.8 * strength;
+      crack.connect(filterOf(context, "lowpass", 5200, 0.6)).connect(filterOf(context, "highpass", 50, 0.7)).connect(level).connect(bus);
+      crack.start(t);
+      crack.onended = () => crack.disconnect();
+      // And the boom under it, a hair later.
+      const boom = context.createGain();
+      boom.gain.setValueAtTime(0, t + 0.01);
+      boom.gain.linearRampToValueAtTime(1.3 * strength, t + 0.03);
+      boom.gain.setTargetAtTime(0, t + 0.06, 0.3);
+      this.burst(this.brown, t + 0.01, 1.4, 1, bus, filterOf(context, "lowpass", 220, 0.8), boom);
     }
     const seconds = 5 + 6 * distance + Math.random() * 2;
     const onset = near ? 0.05 : 0.3 + distance * 1.2;
@@ -789,12 +943,12 @@ export class SoundGraph {
     const source = context.createBufferSource();
     source.buffer = this.brown;
     source.connect(lowpass).connect(rumble).connect(level).connect(pan).connect(bus);
-    // A little of the rumble's crackle, higher, to say it is a storm and not a lorry.
+    // The rumble's growl, a little above its floor, so it is a storm and not a lorry.
     const grit = context.createGain();
-    grit.gain.value = 0.25 * (1 - distance);
+    grit.gain.value = 0.35 * (1 - distance);
     const gritSource = context.createBufferSource();
-    gritSource.buffer = this.white;
-    gritSource.connect(filterOf(context, "bandpass", 450, 0.8)).connect(grit).connect(rumble);
+    gritSource.buffer = this.brown;
+    gritSource.connect(filterOf(context, "bandpass", 240, 1.2)).connect(grit).connect(rumble);
     for (const one of [source, gritSource]) {
       one.loop = true;
       one.start(t, Math.random() * 3);

@@ -32,11 +32,14 @@ import { cloudStyle, peelLevel, peelManual, peelTop, radarColormap } from "../st
 import { dbzColour } from "../lib/cellVolume";
 import { STYLE_FIELD } from "../lib/cloudStyle";
 import { faCubes } from "@fortawesome/free-solid-svg-icons/faCubes";
+import { faPlaneDeparture } from "@fortawesome/free-solid-svg-icons/faPlaneDeparture";
 import Icon from "./Icon.svelte";
 import StylePicker from "./StylePicker.svelte";
 
-/** Go into meteocool Studio (lib/studio); without it, where Studio is not offered, no way in. */
+/** Go into meteocool Studio (lib/studio); without it, where Studio is not offered or not turned on, no way in. */
 export let openStudio: (() => void) | null = null;
+/** Go to the flight's plan (meteoair), Studio's tools or not; without it, no way to fly from here. */
+export let openFlight: (() => void) | null = null;
 
 /** The reflectivity the track spans: the faintest the style draws to what a full peel leaves of the strongest storm. */
 $: trackMin = STYLE_FIELD[$cloudStyle].floor;
@@ -73,6 +76,12 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
     on:input={moved} />
   <div class="pickers">
     <StylePicker />
+    {#if openFlight}
+      <button type="button" class="studio" on:click={openFlight} title={$_("guide_3d.fly_title")}>
+        <Icon icon={faPlaneDeparture} />
+        <span>{$_("guide_3d.fly")}</span>
+      </button>
+    {/if}
     {#if openStudio}
       <button type="button" class="studio" on:click={openStudio} title={$_("studio.open_title")}>
         <Icon icon={faCubes} />
@@ -110,7 +119,7 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
   .label {
     flex: none;
   }
-  /* The way into Studio, at the tray's end: a pill as the style picker's is. */
+  /* The ways into the flight and into Studio, at the tray's end: pills as the style picker's is. */
   .studio {
     flex: none;
     display: inline-flex;
