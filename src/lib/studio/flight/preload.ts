@@ -7,9 +7,10 @@
  * starts with all of it there: the aircraft drawn, the deck's buttons and
  * the cockpit's controls answering, the sound and the music playing.
  *
- * The meteoair page starts it when the reader asks for the plan, not before:
- * it is large, and a phone's data may be counted; the flight's plan starts
- * it, and so does a flight asked for from the map; taking off before it is done shows how far it is
+ * It starts when the reader takes off, not before: it is large, and a
+ * phone's data may be counted, so neither the meteoair page nor the flight's
+ * plan loads it ahead. A flight asked for from the map or by a link starts
+ * it as it boards. Until it is done the flight shows how far it is
  * (components/studio/flight/FlightLoading.svelte). Whatever is fetched is
  * kept (assets.ts, and the modules' own), so asking again costs nothing and
  * a second flight never waits.

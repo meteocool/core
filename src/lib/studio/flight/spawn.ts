@@ -3,9 +3,10 @@
  *
  * The listed volumes are every tile of sky it rains in, across every
  * network. Grouped by adjacency they are storm systems, and the best one to
- * fly at is strong, near mountains (the relief is half of what a flight
- * among storms shows) and near where the reader was looking in Studio, so a
- * storm the reader has framed wins over a stronger one a continent away.
+ * fly at is heavy, full of lightning, near mountains (the relief is half of
+ * what a flight among storms shows) and near where the reader was looking in
+ * Studio, so a storm the reader has framed wins over a stronger one a
+ * continent away.
  *
  * The aircraft starts in the air some way short of the system, nose on it:
  * from the side where the way in crosses high ground, where no other storm
@@ -32,6 +33,8 @@ export interface StormSystem {
   radiusKm: number;
   peakDbz: number;
   strength: number;
+  /** Lightning strikes in it lately (`withStrikes`); 0 where none were counted. */
+  strikes: number;
   tiles: number;
   /** Where its tiles stand and how wide each is, for finding its edge on a way in: east and north of its middle, km. */
   extent: ReadonlyArray<{ east: number; north: number; half: number }>;
@@ -58,7 +61,12 @@ export const MOUNTAINS: ReadonlyArray<{ name: string; box: readonly [number, num
   { name: "Apennines", box: [8.5, 38.0, 16.5, 44.6], weight: 0.9 },
   { name: "Dinaric Alps", box: [14.0, 41.5, 21.0, 46.0], weight: 0.8 },
   { name: "Scandinavian mountains", box: [5.0, 58.5, 20.0, 69.5], weight: 0.8 },
+  { name: "Sierra Nevada", box: [-4.0, 36.8, -2.4, 37.4], weight: 1 },
+  { name: "Cantabrian Mountains", box: [-8.0, 42.6, -3.3, 43.4], weight: 1 },
+  { name: "Corsica", box: [8.5, 41.3, 9.6, 43.0], weight: 1 },
+  { name: "Balkan Mountains", box: [22.3, 41.4, 26.5, 43.4], weight: 0.8 },
   { name: "Massif Central", box: [1.8, 44.0, 4.8, 46.2], weight: 0.7 },
+  { name: "Vosges and Black Forest", box: [6.7, 47.6, 8.6, 48.9], weight: 0.5 },
   { name: "Scottish Highlands", box: [-6.5, 56.0, -2.5, 58.7], weight: 0.6 },
 ];
 
@@ -107,7 +115,7 @@ const TERRAIN_CHECK_KM = 60;
 export const START_TAS = 220;
 
 /** How quickly a system's pull falls away with its distance from where the reader looked, km. */
-const NEARNESS_KM = 500;
+const NEARNESS_KM = 400;
 
 /**
  * Where the storm layer's sun stands, as a bearing: from the west, a little
@@ -178,21 +186,86 @@ export function stormSystems(tiles: readonly StormTile[]): StormSystem[] {
       return { east: east / KM, north: north / KM, half: tileWidthKm(tile) / 2 };
     });
     return {
-      lon, lat, radiusKm, strength, tiles: members.length, extent,
+      lon, lat, radiusKm, strength, strikes: 0, tiles: members.length, extent,
       peakDbz: Math.max(...members.map((tile) => tile.peakDbz ?? 0)),
     };
   }).sort((a, b) => b.strength - a.strength);
 }
 
+/** A lightning strike: where, and when, ms since the epoch. */
+export interface Strike {
+  lon: number;
+  lat: number;
+  at: number;
+}
+
 /**
- * The systems in the order the plan offers them: strength, with the relief
- * under and around one and its nearness to where the reader looked. N in
- * flight goes by severity instead (`bySeverity`).
+ * How far outside a system's tiles a strike still counts as its own, km:
+ * lightning comes down under the anvil, ahead of the rain the radar sees,
+ * and the networks place a strike to a few hundred metres at best.
+ */
+const STRIKE_REACH_KM = 10;
+
+/** How many of `strikes` struck in a system: in one of its tiles, or within `STRIKE_REACH_KM` of one. */
+export function strikesIn(system: Pick<StormSystem, "lon" | "lat" | "radiusKm" | "extent">, strikes: readonly Strike[]): number {
+  let count = 0;
+  for (const strike of strikes) {
+    if (distanceM(system.lon, system.lat, strike.lon, strike.lat) / KM > system.radiusKm + STRIKE_REACH_KM) continue;
+    const [east, north] = offsetM(system.lon, system.lat, strike.lon, strike.lat).map((metres) => metres / KM);
+    if (system.extent.some((tile) => Math.max(Math.abs(east - tile.east), Math.abs(north - tile.north)) <= tile.half + STRIKE_REACH_KM)) count += 1;
+  }
+  return count;
+}
+
+/** The systems again, each with how many of `strikes` struck in it. */
+export function withStrikes(systems: readonly StormSystem[], strikes: readonly Strike[]): StormSystem[] {
+  return systems.map((system) => ({ ...system, strikes: strikesIn(system, strikes) }));
+}
+
+/**
+ * The strongest echo from which a system is heavy, dBZ: a thunderstorm's
+ * core with hail likely in it, the cells the plan's chart marks.
+ */
+export const HEAVY_DBZ = 50;
+/** As many strikes as make a system heavy whatever its echo: a thunderstorm going off. */
+export const HEAVY_STRIKES = 25;
+
+/** Whether a system is a heavy one: a hail core, or lightning going off in it. */
+export const isHeavy = (system: Pick<StormSystem, "peakDbz" | "strikes">): boolean => (
+  system.peakDbz >= HEAVY_DBZ || system.strikes >= HEAVY_STRIKES
+);
+
+/**
+ * How much a system is worth flying at, before its nearness: its strength
+ * (rain and area), raised for a heavy core, much more for the lightning in
+ * it, and most of all for mountains under and round it, since towers over
+ * terrain are what a flight among storms is for. Lightning and relief count
+ * as products, so a busy cluster over the Alps beats a bigger, quieter rain
+ * area over the plains, and a quiet one over the Alps too.
+ *
+ * - heavy core: ×1 to 45 dBZ, ×3 at 55, ×4 at 60
+ * - lightning: ×(1 + √strikes / 2), so ×6 at 100 strikes, ×11 at 400
+ * - relief: ×(1 + 2 × range weight), so ×5 in the Alps, ×2.8 in the Apennines
+ */
+export function stormWorth(system: StormSystem): number {
+  const heavy = 1 + Math.max(0, system.peakDbz - 45) / 5;
+  const lightning = 1 + Math.sqrt(system.strikes) / 2;
+  const relief = 1 + 2 * reliefAt(system.lon, system.lat);
+  return system.strength * heavy * lightning * relief;
+}
+
+/**
+ * The systems in the order the plan offers them: their worth (`stormWorth`)
+ * over their distance from where the reader looked, which counts by its
+ * square, so that within a few hundred kilometres the mountains and the
+ * lightning decide, and a storm the reader has framed still beats a quiet
+ * one by the mountains a continent away. N in flight goes by severity
+ * instead (`bySeverity`).
  */
 export function rankSystems(systems: readonly StormSystem[], lookLon: number, lookLat: number): StormSystem[] {
   const score = (system: StormSystem) => {
     const away = distanceM(lookLon, lookLat, system.lon, system.lat) / KM;
-    return system.strength * (1 + reliefAt(system.lon, system.lat)) / (1 + away / NEARNESS_KM);
+    return stormWorth(system) / (1 + (away / NEARNESS_KM) ** 2);
   };
   return [...systems].sort((a, b) => score(b) - score(a));
 }

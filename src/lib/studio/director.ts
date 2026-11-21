@@ -133,6 +133,8 @@ export interface Stage {
   setFlightWeather(weather: WeatherView | null, glow?: { lon: number; lat: number; km: number; brightness: number } | null): void;
   /** Every lightning strike within `km` of a place since `since`, ms since the epoch: where, and when. */
   strikesNear(lon: number, lat: number, km: number, since: number): Array<{ lon: number; lat: number; at: number }>;
+  /** Every lightning strike the map holds since `since`, ms since the epoch, wherever it struck; outside a flight too. */
+  strikesSince(since: number): Array<{ lon: number; lat: number; at: number }>;
   /**
    * Draw the flight at this share of its full sharpness, 1 down to about a
    * quarter: fewer pixels and coarser clouds, for a machine that cannot keep up.

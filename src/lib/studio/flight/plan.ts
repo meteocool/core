@@ -18,6 +18,9 @@ import { freezingLevel, USUAL_BASE_KM } from "./cloudBase";
 import { bearingDeg, destination, distanceM, offsetM, wrap180, wrap360 } from "./geo";
 import { approachTo, edgeKm, MOUNTAINS, SHOWER_DBZ, stormLevel, SUN_BEARING, terrainFloor } from "./spawn";
 
+/** How far back the plan counts a storm's lightning, minutes: what the briefing says the count is over. */
+export const STRIKE_WINDOW_MIN = 15;
+
 export { stormLevel };
 import type { Approach, StormSystem, StormTile } from "./spawn";
 
@@ -291,7 +294,8 @@ const minutes = (seconds: number) => `${Math.max(1, Math.round(seconds / 60))} M
 /** The highest ground of each range, metres: what a level is safe over. */
 const SUMMITS: Record<string, number> = {
   Alps: 4810, Pyrenees: 3404, Carpathians: 2655, Apennines: 2912, "Dinaric Alps": 2694,
-  "Scandinavian mountains": 2469, "Massif Central": 1885, "Scottish Highlands": 1345,
+  "Scandinavian mountains": 2469, "Sierra Nevada": 3479, "Cantabrian Mountains": 2650, Corsica: 2706,
+  "Balkan Mountains": 2925, "Massif Central": 1885, "Vosges and Black Forest": 1493, "Scottish Highlands": 1345,
 };
 
 /** How far over the highest ground a level is called safe, metres: 2,000 ft, as over mountains. */
@@ -363,8 +367,9 @@ export function briefing(
     const across = Math.round((target.radiusKm * 2 * 1000) / NM);
     lines.push({
       item: "weather",
-      text: `${weather.text} · MAX ${Math.round(target.peakDbz)} DBZ · ${across} NM ACROSS`,
-      caution: weather.severe,
+      text: `${weather.text} · MAX ${Math.round(target.peakDbz)} DBZ · ${across} NM ACROSS`
+        + (target.strikes ? ` · LTG ${target.strikes} STRIKES/${STRIKE_WINDOW_MIN} MIN` : ""),
+      caution: weather.severe || target.strikes > 0,
     });
   } else {
     lines.push({ item: "route", text: `${position(plan.lon, plan.lat)} · HDG ${degrees(plan.heading)} · NO DESTINATION` });

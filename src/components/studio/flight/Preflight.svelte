@@ -4,7 +4,8 @@
  * take off from.
  *
  * A chart with the start and the way to the storm drawn on it, which a click
- * moves; the aircraft, turning; where and how the flight begins; and a
+ * moves, and the heavy cells and the lightning of the last minutes marked on
+ * it, which is what the storms on offer are ranked by; the aircraft, turning; where and how the flight begins; and a
  * briefing that reads all of it back as a crew would be handed it.
  *
  * The whole screen, as a simulator's menu is: a storm turning slowly behind
@@ -17,8 +18,9 @@
  * the flight that takes it is lib/studio/flight/pilot.ts.
  *
  * A menu: the menus' music plays while it is up, with a switch for all of
- * the sound, and what the flight needs is loaded meanwhile
- * (lib/studio/flight/preload.ts), so that taking off seldom waits.
+ * the sound. What the flight needs (lib/studio/flight/preload.ts) is not
+ * loaded meanwhile: it is large, and comes once the reader takes off, with
+ * how far along it is (FlightLoading.svelte).
  */
 import logo from "../../../assets/logo.svg";
 import { onDestroy, onMount } from "svelte";
@@ -32,7 +34,7 @@ import VectorLayer from "ol/layer/Vector";
 import VectorSource from "ol/source/Vector";
 import { boundingExtent } from "ol/extent";
 import { fromLonLat, toLonLat } from "ol/proj";
-import { Fill, RegularShape, Stroke, Style } from "ol/style";
+import { Circle as CircleStyle, Fill, RegularShape, Stroke, Style, Text } from "ol/style";
 import { faPlaneDeparture } from "@fortawesome/free-solid-svg-icons/faPlaneDeparture";
 import CloseDisc from "../../CloseDisc.svelte";
 import Icon from "../../Icon.svelte";
@@ -48,15 +50,18 @@ import { destination, distanceM } from "../../../lib/studio/flight/geo";
 import { FLIGHT_STYLE } from "../../../lib/studio/flight/pilot";
 import {
   AIRCRAFT, ALTITUDE_RANGE, atMach, briefing, flightLevel, headed, levelled, machRange, movedTo, planFrom, retargeted,
+  STRIKE_WINDOW_MIN,
 } from "../../../lib/studio/flight/plan";
 import type { FlightPlan } from "../../../lib/studio/flight/plan";
-import { approachTo, clearSkyStart, rankSystems, stormSystems } from "../../../lib/studio/flight/spawn";
+import {
+  approachTo, clearSkyStart, HEAVY_DBZ, isHeavy, rankSystems, stormSystems, withStrikes,
+} from "../../../lib/studio/flight/spawn";
 import type { StormSystem } from "../../../lib/studio/flight/spawn";
 import { FLIGHT_BASEMAP } from "../../../lib/studio/store";
 import { flightLinkUrl } from "../../../lib/studio/flightLink";
 import { startOf } from "../../../lib/studio/flight/plan";
 import { sendLink } from "../../../lib/share";
-import { flightLoad, loadMenuMusic, preloadFlight, shareOf } from "../../../lib/studio/flight/preload";
+import { flightLoad, loadMenuMusic, shareOf } from "../../../lib/studio/flight/preload";
 import { claimMenuMusic } from "../../../lib/studio/flight/soundtrack";
 import { shareAvailable, shareIcon } from "../../../lib/shareSupport";
 import { followSideways } from "../../../lib/sideways";
@@ -99,8 +104,14 @@ const fullScreenOnly = typeof window !== "undefined" && Boolean(window.webkit?.m
   && !window.nativeCapabilities?.inlineVideo;
 const still = fullScreenOnly || (typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches);
 
+/** The lightning the storms are ranked by: every strike the map holds from the last minutes. */
+const recentStrikes = () => stage.strikesSince(Date.now() - STRIKE_WINDOW_MIN * 60_000);
+/** The storms on the radar, each with its lightning, the best to fly at first (spawn.ts, `rankSystems`). */
+const ranked = (list: typeof tiles, struck: typeof strikes) => rankSystems(withStrikes(stormSystems(list), struck), look.lon, look.lat);
+
 let tiles = stage.stormTiles();
-let systems = rankSystems(stormSystems(tiles), look.lon, look.lat);
+let strikes = recentStrikes();
+let systems = ranked(tiles, strikes);
 
 /** The plan the flight would fly unasked, from the storms listed now. */
 const proposed = (): FlightPlan => planFrom(
@@ -121,14 +132,20 @@ function change(next: FlightPlan): void {
    list is looked at again while the page is up. A plan the reader has not
    touched is made again from it; one they have keeps everything but its
    storm, which is found again in the new list where it still stands. */
-const signature = (list: typeof tiles) => `${list.length}:${list.reduce((sum, tile) => sum + (tile.peakDbz ?? 0), 0).toFixed(0)}`;
-let listed = signature(tiles);
+/* The lightning counts by its order of magnitude, in halves: a storm whose
+   count creeps up strike by strike does not remake the plan every look. */
+const signature = (list: typeof tiles, struck: typeof strikes) => (
+  `${list.length}:${list.reduce((sum, tile) => sum + (tile.peakDbz ?? 0), 0).toFixed(0)}:${Math.round(2 * Math.log2(1 + struck.length))}`
+);
+let listed = signature(tiles, strikes);
 const listTimer = setInterval(() => {
   const next = stage.stormTiles();
-  if (signature(next) === listed) return;
-  listed = signature(next);
+  const struck = recentStrikes();
+  if (signature(next, struck) === listed) return;
+  listed = signature(next, struck);
   tiles = next;
-  systems = rankSystems(stormSystems(tiles), look.lon, look.lat);
+  strikes = struck;
+  systems = ranked(tiles, strikes);
   drawStorms();
   if (!touched) {
     plan = proposed();
@@ -166,10 +183,11 @@ $: feet = Math.round((plan.altitude * FEET) / 100) * 100;
 $: knots = Math.round(indicatedFromTrue(plan.tas, plan.altitude) * KNOTS);
 $: loadPercent = Math.floor(shareOf($flightLoad) * 100);
 
-/** A storm system as the list names it: how strong, how far and which way from where the reader looked. */
+/** A storm system as the list names it: how strong, how far and which way from where the reader looked; and its lightning, as a bolt and a count. */
 function named(system: StormSystem): string {
   const nm = Math.round(distanceM(look.lon, look.lat, system.lon, system.lat) / NM);
-  return $_("studio.flight.plan.system", { values: { dbz: Math.round(system.peakDbz), nm, across: Math.round((system.radiusKm * 2000) / NM) } });
+  const name = $_("studio.flight.plan.system", { values: { dbz: Math.round(system.peakDbz), nm, across: Math.round((system.radiusKm * 2000) / NM) } });
+  return system.strikes ? `${name} · ⚡ ${system.strikes}` : name;
 }
 
 function setTarget(event: Event): void {
@@ -186,6 +204,11 @@ let chartElement: HTMLDivElement | null = null;
 let viewed = false;
 let chart: OlMap | null = null;
 const stormSource = new VectorSource();
+/** The heavy tiles (`HEAVY_DBZ` and over), drawn solid over the rest, edged. */
+const heavySource = new VectorSource();
+/** The lightning of the last minutes, a spark each; and the heavy systems on offer, ringed and labelled. */
+const strikeSource = new VectorSource();
+const heavyMarks = new VectorSource();
 const route = new Feature<LineString>();
 const nose = new Feature<LineString>();
 const start = new Feature<Point>();
@@ -233,17 +256,51 @@ function frame(): void {
   view.fit(boundingExtent(points), { padding: [70, 70, 70, 70], maxZoom: 9 });
 }
 
-/** The storms on the chart: the finer tiles where the list has them, as the weather radar in the cockpit paints them. */
+const HEAVY_EDGE = new Stroke({ color: "rgba(255, 255, 255, 0.9)", width: 1.25 });
+const SPARK = new Style({
+  image: new CircleStyle({ radius: 2.6, fill: new Fill({ color: YELLOW }), stroke: new Stroke({ color: "rgba(20, 20, 20, 0.85)", width: 1 }) }),
+});
+
+/** A heavy system's mark: a ring round its towers, with its strongest echo and its strikes beside it. */
+const heavyMark = (system: StormSystem) => new Style({
+  image: new CircleStyle({ radius: 14, stroke: new Stroke({ color: "#ffffff", width: 2 }), fill: new Fill({ color: "rgba(255, 69, 58, 0.18)" }) }),
+  text: new Text({
+    text: `${Math.round(system.peakDbz)} dBZ${system.strikes ? `  ⚡ ${system.strikes}` : ""}`,
+    font: "600 12px system-ui, sans-serif", offsetY: -24,
+    fill: new Fill({ color: "#ffffff" }), stroke: new Stroke({ color: "rgba(0, 0, 0, 0.8)", width: 3 }),
+  }),
+});
+
+/**
+ * The storms on the chart: the finer tiles where the list has them, as the
+ * weather radar in the cockpit paints them, the heavy ones solid and edged
+ * over the rest; the lightning of the last minutes over them; and each heavy
+ * system of those on offer ringed, with what makes it heavy written by it.
+ */
 function drawStorms(): void {
   const fine = tiles.filter((tile) => !tile.coarse && tile.tile);
   stormSource.clear();
-  stormSource.addFeatures((fine.length ? fine : tiles.filter((tile) => tile.tile)).flatMap((tile) => {
+  heavySource.clear();
+  for (const tile of fine.length ? fine : tiles.filter((each) => each.tile)) {
     const colour = radarColour(tile.peakDbz ?? 0);
-    if (!colour || !tile.tile) return [];
+    if (!colour || !tile.tile) continue;
     const [west, south, east, north] = tileBounds(tile.tile[0], tile.tile[1], tile.tile[2]);
     const feature = new Feature(new Polygon([[[west, south], [east, south], [east, north], [west, north], [west, south]].map((at) => fromLonLat(at))]));
-    feature.setStyle(new Style({ fill: new Fill({ color: colour }) }));
-    return [feature];
+    const heavy = (tile.peakDbz ?? 0) >= HEAVY_DBZ;
+    feature.setStyle(new Style({ fill: new Fill({ color: colour }), stroke: heavy ? HEAVY_EDGE : undefined }));
+    (heavy ? heavySource : stormSource).addFeature(feature);
+  }
+  strikeSource.clear();
+  strikeSource.addFeatures(strikes.map((strike) => {
+    const feature = new Feature(new Point(fromLonLat([strike.lon, strike.lat])));
+    feature.setStyle(SPARK);
+    return feature;
+  }));
+  heavyMarks.clear();
+  heavyMarks.addFeatures(systems.slice(0, OFFERED).filter(isHeavy).map((system) => {
+    const feature = new Feature(new Point(fromLonLat([system.lon, system.lat])));
+    feature.setStyle(heavyMark(system));
+    return feature;
   }));
 }
 
@@ -251,15 +308,17 @@ onDestroy(claimMenuMusic());
 
 onMount(() => {
   void loadMenuMusic();
-  preloadFlight().catch(() => undefined);
   drawStorms();
   chart = new OlMap({
     target: chartElement ?? undefined,
     layers: [
       window.lm.baseLayerFactory(FLIGHT_BASEMAP),
       // Over the basemap, whose imagery is raised over a plain one's ground; the storms under the place names, the plan over them.
-      new VectorLayer({ source: stormSource, opacity: 0.5, zIndex: 90 }),
+      new VectorLayer({ source: stormSource, opacity: 0.45, zIndex: 90 }),
+      new VectorLayer({ source: heavySource, opacity: 0.9, zIndex: 91 }),
       labelsOnly(),
+      new VectorLayer({ source: strikeSource, zIndex: 110 }),
+      new VectorLayer({ source: heavyMarks, zIndex: 115, declutter: true }),
       new VectorLayer({ source: new VectorSource({ features: [route, nose, goal, start] }), zIndex: 120 }),
     ],
     controls: [],
@@ -422,7 +481,7 @@ function keydown(event: KeyboardEvent): void {
     {:else}
       <button type="button" class="chip glass glass-pill" on:click={oncancel}>{$_("studio.flight.plan.cancel")}</button>
     {/if}
-    <!-- What the flight needs, loading since the plan came up: along the button's foot until it is in. -->
+    <!-- What the flight needs, where it is loading already (a flight asked for again): along the button's foot until it is in. -->
     <button type="button" class="chip go" on:click={() => ontakeoff(plan)}
       title={$flightLoad.state === "loading" ? $_("studio.flight.page.loading_title", { values: { percent: loadPercent } }) : undefined}>
       <Icon icon={faPlaneDeparture} /> {$_("studio.flight.plan.takeoff")}

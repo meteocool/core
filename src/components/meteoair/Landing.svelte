@@ -19,8 +19,14 @@
  * reader's first click or key (lib/studio/flight/soundtrack.ts), with a
  * switch for it, and on through the plan, until the flight takes it over.
  * Everything else the flight needs is large (lib/studio/flight/preload.ts),
- * so it is loaded only once the reader asks for the plan, and a reader on a
- * phone's data is told how large first.
+ * so it is loaded only once the reader takes off, and a reader on a phone's
+ * data is told how large first.
+ *
+ * On a live build (meteocool.com, next) with no thunderstorm on the radar
+ * (lib/studio/flight/fallback.ts), the flight is the demo's recorded storm
+ * instead, and the page says so: its button loads the page again on the
+ * demo's weather (src/weatherSource.ts), and on to the plan. The reader may
+ * keep the live weather all the same.
  *
  * In the apps the page is their meteoair mode: a way back to the app's map
  * where the website has its footer.
@@ -50,7 +56,9 @@ import type Cells3DCapability from "../../caps/Cells3DCapability";
 import { cells3dFailed, sharedActiveCap } from "../../stores";
 import { DeviceDetect } from "../../lib/DeviceDetect";
 import SoundSwitch from "../studio/flight/SoundSwitch.svelte";
-import { FLIGHT_BYTES, loadMenuMusic, preloadFlight } from "../../lib/studio/flight/preload";
+import { FLIGHT_BYTES, loadMenuMusic } from "../../lib/studio/flight/preload";
+import { liveSkyWorthFlying } from "../../lib/studio/flight/fallback";
+import { demoFallbackBuild, demoWeather, WEATHER_KEY, weatherChoice } from "../../weatherSource";
 import { radarMapHref } from "../../lib/studio/flightPage";
 import { claimMenuMusic } from "../../lib/studio/flight/soundtrack";
 import { curtainDown, lift, lower } from "../../lib/curtain";
@@ -82,10 +90,36 @@ const offered = Boolean(layerManager.getCapability("cells3d"));
 const byTouch = touchFirst();
 
 /* The menus' music at once: it is what is heard first, and small. The rest
-   (the flight's code, its aircraft and its music) waits for the button. */
+   (the flight's code, its aircraft and its music) waits for take-off. */
 onMount(() => {
   if (offered) void loadMenuMusic();
 });
+
+/** The page loaded again with the weather set as asked, `board` to go on to the plan at once. */
+function reloadWith(weather: "demo" | "live" | null, board: boolean): void {
+  const url = new URL(window.location.href);
+  if (weather) url.searchParams.set(WEATHER_KEY, weather);
+  else url.searchParams.delete(WEATHER_KEY);
+  if (board) url.searchParams.set(BOARD_KEY, "1");
+  else url.searchParams.delete(BOARD_KEY);
+  window.location.assign(url.href);
+}
+
+/** On the address, to go straight on to the plan once the page has loaded again on the demo's weather. */
+const BOARD_KEY = "board";
+
+/**
+ * Whether the flight will be the demo's storm: where the page already is on
+ * it, or where this live build's radar has no thunderstorm to fly at (asked
+ * once the page is up). Not where the reader has asked for the live weather,
+ * nor for a link's flight, which is the link's.
+ */
+let toDemo = demoWeather;
+if (demoFallbackBuild && !demoWeather && offered && !link && weatherChoice(window.location) !== "live") {
+  void liveSkyWorthFlying().then((worth) => {
+    if (worth === false) toDemo = true;
+  });
+}
 
 type Connection = { type?: string; saveData?: boolean };
 const connection = (navigator as Navigator & { connection?: Connection }).connection;
@@ -113,11 +147,33 @@ function aboard(): void {
   void lower().then(board);
 }
 
-/** The button: on board to the plan, with what the flight needs loading behind it; taking off waits for it if it must. */
+/**
+ * The button: on board to the plan. Nothing more is loaded yet: what the
+ * flight needs comes once the reader takes off, with how far along it is.
+ * To the demo's storm through black, by loading the page again on its weather.
+ */
 function plan(): void {
   if (!offered) return;
-  preloadFlight().catch(() => undefined);
+  if (toDemo && !demoWeather) {
+    if (curtainDown()) return;
+    void lower().then(() => reloadWith("demo", true));
+    return;
+  }
   aboard();
+}
+
+/** The live weather after all: the page loaded again on it where it is on the demo's, the demo forgotten where it was only planned. */
+function keepLive(): void {
+  if (demoWeather) reloadWith("live", false);
+  else toDemo = false;
+}
+
+// Back on the demo's weather from the button: on to the plan, and the address without the errand.
+if (demoWeather && offered && new URLSearchParams(window.location.search).has(BOARD_KEY)) {
+  const url = new URL(window.location.href);
+  url.searchParams.delete(BOARD_KEY);
+  history.replaceState(history.state, "", url.href);
+  board();
 }
 
 /** Whether the page is on its link's flight: from opening until that flight is over, or never got off. */
@@ -230,6 +286,14 @@ const FEATURES = [
           <p class="hint grounded">{$_("studio.flight.page.unavailable")}</p>
           <a class="board quiet" href={mapHref}>{$_("studio.flight.page.open_map")}</a>
         </div>
+      {/if}
+
+      {#if offered && toDemo}
+        <p class="note replay" role="status" transition:fade={{ duration: 180 }}>
+          <span class="tag"><Icon icon={faBolt} /> {$_("studio.flight.page.replay_tag")}</span>
+          {$_(demoWeather ? "studio.flight.page.replay_on" : "studio.flight.page.replay")}
+          <button type="button" class="link" on:click={keepLive}>{$_("studio.flight.page.replay_live")}</button>
+        </p>
       {/if}
 
       <p class="note demo">
@@ -436,6 +500,25 @@ const FEATURES = [
   }
   .note.data { flex-basis: 100%; color: #ffd08a; }
   .note.demo { margin-top: 22px; }
+  /* The demo's storm in place of the live radar's: said where the button is, in the button's colour. */
+  .note.replay {
+    margin-top: 18px;
+    max-width: 34rem;
+    color: var(--ink-2);
+    pointer-events: auto;
+  }
+  .note.replay .tag { background: rgba(255, 214, 10, 0.18); color: #ffd60a; }
+  .link {
+    margin: 0 0 0 4px;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: var(--ink);
+    font: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
   .tag {
     display: inline-flex;
     align-items: center;

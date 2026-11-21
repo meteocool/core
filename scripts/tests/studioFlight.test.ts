@@ -11,6 +11,7 @@ import {
 import type { AircraftState, ControlInput, Environment } from "../../src/lib/studio/flight/physics.ts";
 import {
   approachTo, chooseApproach, edgeKm, MAX_START_KM, rankSystems, reliefAt, START_KM, startAltitude, stormLevel, stormSystems, SUN_BEARING,
+  HEAVY_STRIKES, isHeavy, strikesIn, withStrikes,
 } from "../../src/lib/studio/flight/spawn.ts";
 import type { StormTile } from "../../src/lib/studio/flight/spawn.ts";
 import { flightFine, flightWanted } from "../../src/lib/studio/flight/selection.ts";
@@ -486,6 +487,26 @@ test("of two equal systems, the one by the mountains wins, and nearness to where
   // Looked at from right over the plain one, it is the nearer that wins.
   const strong = stormSystems([tile(-1.0, 47.0, 58)])[0];
   assert.deepEqual(rankSystems([strong, alpine], -1.0, 47.0)[0], strong);
+});
+
+test("lightning counts for the system it strikes in, and a busy cluster by the mountains wins", () => {
+  const quiet = stormSystems([tile(9.0, 45.4, 55)])[0];
+  const busy = stormSystems([tile(4.0, 49.0, 55)])[0];
+  // Strikes inside the tile and just outside its edge count; one far off does not.
+  const near = (lon: number, lat: number, n: number) => Array.from({ length: n }, (_, i) => ({ lon, lat, at: i }));
+  const struck = [...near(4.0, 49.0, 30), ...near(4.0, 49.12, 5), ...near(6.0, 49.0, 50)];
+  assert.equal(strikesIn(busy, struck), 35);
+  assert.equal(strikesIn(quiet, struck), 0);
+  const counted = withStrikes([quiet, busy], struck);
+  assert.equal(counted[1].strikes, 35);
+  assert.ok(isHeavy(counted[0]) && isHeavy({ peakDbz: 40, strikes: HEAVY_STRIKES }) && !isHeavy({ peakDbz: 40, strikes: 3 }));
+  // Over the plain, the one with lightning beats an equal one without.
+  const plainQuiet = { ...counted[1], strikes: 0 };
+  assert.deepEqual(rankSystems([plainQuiet, counted[1]], 4.0, 49.0)[0], counted[1]);
+  // With lightning in it, the one in the Alps beats a busier one over the plain, both a few hundred km off.
+  const alpine = { ...counted[0], strikes: 20 };
+  const plain = { ...counted[1], strikes: 60 };
+  assert.deepEqual(rankSystems([plain, alpine], 6.5, 47.2)[0], alpine);
 });
 
 test("the approach starts short of the system, nose on it, with the sun behind where it can", () => {

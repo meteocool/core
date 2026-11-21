@@ -217,7 +217,11 @@
         "privacy": "Privacy",
         "demo_tag": "Tech demo",
         "demo": "A game made to show live radar in 3D. It wants a recent device, and may not run on older ones.",
-        "data": "Planning a flight loads about {mb} MB. On a mobile connection, Wi-Fi is the better choice."
+        "data": "Taking off loads about {mb} MB. On a mobile connection, Wi-Fi is the better choice.",
+        "replay_tag": "Recorded storm",
+        "replay": "There are no thunderstorms on the live radar right now, so you will fly through a recorded storm from the meteocool demo: real radar and lightning, replayed.",
+        "replay_on": "You are flying through a recorded storm from the meteocool demo, because there are no thunderstorms on the live radar right now: real radar and lightning, replayed.",
+        "replay_live": "Fly the live weather instead"
       },
       "plan": {
         "title": "Flight plan",

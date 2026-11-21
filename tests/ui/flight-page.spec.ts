@@ -85,10 +85,10 @@ test("a flight's link takes off at once from where it says, and once it is over 
   await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
 });
 
-test("the page loads nothing of the flight but its menu music until the button: then the plan, with the rest loading behind it",
+test("nothing of the flight but its menu music loads until take-off: then the loading card, with how far along it is",
   async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
-    test.setTimeout(120_000);
+    test.setTimeout(150_000);
     await noGeocoder(page);
     const asked: string[] = [];
     page.on("request", (request) => {
@@ -104,18 +104,23 @@ test("the page loads nothing of the flight but its menu music until the button: 
     // The tech demo is said, and a desktop's connection is not warned of.
     await expect(landing(page)).toContainText("Tech demo");
     await expect(landing(page).locator(".note.data")).toHaveCount(0);
-    // Pressed: on to the plan at once, the flight loading meanwhile, along the take-off button's foot.
+    // Pressed: on to the plan at once, and still nothing large while it is read.
     await board(page).click();
     const plan = page.getByRole("region", { name: "Flight plan" });
     await expect(plan).toBeVisible({ timeout: 60_000 });
     await expect(plan.getByRole("button", { name: /^Sound (on|off)$/ })).toBeVisible();
+    await page.waitForTimeout(3_000);
+    expect(asked).toEqual([]);
+    await expect(plan.getByRole("button", { name: "Take off" })).not.toHaveAttribute("title", /\d+%/);
+    // Taking off loads it, the loading card counting, and the flight starts once it is in.
+    await plan.getByRole("button", { name: "Take off" }).click();
+    await expect(page.getByRole("dialog", { name: "Preparing the flight" })).toBeVisible({ timeout: 10_000 });
     await expect.poll(() => asked.some((url) => url.includes("/models/a320/"))).toBe(true);
-    await expect(plan.getByRole("button", { name: "Take off" })).toHaveAttribute("title", /\d+%/);
     release();
-    await expect(plan.getByRole("button", { name: "Take off" })).not.toHaveAttribute("title", /\d+%/, { timeout: 60_000 });
+    await expect(page.getByRole("region", { name: "Flight deck" })).toBeVisible({ timeout: 90_000 });
   });
 
-test("taking off is at once once the plan has loaded the flight; the deck's sound button is the plan's switch", async ({ page }, testInfo) => {
+test("the deck's sound button is the plan's switch", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
   test.setTimeout(150_000);
   await noGeocoder(page);
@@ -124,14 +129,10 @@ test("taking off is at once once the plan has loaded the flight; the deck's soun
   await board(page).click();
   const plan = page.getByRole("region", { name: "Flight plan" });
   await expect(plan).toBeVisible({ timeout: 60_000 });
-  // Everything in while the plan is read: the take-off button stops counting.
-  await expect(plan.getByRole("button", { name: "Take off" })).not.toHaveAttribute("title", /\d+%/, { timeout: 90_000 });
   // Off in the plan, off in the flight, and remembered.
   await plan.getByRole("button", { name: /^Sound (on|off)$/ }).click();
   await plan.getByRole("button", { name: "Take off" }).click();
-  // Nothing left to wait for: no loading screen, the deck at once.
-  await expect(page.getByRole("region", { name: "Flight deck" })).toBeVisible({ timeout: 5_000 });
-  await expect(page.getByRole("dialog", { name: "Preparing the flight" })).toHaveCount(0);
+  await expect(page.getByRole("region", { name: "Flight deck" })).toBeVisible({ timeout: 90_000 });
   const sound = page.getByRole("region", { name: "Flight deck" }).getByRole("button", { name: "Sound on" });
   const muted = await page.evaluate(() => localStorage.getItem("studioFlightMuted"));
   await expect(sound).toHaveAttribute("aria-pressed", muted === "1" ? "false" : "true");

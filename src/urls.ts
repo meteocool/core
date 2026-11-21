@@ -7,6 +7,8 @@
 // `npm run dev` proxies to staging; `npm run dev-local` (`--mode localstack`)
 // to the stack `make up` publishes on 127.0.0.1. Either way the page sees the
 // same relative URLs, so the choice of backend lives in one file.
+import { demoWeather } from "./weatherSource";
+
 const proxied = import.meta.env.DEV;
 
 // A build talks to one of three backends. Vite's default mode, production's
@@ -14,8 +16,12 @@ const proxied = import.meta.env.DEV;
 // own hostnames; `--mode next` (next.meteocool.com) the staging cluster's
 // live feeds; `--mode demo` (demo.meteocool.com) the one replaying a recorded
 // storm. The API, the websocket and `v3` are one origin on each.
-const demo = import.meta.env.MODE === "demo";
-const next = import.meta.env.MODE === "next";
+//
+// The flight's page of a live build may show the demo's storm instead, when
+// the live radar has none worth flying at (src/weatherSource.ts): the demo's
+// backend, then, whatever the build.
+const demo = import.meta.env.MODE === "demo" || demoWeather;
+const next = import.meta.env.MODE === "next" && !demoWeather;
 // What the staging cluster's hostnames carry after `api`, `data` and
 // `assets`: the API's suffix is the environment's, the stores' is the cluster's.
 const api = demo ? "-demo" : next ? "-next" : "";

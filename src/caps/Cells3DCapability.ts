@@ -3355,6 +3355,19 @@ export default class Cells3DCapability extends Capability {
     return found;
   }
 
+  strikesSince(since: number): Array<{ lon: number; lat: number; at: number }> {
+    const found: Array<{ lon: number; lat: number; at: number }> = [];
+    for (const strike of this.strikes?.getFeatures() ?? []) {
+      const at = Number(strike.getId());
+      if (!Number.isFinite(at) || at < since) continue;
+      const coordinates = (strike.getGeometry() as Point | undefined)?.getCoordinates();
+      if (!coordinates) continue;
+      const [lon, lat] = toLonLat(coordinates);
+      found.push({ lon, lat, at });
+    }
+    return found;
+  }
+
   /** From the flat map's strike buffer, as the strikes drawn here are; see `ensureStrikes`. */
   strikeNear(lon: number, lat: number, km: number): number | null {
     const support = this.flightSupport;

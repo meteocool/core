@@ -14,11 +14,14 @@
  *
  * A link fixes only the start. The weather is always the radar's now: the
  * storm the sender flew at may have moved or gone, and the one ahead of the
- * receiver is the one they get.
+ * receiver is the one they get. Only a flight over the demo's recorded
+ * storm, in place of a live radar with none (src/weatherSource.ts), says so
+ * in its link, which then opens on that storm too.
  *
  * Pure and free of the flight's code, so the page can read a link before
  * any of that is fetched.
  */
+import { demoWeather, WEATHER_KEY } from "../../weatherSource";
 
 /** A flight's start, as a link has it. */
 export interface FlightStart {
@@ -97,8 +100,9 @@ export function flightLinkQuery(start: FlightStart): string {
 }
 
 /** The whole link, on the site at `origin`. */
-export function flightLinkUrl(origin: string, start: FlightStart): string {
-  return `${origin.replace(/\/+$/, "")}/${FLIGHT_LINK_PAGE}?${flightLinkQuery(start)}`;
+export function flightLinkUrl(origin: string, start: FlightStart, demo = demoWeather): string {
+  // A flight over the demo's storm is over it again from the link, on whatever site it was flown (src/weatherSource.ts).
+  return `${origin.replace(/\/+$/, "")}/${FLIGHT_LINK_PAGE}?${flightLinkQuery(start)}${demo ? `&${WEATHER_KEY}=demo` : ""}`;
 }
 
 /** A query with a flight's keys taken out of it, for the address once that flight is over: "" where nothing else is left. */
