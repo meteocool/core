@@ -226,6 +226,27 @@ const FLIGHT_ZOOM: [number, number] = [0, 22];
  */
 const FLIGHT_LOD = { levels: 4, handheldLevels: 5, ratio: 3 } as const;
 
+/**
+ * The least the level of detail takes an eye to look down by, degrees.
+ * MapLibre's works out how sharp a tile is from how steeply the eye looks
+ * down at it, measured by the height of the eye over the point it looks at;
+ * looking level, that height is none, and at `FLIGHT_LOD` every tile out to
+ * the far plane went to the sharpest zoom: thousands of tiles a frame, the page
+ * held for seconds and, shaken in a storm's rough air, the GPU lost. A storm's
+ * updrafts lift the eye that far, and a reader can look up. Cruising, the eye
+ * looks three degrees down, so this leaves the ground as sharp as it was.
+ * (The far plane is held in too: `FLIGHT_FAR_HEIGHTS`.)
+ */
+const FLIGHT_LOD_LEAST_DOWN = 2;
+const FLIGHT_LOD_LEAST_RISE = Math.sin((FLIGHT_LOD_LEAST_DOWN * Math.PI) / 180);
+
+/**
+ * MapLibre's level of detail: a tile's zoom, from the map's zoom, how far off
+ * the tile is across and the eye over the point looked at, how far off that
+ * point is, and the lens.
+ */
+type TileZoom = (zoom: number, across: number, up: number, away: number, fov: number) => number;
+
 /** The ways a hand moves the map, every one of them off while flying. */
 const FLIGHT_HANDLERS = [
   "dragPan", "scrollZoom", "dragRotate", "keyboard", "doubleClickZoom", "touchZoomRotate", "touchPitch", "boxZoom",
@@ -277,6 +298,16 @@ const LABEL_SLACK_M = 60;
 
 /** The nearest a flight's map is drawn from the eye, metres: nearer than a wheel is to the ground under it. */
 const FLIGHT_NEAR_M = 1.5;
+
+/**
+ * The farthest a flight's map is drawn, as many times the eye's height (as
+ * drawn, `VERTICAL_SCALE`), and never less than a floor; metres. Looking
+ * down even a little, the map draws 77 heights out, whatever the level.
+ * Looking level or up, it drew to where a flat map's horizon is, nowhere:
+ * twice as far again, and with it more than twice the tiles.
+ */
+const FLIGHT_FAR_HEIGHTS = 80;
+const FLIGHT_FAR_LEAST_M = 200_000;
 
 /**
  * How many volumes load at once.
@@ -3195,11 +3226,12 @@ export default class Cells3DCapability extends Capability {
     // looks at, and a camera at the horizon looks kilometres off: low down
     // the ground under the aircraft would be cut away. Near the ground it
     // draws from a fifth of the height over it, and never from further than
-    // it would have.
+    // it would have. And no further than an eye looking a little down (`FLIGHT_FAR_HEIGHTS`).
     if (transform?.overrideNearFarZ) {
       const over = height - (gl.queryTerrainElevation([lon, lat]) ?? 0);
-      const nearest = Math.max(FLIGHT_NEAR_M, over * 0.2) * transform.pixelsPerMeter;
-      if (nearest < transform.nearZ) transform.overrideNearFarZ(nearest, transform.farZ);
+      const nearest = Math.min(Math.max(FLIGHT_NEAR_M, over * 0.2) * transform.pixelsPerMeter, transform.nearZ);
+      const farthest = Math.min(Math.max(FLIGHT_FAR_LEAST_M, height * FLIGHT_FAR_HEIGHTS) * transform.pixelsPerMeter, transform.farZ);
+      if (nearest < transform.nearZ || farthest < transform.farZ) transform.overrideNearFarZ(nearest, farthest);
     }
   }
 
@@ -3211,8 +3243,9 @@ export default class Cells3DCapability extends Capability {
     // Over everything, also what was put on the map since: storms that came in, strikes.
     const gl = this.gl;
     if (!gl || !this.aircraftLayer) return;
+    // Not where the map has lost its style or the layer (a lost GPU takes both): moving it threw every frame.
     const order = gl.getLayersOrder();
-    if (order[order.length - 1] !== AIRCRAFT_LAYER) gl.moveLayer(AIRCRAFT_LAYER);
+    if (order.includes(AIRCRAFT_LAYER) && order[order.length - 1] !== AIRCRAFT_LAYER) gl.moveLayer(AIRCRAFT_LAYER);
   }
 
   /** The aircraft's layer, on top of everything, there while flying. */
@@ -4264,11 +4297,16 @@ export default class Cells3DCapability extends Capability {
     const sources = gl.getStyle()?.sources ?? {};
     for (const [id, spec] of Object.entries(sources)) {
       if (spec.type !== "raster-dem" && spec.type !== "raster") continue;
+      const source = gl.getSource(id) as { calculateTileZoom?: TileZoom } | undefined;
       if (this.flight) {
         gl.setSourceTileLodParams(isHandheld() ? FLIGHT_LOD.handheldLevels : FLIGHT_LOD.levels, FLIGHT_LOD.ratio, id);
+        // Never as if looking level or up (`FLIGHT_LOD_LEAST_DOWN`).
+        const sharp = source?.calculateTileZoom;
+        if (source && sharp) {
+          source.calculateTileZoom = (zoom, across, up, away, fov) => sharp(zoom, across, Math.max(up, away * FLIGHT_LOD_LEAST_RISE), away, fov);
+        }
         continue;
       }
-      const source = gl.getSource(id) as { calculateTileZoom?: unknown } | undefined;
       if (source?.calculateTileZoom) {
         source.calculateTileZoom = undefined;
         gl.triggerRepaint();

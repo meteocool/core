@@ -250,6 +250,39 @@ test.describe("on a desktop", () => {
     await expect.poll(() => new URL(page.url()).searchParams.get("latLonZ")).toBe(VIEW);
   });
 
+  test("looking level from the seat, the ground is a few hundred tiles, not thousands", async ({ page }) => {
+    test.slow();
+    // The relief and the imagery draped on it: every tile of either the map asks for.
+    let asked = 0;
+    page.on("request", (request) => {
+      if (/tiles\.versatiles\.org\/tiles\/satellite-raster|map\.meteocool\.com\/mapterhorn-/.test(request.url())) asked += 1;
+    });
+    await page.goto(MAP_3D);
+    await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
+    await expect(panel(page)).toBeVisible({ timeout: 20_000 });
+    await takeOff(page);
+    await expect(deck(page)).toBeVisible();
+    await curtainUp(page);
+    const pitch = () => page.evaluate(() => (window as any).lm.getCapability("cells3d").gl.getPitch() as number);
+    // Cruising, the eye looks a little down.
+    await expect.poll(pitch).toBeLessThan(89);
+    // The head raised until the eye looks level, which a storm's updraft and rough air do too.
+    await expect(async () => {
+      await page.evaluate(() => {
+        const pilot = (window as any).flightPilot;
+        const map = (window as any).lm.getCapability("cells3d").gl;
+        pilot.head = { ...pilot.head, pitch: pilot.head.pitch + 90 - map.getPitch() };
+      });
+      await expect.poll(pitch, { timeout: 3000 }).toBeGreaterThan(89.7);
+      expect(await pitch()).toBeLessThan(90.3);
+    }).toPass({ timeout: 30_000 });
+    // Level, the map once asked for every tile to the horizon at the sharpest zoom: near 900 here in a few frames of a
+    // software renderer, thousands on a real GPU, and the page held for seconds. Now about a hundred.
+    const level = asked;
+    await page.waitForTimeout(8000);
+    expect(asked - level).toBeLessThan(500);
+  });
+
   test("the flight starts with the radar off the ground, O paints it there and back, J sets the flaps, and landing puts it back", async ({ page }) => {
     test.slow();
     await page.goto(MAP_3D);
