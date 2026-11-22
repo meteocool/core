@@ -48,6 +48,17 @@ export interface AircraftView {
   veil: number;
   flash: number;
   /**
+   * How much of the sun reaches the aircraft, and how light the sky round it
+   * is, 0 to 1 each: cloud and a storm overhead take both (lib/studio/flight/glass.ts).
+   * All of both where not said.
+   */
+  sunlight?: number;
+  daylight?: number;
+  /** A lightning strike nearby lighting the aircraft, and from the seat the flight deck, 0 to 1; none where not said. */
+  lightning?: number;
+  /** From the seat, the weather on the windows; clear, dry glass where not said. */
+  glass?: CockpitGlass;
+  /**
    * How thick the air between the eye and the aircraft is, per metre: cloud
    * the aircraft is in, seen from outside, takes it from sight the further
    * off it is. None where not said.
@@ -94,6 +105,23 @@ export interface AircraftView {
   effects?: AircraftEffects;
 }
 
+/**
+ * The weather on the cockpit's windows, as the seat sees it: drawn on the
+ * model's own glass, so it stays on the glass as the head turns.
+ */
+export interface CockpitGlass {
+  /** A clock in seconds that only runs forward: what water, hail and fire on the glass move by. */
+  time: number;
+  /** The true airspeed, m/s: standing, water runs down the glass; at speed the air drives it up and off. */
+  speed: number;
+  /** How wet the glass is, hail striking it, and St Elmo's fire on it, 0 to 1 each. */
+  wet: number;
+  hail: number;
+  charge: number;
+  /** Water drawn in full, or more cheaply for a device that is short of frames; in full where not said. */
+  fine?: boolean;
+}
+
 /** What an aircraft breaks into besides its hull: each wing with its engine, and the tail with its fin and tailplane. */
 export type AircraftPiece = "leftWing" | "rightWing" | "tail";
 
@@ -133,7 +161,11 @@ export interface AircraftScreen {
   hidden?: boolean;
 }
 
-/* The aircraft's two shaders are one text: with BROKEN defined, the one that draws it in pieces. */
+/*
+ * The aircraft's shaders are one text: with BROKEN defined, the one that
+ * draws it in pieces; with GLASS, the one that draws the cockpit's windows
+ * from the seat, with the weather on them.
+ */
 const VERTEX = `
 layout(location = 0) in vec3 aPosition;
 layout(location = 1) in vec3 aNormal;
@@ -147,7 +179,7 @@ uniform vec2 uUvSize;
 out vec3 vNormal;
 out vec2 vUv;
 out float vFar;
-#ifdef BROKEN
+#if defined(BROKEN) || defined(GLASS)
 // Where the point is on the model as it was built, and from the eye.
 out vec3 vPlace;
 out vec3 vSeen;
@@ -158,7 +190,7 @@ void main() {
   vec4 place = vec4(aPosition * uSize + uMin, 1.0);
   vec4 seen = uModelView * place;
   vFar = length(seen.xyz);
-#ifdef BROKEN
+#if defined(BROKEN) || defined(GLASS)
   vPlace = place.xyz;
   vSeen = seen.xyz;
 #endif
@@ -179,16 +211,12 @@ uniform float uOpacity;
 uniform vec3 uLight;
 // Ambient, lit side, and a little for the side turned away: no face of an inside is black.
 uniform vec3 uLighting;
-#ifdef BROKEN
+// Light from a lightning strike, on every face alike.
+uniform vec3 uFlash;
+#if defined(BROKEN) || defined(GLASS)
 in vec3 vPlace;
 in vec3 vSeen;
 uniform mat4 uModelView;
-// The pieces this draw is of, a bit each (hull, left wing, right wing, tail); all four for a mesh that is not cut.
-uniform int uKeep;
-// Where the wings and the tail come off, and how far a break wanders from its line; metres.
-uniform vec3 uBreaks;
-// Which breaks are open: the left wing's, the right wing's, the tail's.
-uniform vec3 uTorn;
 float hash(vec2 p) {
   p = fract(p * vec2(123.34, 456.21));
   p += dot(p, p + 45.32);
@@ -200,6 +228,97 @@ float noise(vec2 p) {
   f = f * f * (3.0 - 2.0 * f);
   return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
 }
+#endif
+#ifdef GLASS
+// A clock, s; the airspeed, m/s.
+uniform float uTime;
+uniform float uSpeed;
+// Water on the glass, hail striking it, St Elmo's fire on it, 0 to 1 each.
+uniform float uWet;
+uniform float uHail;
+uniform float uCharge;
+// How much of the sun gets to the glass, how light the sky is, and lightning on it, 0 to 1 each.
+uniform float uSun;
+uniform float uDay;
+uniform float uBolt;
+// The picture behind the glass, as it was before the aircraft was drawn, and its size; without it, water is drawn as sky.
+uniform sampler2D uScene;
+uniform vec2 uViewport;
+uniform bool uRefract;
+// The water drawn in full: three sizes of bead, running out of their cells, out of round. Without, two sizes, each in its own cell, round.
+uniform bool uFine;
+float fbm(vec2 p) {
+  float sum = 0.0;
+  float amplitude = 0.5;
+  for (int i = 0; i < 4; i += 1) {
+    sum += amplitude * noise(p);
+    p = p * 2.03 + 17.0;
+    amplitude *= 0.5;
+  }
+  return sum / 0.9375;
+}
+// The bead whose home is the cell 'home' (its corner), as 'bead' says it.
+vec3 beadFrom(vec2 p, vec2 home, float seed, float amount, float blow, vec2 way) {
+  vec2 cell = home + seed;
+  // Most cells have one; those without cost nothing more.
+  if (hash(cell + 9.3) > amount) return vec3(9.0, 9.0, 0.0);
+  float pace = (0.015 + 0.11 * pow(hash(cell + 3.1), 2.5)) * (1.0 + 2.5 * blow);
+  float life = fract(uTime * pace + hash(cell) * 7.0);
+  // Mostly small ones, now and then a large one.
+  float largest = 0.07 + 0.27 * pow(hash(cell + 5.7), 2.0);
+  float grows = 0.05 + 0.55 * hash(cell + 6.3);
+  // How long it takes to go, seconds: most within a second or two, some in a blink, some drying away over several; sooner when blown off.
+  float going = mix(0.08, 7.0, pow(hash(cell + 7.9), 2.2)) * (1.0 - 0.7 * blow);
+  float gone = smoothstep(1.0 - min(0.85, going * pace), 1.0, life);
+  // Drying, it shrinks slowly at first and then is gone; one that goes in a blink just goes.
+  float size = largest * (0.35 + 0.65 * smoothstep(0.0, grows, life)) * smoothstep(0.0, 0.03, life) * sqrt(max(1.0 - gone, 0.0));
+  size *= 1.0 - 0.35 * blow;
+  // Standing, only the big ones run, and slowly.
+  float runs = blow + (1.0 - blow) * 0.25 * smoothstep(0.24, 0.3, size);
+  // How far it goes before it is gone, cells: some hardly move, some run a long way; picking up speed as it goes.
+  float travel = runs * mix(0.05, 2.0, pow(hash(cell + 15.0), 1.6)) * mix(life, life * life, 0.5);
+  // Drawn coarse, no cell but its own is looked in: none runs out of it.
+  if (!uFine) travel = min(travel, 0.3);
+  vec2 centre = home + 0.5 + (vec2(hash(cell + 1.3), hash(cell + 2.9)) - 0.5) * max(0.0, 0.9 - 2.0 * largest) + way * travel;
+  vec2 d = p - centre;
+  // Drawn out along the way it goes, the more the further it has gone.
+  float along = dot(d, way) / (1.0 + runs * min(travel, 1.0) * 0.8);
+  vec2 across = d - way * dot(d, way);
+  float outline = 1.0;
+  if (uFine) {
+    float turn = atan(d.y, d.x);
+    outline += 0.08 * sin(turn * 3.0 + hash(cell + 11.0) * 6.28) + 0.05 * sin(turn * 5.0 + hash(cell + 13.0) * 6.28);
+  }
+  return vec3((across + way * along) / max(size * outline, 1e-4), size);
+}
+// The bead of water at a point of the glass, in cells: where the point is in it (its edge at 1 from its middle, a little out of round),
+// and how large it is; none (no size) where there is none. Each has a home in a cell, keeps its own time (most sit for many seconds and
+// a few go in one or two, at speed all of them sooner), grows as what lands on it gathers, some fast and some slowly, goes in a blink or
+// dries away over seconds, and runs the way the water goes ('way'), some hardly at all and some out of its cell and a long way on: so
+// the cells upstream of the point are looked in too.
+vec3 bead(vec2 p, float seed, float amount, float blow, vec2 way) {
+  vec3 nearest = vec3(9.0, 9.0, 0.0);
+  float least = 9.0;
+  // Standing, none runs further than its own cell and the next.
+  int reach = !uFine ? 1 : blow > 0.05 ? 3 : 2;
+  for (int upstream = 0; upstream < reach; upstream += 1) {
+    vec3 at = beadFrom(p, floor(p - way * float(upstream)), seed, amount, blow, way);
+    float r = at.z > 1e-3 ? length(at.xy) : 9.0;
+    if (r < least) {
+      least = r;
+      nearest = at;
+    }
+  }
+  return nearest;
+}
+#endif
+#ifdef BROKEN
+// The pieces this draw is of, a bit each (hull, left wing, right wing, tail); all four for a mesh that is not cut.
+uniform int uKeep;
+// Where the wings and the tail come off, and how far a break wanders from its line; metres.
+uniform vec3 uBreaks;
+// Which breaks are open: the left wing's, the right wing's, the tail's.
+uniform vec3 uTorn;
 #endif
 out vec4 colour;
 void main() {
@@ -233,11 +352,126 @@ void main() {
   float alpha = base.a * uOpacity;
   // Never quite gone: a shape in the cloud, which is how an aircraft in one is seen from close behind.
   float fogged = min(1.0 - exp(-vFar * uFog.w), 0.93);
-  colour = vec4(mix(base.rgb * lit, uFog.rgb, fogged) * alpha, alpha);
+  colour = vec4(mix(base.rgb * (vec3(lit) + uFlash), uFog.rgb, fogged) * alpha, alpha);
+#ifdef GLASS
+  vec3 n = normalize(vNormal);
+  // Metres over the glass: across and up the windshield, along and up a side window (down is positive, as the model has it).
+  bool side = abs(n.y) > 0.6;
+  vec2 onGlass = side ? vPlace.xz : vPlace.yz;
+  // How far over the glass a pixel across the screen goes, and one up it.
+  mat2 perPixel = mat2(dFdx(onGlass), dFdy(onGlass));
+  // Standing, water runs down the glass; at speed the air drives it up the windshield and out to its sides, and aft along a side window.
+  float blow = smoothstep(15.0, 70.0, uSpeed);
+  vec2 driven = side ? normalize(vec2(-1.0, -0.2)) : normalize(vec2(sign(vPlace.y) * 0.35, -1.0));
+  vec2 way = normalize(mix(vec2(0.0, 1.0), driven, blow) + vec2(1e-4, 0.0));
+  vec3 sky = vec3(0.74, 0.8, 0.88) * (0.3 + 0.7 * uDay) + vec3(0.85, 0.9, 1.0) * uBolt;
+
+  // The sun through the glass: a haze where it is looked towards, and fine scratches round it that catch it.
+  vec3 eyeWay = normalize(vSeen);
+  vec3 sunWay = normalize(mat3(uModelView) * uLight);
+  float toward = max(dot(eyeWay, sunWay), 0.0);
+  vec3 light = vec3(1.0, 0.96, 0.88) * (pow(toward, 5.0) * 0.08 + pow(toward, 40.0) * 0.3 + pow(toward, 600.0) * 0.6) * uSun;
+  if (uSun > 0.01 && toward > 0.9) {
+    // Only those square to the way to the sun glint, so they are seen in rings round it.
+    vec3 off = eyeWay - sunWay * toward;
+    vec3 first = normalize(cross(sunWay, abs(sunWay.y) < 0.9 ? vec3(0.0, 1.0, 0.0) : vec3(1.0, 0.0, 0.0)));
+    float turn = atan(dot(off, cross(sunWay, first)), dot(off, first));
+    float rings = smoothstep(0.7, 0.95, noise(vec2(turn * 45.0, length(off) * 350.0))) * smoothstep(3.14, 2.9, abs(turn));
+    light += vec3(1.0, 0.97, 0.9) * rings * noise(onGlass * 500.0) * pow(toward, 60.0) * 0.6 * uSun;
+  }
+  // A flash lights what is on the glass, and the glass itself a little.
+  light += sky * uBolt * 0.06;
+
+  vec4 water = vec4(0.0);
+  if (uWet > 0.01) {
+    /* Each drop a lens: the world behind it seen through it small and upside
+       down, a dark line where its edge bends the light away, a glint of the
+       sky at its head. Where it is, the bead or stream nearest to covering
+       the point; how far it bends the view, as metres over the glass. */
+    float cover = 0.0;
+    vec2 bend = vec2(0.0);
+    float rim = 0.0;
+    float glint = 0.0;
+    int layers = uFine ? 3 : 2;
+    for (int layer = 0; layer < layers; layer += 1) {
+      // Three sizes of cell, each turned and shifted from the others, so that no grid shows.
+      float cell = layer == 0 ? 0.011 : layer == 1 ? 0.0068 : 0.0043;
+      float angle = float(layer) * 2.1;
+      mat2 turned = mat2(cos(angle), sin(angle), -sin(angle), cos(angle));
+      vec3 at = bead(turned * onGlass / cell + float(layer) * 0.37, float(layer) * 41.0, uWet * (layer == 0 ? 0.6 : layer == 1 ? 0.75 : 0.9), blow, turned * way);
+      at.xy = transpose(turned) * at.xy;
+      float r = length(at.xy);
+      float edge = min(fwidth(r) * 1.5, 0.5);
+      float inside = smoothstep(1.0, 1.0 - edge, r) * step(1e-3, at.z);
+      if (inside > cover) {
+        cover = inside;
+        // A drop's lens takes in a field several times its own size, and more towards its edge.
+        bend = -at.xy * at.z * cell * (6.0 + 6.0 * r * r);
+        rim = smoothstep(0.55, 1.0, r);
+        glint = smoothstep(0.22, 0.0, length(at.xy - vec2(-0.32, -0.38)));
+      }
+    }
+    // And at speed, water streaming off in rivulets: long thin lenses, bending the view across them.
+    if (blow > 0.05) {
+      vec2 q = vec2(driven.y * onGlass.x - driven.x * onGlass.y, dot(onGlass, driven));
+      float lane = q.x / 0.008;
+      float id = floor(lane);
+      float along = (q.y - uTime * (0.4 + uSpeed * 0.02) * (0.7 + 0.6 * hash(vec2(id, 4.1)))) * 5.0;
+      float s = fract(along);
+      float thick = 0.05 + 0.08 * hash(vec2(id, floor(along) + 0.5));
+      float across = fract(lane) - 0.5 - (hash(vec2(id, 1.7)) - 0.5) * 0.4 + 0.08 * sin(q.y * 60.0 + id);
+      float edge = min(fwidth(across / thick) * 1.5, 0.5);
+      float stream = step(hash(vec2(id, floor(along))), uWet * 0.35) * smoothstep(1.0, 1.0 - edge, abs(across) / thick)
+        * smoothstep(0.0, 0.6, s) * smoothstep(1.0, 0.94, s) * blow;
+      if (stream > cover) {
+        cover = stream;
+        bend = -vec2(driven.y, -driven.x) * across * 0.008 * 4.0;
+        rim = smoothstep(0.6, 1.0, abs(across) / thick);
+        glint = 0.0;
+      }
+    }
+    vec3 through = sky * 0.55;
+    if (uRefract) {
+      // The bend over the glass as pixels on the screen, by how far the glass goes for a pixel each way here.
+      // Glass seen edge on has no inverse: nothing is bent there.
+      vec2 shift = abs(determinant(perPixel)) > 1e-14 ? inverse(perPixel) * bend : vec2(0.0);
+      shift *= min(1.0, 90.0 / max(length(shift), 1e-3));
+      through = texture(uScene, (gl_FragCoord.xy + shift) / uViewport).rgb;
+    }
+    vec3 seen = through * (1.04 - 0.75 * rim) + sky * 0.03;
+    water = vec4(seen * cover, cover);
+    light += glint * cover * (sky * 0.35 + vec3(1.0, 0.97, 0.9) * uSun * pow(toward, 2.0) * 1.2 + vec3(0.9, 0.93, 1.0) * uBolt * 0.7);
+  }
+
+  // Hail striking the glass: a white burst that is gone again at once.
+  if (uHail > 0.01) {
+    vec2 g = onGlass / 0.06;
+    vec2 cell = floor(g);
+    float beat = fract(uTime * (0.6 + hash(cell + 33.0)) + hash(cell + 31.0) * 5.0);
+    vec2 d = fract(g) - 0.5 - (vec2(hash(cell + 35.0), hash(cell + 37.0)) - 0.5) * 0.5;
+    float spikes = 0.6 + 0.4 * sin(atan(d.y, d.x) * 7.0 + hash(cell) * 20.0);
+    light += vec3(0.95) * 0.8 * step(hash(cell + 39.0), uHail * 0.5) * (1.0 - smoothstep(0.0, 0.2, beat))
+      * smoothstep(0.1 * spikes + 0.02, 0.0, length(d));
+  }
+
+  // St Elmo's fire: violet threads crawling over the glass in patches, flickering; a few patches in a little charge, all of it in a lot.
+  if (uCharge > 0.01) {
+    vec2 q = onGlass * 6.0;
+    vec2 warp = vec2(fbm(q + vec2(uTime * 0.6, -uTime * 0.35)), fbm(q + vec2(-uTime * 0.45, uTime * 0.5) + 5.2));
+    float ridge = 1.0 - abs(fbm(q * 1.8 + warp * 2.5 - uTime * 0.2) * 2.0 - 1.0);
+    float patches = smoothstep(0.75 - 0.45 * uCharge, 0.95 - 0.25 * uCharge, noise(onGlass * 1.3 + vec2(uTime * 0.11, uTime * 0.07)));
+    float flicker = 0.55 + 0.45 * noise(vec2(uTime * 19.0, 3.0));
+    light += (vec3(0.5, 0.38, 1.0) * pow(ridge, 18.0) * 1.8 + vec3(0.32, 0.18, 0.9) * pow(ridge, 5.0) * 0.3) * patches * flicker * uCharge;
+  }
+
+  // The water over the glass, and the light on both added to what is seen through them.
+  colour = vec4(water.rgb + colour.rgb * (1.0 - water.a) + light, water.a + colour.a * (1.0 - water.a));
+#endif
 }`;
 
 const WHOLE = "#version 300 es\n";
 const BROKEN = "#version 300 es\n#define BROKEN\n";
+const GLASS = "#version 300 es\n#define GLASS\n";
 /** Every piece's bit: what a mesh that needs no cutting is drawn with. */
 const EVERY_PIECE = (1 << PIECES.length) - 1;
 /** What every mesh of an aircraft in one piece is drawn as part of: the hull, which is the first of `PIECES`. */
@@ -275,6 +509,23 @@ const GLASS_FROM_INSIDE = 0.2;
 
 /** The cloud's colour on the glass. */
 const VEIL_COLOUR: Vec3 = [0.86, 0.89, 0.92];
+
+/** A lightning strike's light, at its brightest: blue-white, and stronger on a flight deck than on a hull in the open sky. */
+const LIGHTNING_COLOUR: Vec3 = [0.78, 0.84, 1];
+const LIGHTNING_INSIDE = 0.95;
+const LIGHTNING_OUTSIDE = 0.55;
+
+/**
+ * The light an aircraft is lit by as the sky has it: ambient, lit side and
+ * the side turned away (see the shader), from `daylight` and `sunlight`
+ * (`AircraftView`). Cloud takes the sun, and leaves a flat grey that is
+ * still most of the ambient; a storm's dark takes more.
+ */
+export function skyLighting([ambient, lit, away]: Vec3, sunlight = 1, daylight = 1): Vec3 {
+  const sun = Math.min(Math.max(sunlight, 0), 1);
+  const day = Math.min(Math.max(daylight, 0), 1);
+  return [ambient * (0.6 + 0.4 * day) + lit * 0.25 * (1 - sun) * day, lit * sun * day, away * day];
+}
 
 /* The model and its textures, fetched once for the page: a style change
    takes the layer off the map and puts a new one on, and that one starts
@@ -421,6 +672,65 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
   const screen = compile(context, WHOLE + SCREEN_VERTEX, WHOLE + FRAGMENT);
   /* Made when first needed, and by most flights never: the shader of an aircraft in pieces, and what burns. */
   let torn: WebGLProgram | null = null;
+  let glass: WebGLProgram | null = null;
+  /*
+   * The picture behind the windows, copied before the aircraft is drawn, for
+   * water on the glass to bend: made when first wet. At half the picture's
+   * size each way, which is plenty for what a drop shows of it, smaller than
+   * itself, and a quarter of the memory; shrunk on the way by a blit, or
+   * where the picture cannot be blitted from (an antialiased one), copied
+   * whole instead.
+   */
+  let behind: { texture: WebGLTexture; framebuffer: WebGLFramebuffer; width: number; height: number; whole: boolean } | null = null;
+  /** Whether the first blit has been checked for an error, and whether it failed: copied whole from then on. */
+  let blitChecked = false;
+  let blitFails = false;
+
+  function forgetBehind(): void {
+    if (!behind) return;
+    context.deleteTexture(behind.texture);
+    context.deleteFramebuffer(behind.framebuffer);
+    behind = null;
+  }
+
+  function copyBehind(width: number, height: number): void {
+    const gl = context;
+    const whole = blitFails;
+    const [w, h] = whole ? [width, height] : [Math.max(1, width >> 1), Math.max(1, height >> 1)];
+    if (behind && (behind.width !== w || behind.height !== h || behind.whole !== whole)) forgetBehind();
+    gl.activeTexture(gl.TEXTURE1);
+    if (!behind) {
+      behind = { texture: gl.createTexture()!, framebuffer: gl.createFramebuffer()!, width: w, height: h, whole };
+      gl.bindTexture(gl.TEXTURE_2D, behind.texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    }
+    gl.bindTexture(gl.TEXTURE_2D, behind.texture);
+    if (whole) {
+      gl.copyTexSubImage2D(gl.TEXTURE_2D, 0, 0, 0, 0, 0, width, height);
+    } else {
+      // From whatever the map draws into, to the texture, and the map's own bindings back as they were.
+      const drawing = gl.getParameter(gl.DRAW_FRAMEBUFFER_BINDING) as WebGLFramebuffer | null;
+      const reading = gl.getParameter(gl.READ_FRAMEBUFFER_BINDING) as WebGLFramebuffer | null;
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, behind.framebuffer);
+      gl.framebufferTexture2D(gl.DRAW_FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, behind.texture, 0);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, drawing);
+      const tried = !blitChecked;
+      if (tried) while (gl.getError() !== gl.NO_ERROR) { /* what came before is not this blit's */ }
+      gl.blitFramebuffer(0, 0, width, height, 0, 0, w, h, gl.COLOR_BUFFER_BIT, gl.LINEAR);
+      gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, drawing);
+      gl.bindFramebuffer(gl.READ_FRAMEBUFFER, reading);
+      // Asked once only: asking waits for the GPU.
+      if (tried) {
+        blitChecked = true;
+        if (gl.getError() !== gl.NO_ERROR) blitFails = true;
+      }
+    }
+    gl.activeTexture(gl.TEXTURE0);
+  }
   let effects: EffectsPass | null = null;
   const screenVao = context.createVertexArray()!;
   let drawn: Drawn[] = [];
@@ -514,6 +824,7 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
     gl.uniform1f(uniform(screen, "uOpacity"), 1);
     gl.uniform3f(uniform(screen, "uLight"), 0, 0, 1);
     gl.uniform3f(uniform(screen, "uLighting"), ...SCREEN_LIGHTING);
+    gl.uniform3f(uniform(screen, "uFlash"), 0, 0, 0);
     // A screen is looked at from the seat, through no cloud.
     gl.uniform4f(uniform(screen, "uFog"), 0, 0, 0, 0);
     gl.bindVertexArray(screenVao);
@@ -578,6 +889,11 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
         webgl.drawArrays(webgl.TRIANGLES, 0, 3);
       }
       if (!drawn.length) return false;
+      // From the seat, with water on the glass, the world behind it as it is now, for the water to show bent.
+      const wet = view.inside && (view.glass?.wet ?? 0) > 0.01;
+      if (wet) copyBehind(width, height);
+      // Dry again: its memory back.
+      else forgetBehind();
 
       // Nearer than anything on the map: over all of it, sorted only against itself.
       webgl.enable(webgl.DEPTH_TEST);
@@ -595,12 +911,18 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       const shader = broken && torn ? torn : program;
       // A blast lights what is round it for as long as it flashes.
       const glare = view.effects ? blastGlare(view.effects) : 0;
-      const [ambient, lit, away] = view.inside ? INSIDE_LIGHTING : OUTSIDE_LIGHTING;
-      webgl.useProgram(shader);
-      webgl.uniformMatrix4fv(uniform(shader, "uProjection"), false, new Float32Array(projection));
-      webgl.uniform3f(uniform(shader, "uLighting"), ambient + 0.55 * glare, lit, away);
-      webgl.uniform1i(uniform(shader, "uTexture"), 0);
-      webgl.uniform4f(uniform(shader, "uFog"), ...VEIL_COLOUR, view.inside ? 0 : view.fog ?? 0);
+      const [ambient, lit, away] = skyLighting(view.inside ? INSIDE_LIGHTING : OUTSIDE_LIGHTING, view.sunlight, view.daylight);
+      const flash = Math.min(Math.max(view.lightning ?? 0, 0), 1) * (view.inside ? LIGHTNING_INSIDE : LIGHTNING_OUTSIDE);
+      // What every mesh is drawn with alike, for whichever shader draws it.
+      const prepare = (using: WebGLProgram) => {
+        webgl.useProgram(using);
+        webgl.uniformMatrix4fv(uniform(using, "uProjection"), false, new Float32Array(projection));
+        webgl.uniform3f(uniform(using, "uLighting"), ambient + 0.55 * glare, lit, away);
+        webgl.uniform3f(uniform(using, "uFlash"), LIGHTNING_COLOUR[0] * flash, LIGHTNING_COLOUR[1] * flash, LIGHTNING_COLOUR[2] * flash);
+        webgl.uniform1i(uniform(using, "uTexture"), 0);
+        webgl.uniform4f(uniform(using, "uFog"), ...VEIL_COLOUR, view.inside ? 0 : view.fog ?? 0);
+      };
+      prepare(shader);
       webgl.activeTexture(webgl.TEXTURE0);
 
       // The gear's legs and doors, the flaps, slats and spoilers, the ailerons, elevators and rudder, and the flight deck's controls
@@ -630,7 +952,7 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
         webgl.uniform3f(uniform(shader, "uBreaks"), BREAKS.wingRoot, BREAKS.tail, BREAKS.ragged);
         webgl.uniform3f(uniform(shader, "uTorn"), ...(["leftWing", "rightWing", "tail"] as const).map((name) => (off && name in off ? 1 : 0)) as Vec3);
       }
-      const pass = (clear: boolean) => {
+      const pass = (clear: boolean, shader: WebGLProgram) => {
         for (const chunk of drawn) {
           const material = materials[chunk.material];
           if ((material.opacity < 1) === clear) continue;
@@ -670,14 +992,36 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
           }
         }
       };
-      // Everything solid, then the screens on it, then the glass over both.
+      // Everything solid, then the screens on it, then the glass over both: from the seat, with the weather on it.
       webgl.disable(webgl.BLEND);
-      pass(true);
+      pass(true, shader);
       if (view.inside) drawScreens(view, screens, projection);
-      webgl.useProgram(shader);
+      const onGlass = view.inside && !broken ? view.glass : undefined;
+      if (onGlass) glass ??= compile(context, GLASS + VERTEX, GLASS + FRAGMENT);
+      const clear = onGlass && glass ? glass : shader;
+      prepare(clear);
+      if (onGlass && glass) {
+        webgl.uniform1f(uniform(glass, "uTime"), onGlass.time);
+        webgl.uniform1f(uniform(glass, "uSpeed"), onGlass.speed);
+        webgl.uniform1f(uniform(glass, "uWet"), onGlass.wet);
+        webgl.uniform1f(uniform(glass, "uHail"), onGlass.hail);
+        webgl.uniform1f(uniform(glass, "uCharge"), onGlass.charge);
+        webgl.uniform1f(uniform(glass, "uSun"), view.sunlight ?? 1);
+        webgl.uniform1f(uniform(glass, "uDay"), view.daylight ?? 1);
+        webgl.uniform1f(uniform(glass, "uBolt"), view.lightning ?? 0);
+        webgl.uniform1i(uniform(glass, "uScene"), 1);
+        webgl.uniform2f(uniform(glass, "uViewport"), width, height);
+        webgl.uniform1i(uniform(glass, "uRefract"), behind ? 1 : 0);
+        webgl.uniform1i(uniform(glass, "uFine"), onGlass.fine === false ? 0 : 1);
+        if (behind) {
+          webgl.activeTexture(webgl.TEXTURE1);
+          webgl.bindTexture(webgl.TEXTURE_2D, behind.texture);
+          webgl.activeTexture(webgl.TEXTURE0);
+        }
+      }
       webgl.enable(webgl.BLEND);
       webgl.depthMask(false);
-      pass(false);
+      pass(false, clear);
       // What burns, over the aircraft and behind whatever of it is nearer.
       if (view.effects && (view.effects.fires.length || view.effects.blasts.length)) {
         effects ??= makeEffectsPass(context, (vertex, fragment) => compile(context, vertex, fragment));
@@ -686,6 +1030,11 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       webgl.depthMask(true);
       webgl.bindVertexArray(null);
       webgl.bindTexture(webgl.TEXTURE_2D, null);
+      if (behind) {
+        webgl.activeTexture(webgl.TEXTURE1);
+        webgl.bindTexture(webgl.TEXTURE_2D, null);
+        webgl.activeTexture(webgl.TEXTURE0);
+      }
       return true;
     },
 
@@ -698,8 +1047,10 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       screenTextures.clear();
       for (const buffer of screenBuffers) context.deleteBuffer(buffer);
       context.deleteVertexArray(screenVao);
-      for (const each of [program, veil, screen, torn]) if (each) context.deleteProgram(each);
+      for (const each of [program, veil, screen, torn, glass]) if (each) context.deleteProgram(each);
       torn = null;
+      glass = null;
+      forgetBehind();
       effects?.dispose();
       effects = null;
       drawn = [];

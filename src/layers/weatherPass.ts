@@ -44,9 +44,9 @@ interface Fall {
   seed: number;
 }
 
-const RAIN: Fall = { count: 3600, box: [70, 44, 30], exposure: 1 / 85, longest: 3.2, width: 0.006, colour: [0.78, 0.83, 0.9], alpha: 0.34, seed: 1 };
-const HAIL: Fall = { count: 700, box: [50, 36, 26], exposure: 1 / 260, longest: 0.9, width: 0.016, colour: [1, 1, 1], alpha: 0.85, seed: 2 };
-const ICE: Fall = { count: 2200, box: [60, 40, 30], exposure: 1 / 400, longest: 0.5, width: 0.008, colour: [0.95, 0.97, 1], alpha: 0.5, seed: 3 };
+const RAIN: Fall = { count: 5200, box: [70, 44, 30], exposure: 1 / 110, longest: 2.4, width: 0.0025, colour: [0.78, 0.83, 0.9], alpha: 0.26, seed: 1 };
+const HAIL: Fall = { count: 900, box: [50, 36, 26], exposure: 1 / 260, longest: 0.9, width: 0.008, colour: [1, 1, 1], alpha: 0.75, seed: 2 };
+const ICE: Fall = { count: 3000, box: [60, 40, 30], exposure: 1 / 400, longest: 0.5, width: 0.0035, colour: [0.95, 0.97, 1], alpha: 0.42, seed: 3 };
 
 /** Shreds of cloud: this many soft patches in a box this large, each this many metres across at most. */
 const WISPS = { count: 56, box: [640, 360, 240] as Vec3, size: 110 };
@@ -85,6 +85,8 @@ export interface WeatherView {
   /** How far cloud round the eye hides the world, 0 to 1; and lightning on the glass, 0 to 1. */
   veil: number;
   flash: number;
+  /** How light the sky is, 0 to 1 (lib/studio/flight/glass.ts): the cloud round the eye is a storm's grey, not white, where it is dark. All of it where not said. */
+  sky?: number;
   /** Condensation trails: where each begins, in the aircraft's frame, and how much of one there is, 0 to 1. */
   trails: { from: Vec3[]; strength: number };
 }
@@ -113,9 +115,9 @@ void main() {
   vec3 to = (uModelView * vec4(place * uBox + uEye + uStreak, 1.0)).xyz;
   vec3 at = mix(from, to, along);
   float far = max(-at.z, 0.0);
-  // Across the streak and facing the eye; no thinner than a pixel is at that distance.
+  // Across the streak and facing the eye; no thinner than about a pixel is at that distance.
   vec3 side = normalize(cross(to - from, at) + vec3(1e-6, 0.0, 0.0));
-  at += side * across * max(uWidth, far * 0.0007);
+  at += side * across * max(uWidth, far * 0.00038);
   vec3 edge = abs(place) * 2.0;
   // Faded where it comes into the box and goes out of it, and right in front of the eye, where it would be a slab.
   vFade = (1.0 - smoothstep(0.72, 1.0, max(edge.x, max(edge.y, edge.z)))) * smoothstep(1.2, 4.5, far);
@@ -382,6 +384,9 @@ export function makeWeatherPass(gl: WebGL2RenderingContext): WeatherPass {
     return width / Math.max(height, 1);
   };
 
+  /** How bright the cloud is, as the sky lights it. */
+  const lightOf = (view: WeatherView) => 0.4 + 0.6 * Math.min(Math.max(view.sky ?? 1, 0), 1);
+
   /** A box of soft patches of cloud carried past by the air. */
   const patches = (view: WeatherView, modelView: Float32Array, projection: Float32Array, kind: typeof WISPS, centre: Vec3, alpha: number) => {
     gl.useProgram(wisp);
@@ -391,7 +396,7 @@ export function makeWeatherPass(gl: WebGL2RenderingContext): WeatherPass {
     gl.uniform3f(uniform(wisp, "uBox"), ...kind.box);
     gl.uniform3f(uniform(wisp, "uTravel"), ...wrapped(view.travel, kind.box));
     gl.uniform1f(uniform(wisp, "uSize"), kind.size);
-    gl.uniform4f(uniform(wisp, "uColour"), 0.9, 0.92, 0.95, alpha);
+    gl.uniform4f(uniform(wisp, "uColour"), 0.9 * lightOf(view), 0.92 * lightOf(view), 0.95 * lightOf(view), alpha);
     gl.drawArrays(gl.TRIANGLES, 0, kind.count * 6);
   };
 
@@ -469,7 +474,8 @@ export function makeWeatherPass(gl: WebGL2RenderingContext): WeatherPass {
       }
       // Cloud round the eye, over the world and the lightning in it; what is nearer than that goes past in front of it.
       gl.useProgram(wash);
-      for (const [colour, strength] of [[VEIL_COLOUR, view.veil * 0.96], [[1, 1, 1], view.flash * 0.6]] as const) {
+      const veil = VEIL_COLOUR.map((channel) => channel * lightOf(view)) as Vec3;
+      for (const [colour, strength] of [[veil, view.veil * 0.96], [[1, 1, 1], view.flash * 0.6]] as const) {
         if (strength <= 0.003) continue;
         gl.uniform4f(uniform(wash, "uColour"), colour[0] * strength, colour[1] * strength, colour[2] * strength, strength);
         gl.drawArrays(gl.TRIANGLES, 0, 3);

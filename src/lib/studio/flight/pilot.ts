@@ -48,6 +48,7 @@ import { airAt, noise, roughAir } from "./weather";
 import { advance, BLAST_FROM, broken, harmed, intact, shown, shudder, surfacesLost } from "./damage";
 import type { Damage, DamageEvent } from "./damage";
 import { boltPaths, FLASH_S, flicker, glare, thunderDelay } from "./lightning";
+import { chargeOf, daylightOf, wetted } from "./glass";
 import type { Bolt } from "../../../layers/weatherPass";
 import { FlightSound } from "./sound";
 import { alarmsOf, alarmStep, NO_ALARMS, silence, silencedOf } from "./alarms";
@@ -85,6 +86,8 @@ const QUALITY_LEAST = 0.1;
  * frames have been plenty for a while, as any flight is.
  */
 const HANDHELD_QUALITY = 0.45;
+/** From this sharpness up, the water on the windshield is drawn in full; below it, more cheaply (aircraftRenderer.ts). */
+const GLASS_FINE_QUALITY = 0.7;
 /** The longest a frame is taken to have been, seconds. */
 const LONGEST_FRAME_S = 8;
 
@@ -245,6 +248,15 @@ export interface Telemetry {
   hail: number;
   ice: number;
   frost: number;
+  /**
+   * The weather on the windshield and the light on the flight deck
+   * (glass.ts), 0 to 1 each: how wet the glass is, how much St Elmo's fire
+   * there is on it, how much of the sun gets in, and how light the sky is.
+   */
+  wet: number;
+  charge: number;
+  sun: number;
+  sky: number;
   /** How fast the air itself rises or sinks, m/s, and its temperature, degrees C. */
   draft: number;
   temperature: number;
@@ -429,7 +441,7 @@ export class Pilot {
     this.tas = flightPlan.tas;
     this.telemetry = {
       state: this.startState(), ias: 0, mach: 0, ground: null, radarAltitude: null, target: null, dbz: null,
-      cloud: 0, rain: 0, turbulence: 0, severity: 0, hail: 0, ice: 0, frost: 0, draft: 0, temperature: 0, fps: 60, quality: 1,
+      cloud: 0, rain: 0, turbulence: 0, severity: 0, hail: 0, ice: 0, frost: 0, wet: 0, charge: 0, sun: 1, sky: 1, draft: 0, temperature: 0, fps: 60, quality: 1,
       storms: stage.stormTiles(), marks: [], chart: { storms: [], target: null }, fade: 0, flash: 0, brake: false, time: 0, gear: 0, flapLever: 0, rolled: 0,
     };
   }
@@ -1133,6 +1145,13 @@ export class Pilot {
     telemetry.temperature = air.temperature;
     // Ice takes a couple of minutes to cover the glass, and goes nearly as slowly once the aircraft is out of what made it.
     telemetry.frost = Math.min(1, Math.max(0, telemetry.frost + (air.icing > 0.05 ? air.icing / 150 : -1 / 110) * flown));
+    telemetry.wet = wetted(telemetry.wet, { ...air, tas: state.tas }, dt);
+    // The charge builds over a couple of seconds and goes a little faster; the light changes as fast as the cloud does.
+    const charge = chargeOf(air, telemetry.flash);
+    telemetry.charge += (charge - telemetry.charge) * (1 - Math.exp(-dt / (charge > telemetry.charge ? 2 : 1.2)));
+    const daylight = daylightOf(telemetry.cloud, dbz);
+    telemetry.sun += (daylight.sun - telemetry.sun) * (1 - Math.exp(-dt / 0.8));
+    telemetry.sky += (daylight.sky - telemetry.sky) * (1 - Math.exp(-dt / 1.5));
     const target = this.approach.target;
     if (target) {
       const { bearing, distance } = towards(state.lon, state.lat, target);
@@ -1386,6 +1405,8 @@ export class Pilot {
       this.telemetry.state = state;
       this.telemetry.cloud = 0;
       this.telemetry.rain = 0;
+      this.telemetry.wet = 0;
+      this.telemetry.charge = 0;
       // A new aircraft: whole, with no ice on it, and nothing of the last one's end left to watch.
       this.flights += 1;
       this.damage = intact(this.flights);
@@ -1632,6 +1653,16 @@ export class Pilot {
       // The cloud round the eye and the lightning on the glass are the weather's to draw, under the aircraft.
       veil: 0,
       flash: 0,
+      // But the light in the cockpit, and on the hull, is the sky's: and a strike nearby lights both.
+      sunlight: this.telemetry.sun,
+      daylight: this.telemetry.sky,
+      lightning: this.telemetry.flash,
+      // And on the windows, water, hail and St Elmo's fire; the last flickers, and is none for a reader who asked for less motion.
+      glass: outside ? undefined : {
+        time, speed: state.tas, wet: this.telemetry.wet, hail: this.telemetry.hail, charge: this.reducedMotion ? 0 : this.telemetry.charge,
+        // A device the flight has had to draw coarser gets coarser water too: a phone starts there, and earns the rest.
+        fine: this.quality >= GLASS_FINE_QUALITY,
+      },
       // From outside, the cloud it is in between it and the eye: going from sight the further off, and a little in heavy rain.
       fog: outside ? cloud / CLOUD_SEEN_M + this.telemetry.rain / RAIN_SEEN_M : 0,
       gear: this.telemetry.gear,
@@ -1665,6 +1696,7 @@ export class Pilot {
       bolts: this.reducedMotion ? [] : lightning.bolts,
       veil: cloud,
       flash: this.telemetry.flash,
+      sky: this.telemetry.sky,
       // Trails form where the air is cold enough to freeze the exhaust at once, and show against clear sky.
       trails: { from: EXHAUSTS, strength: Math.min(1, Math.max(0, (-38 - this.telemetry.temperature) / 6)) * (1 - cloud) },
     }, this.reducedMotion ? null : lightning.glow);
