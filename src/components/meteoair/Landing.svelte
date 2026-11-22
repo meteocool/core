@@ -371,7 +371,8 @@ const steps = [
     -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 34%, transparent 56%);
     mask-image: linear-gradient(90deg, #000 0%, #000 34%, transparent 56%);
   }
-  .landing :is(a, button) { pointer-events: auto; }
+  /* Global: the music's switch is a button of its own component, which a scoped selector would miss. */
+  .landing :global(:is(a, button)) { pointer-events: auto; }
 
   header {
     display: flex;
