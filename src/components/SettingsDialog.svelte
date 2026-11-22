@@ -9,6 +9,7 @@ import {
 } from "../stores";
 import { isHandheld } from "../lib/gpuBudget";
 import { MAP_STYLES, type CloudStyle } from "../lib/cloudStyle";
+import { FEATURES } from "../features";
 import { dbz2color } from "../lib/cmap_utils";
 import { capabilityEnabled } from "../caps/enabled";
 import { archiveWindow } from "../stores";
@@ -131,8 +132,11 @@ function setTerrain3d(value: boolean) {
 
 /* Only where there is a cap to lift: a desktop always draws at full resolution. */
 const handheld = isHandheld();
-/** Studio's tools are a desktop's (lib/studio/session.ts, `studioOffered`); so is the setting that offers them. */
-const studioOnOffer = !handheld;
+/**
+ * Studio's tools are a desktop's (lib/studio/session.ts, `studioOffered`); so is the setting that offers them.
+ * Nor where this build does not offer Studio (features.ts).
+ */
+const studioOnOffer = FEATURES.studio && !handheld;
 
 function setFullResolution3d(value: boolean) {
   window.settings.set("layer3dFullResolution", value);
@@ -379,7 +383,7 @@ function setPlaybackFromStart(value: boolean) {
     <p class="hint">{$_("settings.rotation_hint")}</p>
   {/if}
 
-  {#if offers3d}
+  {#if offers3d && FEATURES.stormStyles}
     <h2 id="settings-style-3d">{$_("settings.map_3d")}: {$_("style_3d.title")}</h2>
     <div class="group" role="radiogroup" aria-labelledby="settings-style-3d">
       {#each MAP_STYLES as style (style)}
@@ -397,7 +401,9 @@ function setPlaybackFromStart(value: boolean) {
         </button>
       {/each}
     </div>
+  {/if}
 
+  {#if offers3d}
     <h2>{$_("settings.map_3d")}</h2>
     <div class="group">
       <label class="row">

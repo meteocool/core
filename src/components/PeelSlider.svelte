@@ -35,6 +35,7 @@ import { faCubes } from "@fortawesome/free-solid-svg-icons/faCubes";
 import { faPlaneDeparture } from "@fortawesome/free-solid-svg-icons/faPlaneDeparture";
 import Icon from "./Icon.svelte";
 import StylePicker from "./StylePicker.svelte";
+import { FEATURES } from "../features";
 
 /** Go into meteocool Studio (lib/studio); without it, where Studio is not offered or not turned on, no way in. */
 export let openStudio: (() => void) | null = null;
@@ -74,21 +75,26 @@ onDestroy(() => document.documentElement.style.removeProperty("--mc-peel-h"));
     aria-label={$_("guide_3d.peel_aria")}
     style:--track={track}
     on:input={moved} />
-  <div class="pickers">
-    <StylePicker />
-    {#if openFlight}
-      <button type="button" class="studio" on:click={openFlight} title={$_("guide_3d.fly_title")}>
-        <Icon icon={faPlaneDeparture} />
-        <span>{$_("guide_3d.fly")}</span>
-      </button>
-    {/if}
-    {#if openStudio}
-      <button type="button" class="studio" on:click={openStudio} title={$_("studio.open_title")}>
-        <Icon icon={faCubes} />
-        <span>Studio</span>
-      </button>
-    {/if}
-  </div>
+  <!-- None where the build offers neither the styles nor a way on (features.ts): no gap for an empty end. -->
+  {#if FEATURES.stormStyles || openFlight || openStudio}
+    <div class="pickers">
+      {#if FEATURES.stormStyles}
+        <StylePicker />
+      {/if}
+      {#if openFlight}
+        <button type="button" class="studio" on:click={openFlight} title={$_("guide_3d.fly_title")}>
+          <Icon icon={faPlaneDeparture} />
+          <span>{$_("guide_3d.fly")}</span>
+        </button>
+      {/if}
+      {#if openStudio}
+        <button type="button" class="studio" on:click={openStudio} title={$_("studio.open_title")}>
+          <Icon icon={faCubes} />
+          <span>Studio</span>
+        </button>
+      {/if}
+    </div>
+  {/if}
 </div>
 
 <style>

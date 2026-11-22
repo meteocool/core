@@ -34,6 +34,7 @@ import {
 } from "../stores";
 import { mapInWindow } from "../lib/archive";
 import { openStudio } from "../lib/studio/session";
+import { FEATURES } from "../features";
 import { flightRequest } from "../lib/studio/store";
 import type Cells3DCapability from "../caps/Cells3DCapability";
 import { readSiteAt } from "../lib/SiteSweepManager";
@@ -101,10 +102,11 @@ const map = () => layerManager.getCapability("radar")?.getMap();
  * flight is offered wherever that map can come up: not after it has failed
  * to, nor in a past window, which has none (lib/archive.ts). On a phone as
  * well: Studio's tools are a desktop's, but a flight has controls for a
- * touch screen (components/meteoair/Landing.svelte offers it alike).
+ * touch screen (components/meteoair/Landing.svelte offers it alike). And
+ * only where this build offers the flight at all (features.ts).
  */
 const cells3d = layerManager.getCapability("cells3d") as Cells3DCapability | undefined;
-$: flyable = Boolean(cells3d) && !$cells3dFailed && mapInWindow("cells3d", $archiveWindow);
+$: flyable = FEATURES.meteoair && Boolean(cells3d) && !$cells3dFailed && mapInWindow("cells3d", $archiveWindow);
 
 onMount(() => {
   const radar = map();

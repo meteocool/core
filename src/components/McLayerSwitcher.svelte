@@ -10,6 +10,7 @@
   import { postToNative } from "../lib/nativeBridge";
   import { _ } from "svelte-i18n";
   import { capabilityEnabled } from "../caps/enabled";
+  import { FEATURES } from "../features";
   import { toolbarTransitionEnd } from "../lib/toolbarTransition";
   import { archiveWindow, selectedStorm } from "../stores";
   import { mapInWindow } from "../lib/archive";
@@ -27,7 +28,9 @@
     { layer: "meteoair", label: `✈️ meteoair`, needs: "cells3d", page: true },
     { layer: "precipTypes", label: `💧 ${$_("precipitation_types")}` },
     { layer: "lightning", label: `⚡️ ${$_("lightning")}` },
-  ].filter((tile) => capabilityEnabled(tile.needs ?? tile.layer));
+  ].filter((tile) => capabilityEnabled(tile.needs ?? tile.layer)
+    // meteoair's tile only where this build offers the flight (features.ts).
+    && (tile.layer !== "meteoair" || FEATURES.meteoair));
 
   // Rain & thunderstorms is what this app is for, so it leads: a wide hero
   // across the top, the rest paired two across beneath it. An odd tile out in

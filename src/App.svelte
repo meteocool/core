@@ -17,6 +17,7 @@ import Guide3D from "./components/Guide3D.svelte";
 import BackFrom3D from "./components/BackFrom3D.svelte";
 import PeelSlider from "./components/PeelSlider.svelte";
 import { DEFAULT_CLOUD_STYLE, mapStyleOf } from "./lib/cloudStyle";
+import { FEATURES } from "./features";
 import {
   FLIGHT_BASEMAP, STUDIO_BASEMAP, flightPlanAsked, studioFlightOnly, studioFlying, studioOpen,
 } from "./lib/studio/store";
@@ -372,12 +373,14 @@ window.settings = new Settings({
     },
   },
   /* How the 3D map draws its storms (lib/cloudStyle.ts): one the map offers.
-     A Studio-only style is Studio's to set, on the store alone. */
+     A Studio-only style is Studio's to set, on the store alone. Where the
+     choice is not offered (features.ts), the default, so a style kept from
+     another deployment or named by a link cannot stick with no way back. */
   layer3dStyle: {
     type: "string",
     default: DEFAULT_CLOUD_STYLE,
     cb: (value) => {
-      cloudStyle.set(mapStyleOf(value));
+      cloudStyle.set(FEATURES.stormStyles ? mapStyleOf(value) : DEFAULT_CLOUD_STYLE);
     },
   },
   radarLegendUnit: {
@@ -1078,7 +1081,8 @@ studioFlying.subscribe((flying) => {
 sharedActiveCap.subscribe((cap) => { if (cap !== "cells3d") forget3DOrigin(); });
 // Studio is a mode of the 3D map, and goes with it.
 sharedActiveCap.subscribe((cap) => { if (cap !== "cells3d") closeStudio(); });
-const studioOnOffer = studioOffered();
+// Its button, where this build offers it (features.ts); a Studio link opens it regardless (lib/urlState.ts).
+const studioOnOffer = FEATURES.studio && studioOffered();
 const loadStudio = () => import("./components/studio/Studio.svelte");
 let leaving3D = false;
 function backFrom3D(): void {
@@ -1645,7 +1649,7 @@ if (postInitCb) postInitCb(lm);
     <!-- Not while a storm is open: a cut storm does not peel. -->
     {#if !$selectedStorm}
       <PeelSlider openStudio={cells3d && studioOnOffer && $studioEnabled && !$smallScreen ? openStudio : null}
-        openFlight={cells3d ? openFlightPlan : null} />
+        openFlight={cells3d && FEATURES.meteoair ? openFlightPlan : null} />
     {/if}
     <Guide3D />
   {/if}
