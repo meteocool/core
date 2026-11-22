@@ -214,6 +214,17 @@ const FLIGHT_SKY: SkySpecification = {
  */
 const FLIGHT_ZOOM: [number, number] = [0, 22];
 
+/**
+ * How far into the distance the ground stays sharp while flying: MapLibre's
+ * level of detail (`setSourceTileLodParams`) for the relief and the imagery
+ * draped on it. Its own lets the zoom fall away fast with distance, which
+ * from a cockpit, nearly level, put mountains 20 km off four to six levels
+ * coarser than the ground below: blurred, rounded peaks until the aircraft
+ * was nearly on them. These keep them within two, at the cost of more tiles;
+ * a phone takes one level less, for its memory (gpuBudget.ts).
+ */
+const FLIGHT_LOD = { levels: 4, handheldLevels: 5, ratio: 3 } as const;
+
 /** The ways a hand moves the map, every one of them off while flying. */
 const FLIGHT_HANDLERS = [
   "dragPan", "scrollZoom", "dragRotate", "keyboard", "doubleClickZoom", "touchZoomRotate", "touchPitch", "boxZoom",
@@ -3092,6 +3103,7 @@ export default class Cells3DCapability extends Capability {
         gl.setSky(FLIGHT_SKY);
         this.ensureAircraft(gl);
         if (!this.terrainWanted) applyTerrain(gl, true, this.dark, this.drapeSize());
+        this.applyFlightLod(gl);
       }
       this.applySections();
       this.setDirected(true);
@@ -3118,6 +3130,7 @@ export default class Cells3DCapability extends Capability {
       this.aircraftLayer = null;
       if (this.styleReady) gl.setSky(undefined as unknown as SkySpecification);
       if (this.styleReady && !this.terrainWanted) applyTerrain(gl, false, this.dark, this.drapeSize());
+      if (this.styleReady) this.applyFlightLod(gl);
       gl._camera?.transform?.clearNearFarZOverride?.();
       gl.setCenterClampedToGround(before.clamped);
       if (pose && had) {
@@ -3968,6 +3981,7 @@ export default class Cells3DCapability extends Capability {
     this.ensureClouds(gl);
     this.ensureVolumes(gl);
     this.ensureStudio(gl);
+    this.applyFlightLod(gl);
     this.ensureStrikes();
     this.ensureLabels(gl);
     this.ensureLocation(gl);
@@ -4215,6 +4229,27 @@ export default class Cells3DCapability extends Capability {
         paint: this.drapePaint(slot),
       }, this.rasterAnchor(gl));
       if (this.radarOffGround) this.showDrape(gl, id);
+    }
+  }
+
+  /**
+   * The relief's and the raster imagery's level of detail: sharp further off
+   * while flying (`FLIGHT_LOD`), MapLibre's own otherwise. Sources come and go
+   * with the style and the radar, so this runs again whenever they may have.
+   */
+  private applyFlightLod(gl: GlMap): void {
+    const sources = gl.getStyle()?.sources ?? {};
+    for (const [id, spec] of Object.entries(sources)) {
+      if (spec.type !== "raster-dem" && spec.type !== "raster") continue;
+      if (this.flight) {
+        gl.setSourceTileLodParams(isHandheld() ? FLIGHT_LOD.handheldLevels : FLIGHT_LOD.levels, FLIGHT_LOD.ratio, id);
+        continue;
+      }
+      const source = gl.getSource(id) as { calculateTileZoom?: unknown } | undefined;
+      if (source?.calculateTileZoom) {
+        source.calculateTileZoom = undefined;
+        gl.triggerRepaint();
+      }
     }
   }
 
