@@ -1409,6 +1409,7 @@ export default class Cells3DCapability extends Capability {
         if (this.flight) {
           gl.setSky(FLIGHT_SKY);
           this.ensureAircraft(gl);
+          this.flightSupport?.peaks.add(gl, { dark: this.dark, satellite: this.satellite, nameKeys: this.nameKeys }, this.rasterAnchor(gl));
         }
       });
       // Keep the shared View in step so switching back to the flat map lands
@@ -3154,6 +3155,7 @@ export default class Cells3DCapability extends Capability {
       if (this.styleReady) {
         gl.setSky(FLIGHT_SKY);
         this.ensureAircraft(gl);
+        this.flightSupport?.peaks.add(gl, { dark: this.dark, satellite: this.satellite, nameKeys: this.nameKeys }, this.rasterAnchor(gl));
         if (!this.terrainWanted) applyTerrain(gl, true, this.dark, this.drapeSize());
         this.applyFlightLod(gl);
       }
@@ -3180,6 +3182,7 @@ export default class Cells3DCapability extends Capability {
     if (gl) {
       if (gl.getLayer(AIRCRAFT_LAYER)) gl.removeLayer(AIRCRAFT_LAYER);
       this.aircraftLayer = null;
+      had?.peaks.remove(gl);
       if (this.styleReady) gl.setSky(undefined as unknown as SkySpecification);
       if (this.styleReady && !this.terrainWanted) applyTerrain(gl, false, this.dark, this.drapeSize());
       if (this.styleReady) this.applyFlightLod(gl);

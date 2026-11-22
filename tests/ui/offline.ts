@@ -118,9 +118,12 @@ export const EMPTY_VALUE_PNG = zeroPng(512, 0, 1);
 /** The radar's value tiles, by path: DWD's and the networks' frames, and the nowcast's. */
 const VALUE_TILE = /^\/tiles\/(meteoradar|meteonowcast)\/[^/]+\/\d+\/\d+\/\d+\.png$/;
 
+/** VersaTiles' vector tilesets, whose tiles have no extension to tell them by: each is named `…-vector`. */
+const VERSATILES_VECTOR = /^\/tiles\/[^/]+-vector\//;
+
 /** A blank tile of whichever kind was asked for: an empty vector tile is a valid one. */
 export function fulfilBlankTile(route: Route, url: URL): Promise<void> {
-  if (/\.(pbf|mvt)$/.test(url.pathname)) {
+  if (/\.(pbf|mvt)$/.test(url.pathname) || VERSATILES_VECTOR.test(url.pathname)) {
     return route.fulfill({ status: 200, contentType: "application/x-protobuf", body: Buffer.alloc(0) });
   }
   const body = VALUE_TILE.test(url.pathname) ? EMPTY_VALUE_PNG : EMPTY_PNG;

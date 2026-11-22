@@ -96,6 +96,8 @@ export interface FlightSupport {
   cloudscape: (baseKm: number) => string;
   /** What that sky draws besides its clouds: its sun, and the picture the clouds are drawn in. */
   makeScenicPass: typeof import("../../layers/scenicPass").makeScenicPass;
+  /** The mountain peaks charted on the ground while flying; see flight/peaks.ts. */
+  peaks: typeof import("./flight/peaks").peaks;
 }
 
 /** A listed volume, as the flight aims at and charts one. */
