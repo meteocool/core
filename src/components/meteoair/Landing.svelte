@@ -38,8 +38,6 @@ import { fade } from "svelte/transition";
 import { _ } from "svelte-i18n";
 import { faPlaneDeparture } from "@fortawesome/free-solid-svg-icons/faPlaneDeparture";
 import { faBolt } from "@fortawesome/free-solid-svg-icons/faBolt";
-import { faGauge } from "@fortawesome/free-solid-svg-icons/faGauge";
-import { faGamepad } from "@fortawesome/free-solid-svg-icons/faGamepad";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
 import { faFlask } from "@fortawesome/free-solid-svg-icons/faFlask";
 import { faExpand } from "@fortawesome/free-solid-svg-icons/faExpand";
@@ -225,10 +223,11 @@ $: if (!menu && release) {
 }
 onDestroy(() => release?.());
 
-const FEATURES = [
-  { icon: faBolt, title: "live", text: "live_text" },
-  { icon: faGauge, title: "deck", text: "deck_text" },
-  { icon: faGamepad, title: "controls", text: "controls_text" },
+/** The way through it, a step at a time: the last one says how it is flown, by touch or keys. */
+const steps = [
+  { title: "find", text: "find_text" },
+  { title: "plan", text: "plan_text" },
+  { title: "fly", text: byTouch ? "fly_text_touch" : "fly_text" },
 ] as const;
 </script>
 
@@ -262,6 +261,9 @@ const FEATURES = [
     </header>
 
     <main class="mc-selectable">
+      <p class="eyebrow">
+        <span class="tag"><Icon icon={faFlask} /> {$_("studio.flight.page.demo_tag")}</span>
+      </p>
       <h1>{$_("studio.flight.page.headline")}</h1>
       <p class="lede">{$_("studio.flight.page.lede")}</p>
 
@@ -276,7 +278,12 @@ const FEATURES = [
             <img src={logo} alt="" />
             <span>{$_("studio.flight.plan.back")}</span>
           </a>
-          <p class="hint">{$_(byTouch ? "studio.flight.page.hint_touch" : "studio.flight.page.hint")}</p>
+          <!-- Where the steps below have no room: the first of them, and how a phone flies. -->
+          <p class="hint">
+            {$_("studio.flight.page.find_text")}
+            {#if byTouch}{$_("studio.flight.page.fly_text_touch")}{/if}
+          </p>
+          <p class="note">{$_("studio.flight.page.demo")}</p>
           {#if metered}
             <p class="note data">{$_("studio.flight.page.data", { values: { mb: megabytes } })}</p>
           {/if}
@@ -296,22 +303,16 @@ const FEATURES = [
         </p>
       {/if}
 
-      <p class="note demo">
-        <span class="tag"><Icon icon={faFlask} /> {$_("studio.flight.page.demo_tag")}</span>
-        {$_("studio.flight.page.demo")}
-      </p>
-
-      <ul>
-        {#each FEATURES as feature (feature.title)}
-          <li>
-            <Icon icon={feature.icon} />
-            <div>
-              <h2>{$_(`studio.flight.page.${feature.title}`)}</h2>
-              <p>{$_(`studio.flight.page.${feature.text}`)}</p>
-            </div>
-          </li>
-        {/each}
-      </ul>
+      {#if offered}
+        <ol>
+          {#each steps as step (step.title)}
+            <li>
+              <h2>{$_(`studio.flight.page.${step.title}`)}</h2>
+              <p>{$_(`studio.flight.page.${step.text}`)}</p>
+            </li>
+          {/each}
+        </ol>
+      {/if}
     </main>
 
     {#if !inApp}
@@ -448,6 +449,7 @@ const FEATURES = [
     pointer-events: auto;
     /* The words are read, not dragged; the map is everything beside them. */
   }
+  .eyebrow { margin: 0 0 14px; }
   h1 {
     margin: 0;
     font-size: clamp(34px, 4.6vw, 60px);
@@ -498,8 +500,9 @@ const FEATURES = [
     font-size: 12.5px;
     line-height: 1.45;
   }
-  .note.data { flex-basis: 100%; color: #ffd08a; }
-  .note.demo { margin-top: 22px; }
+  /* The small print under the button. */
+  .go .note { flex-basis: 100%; }
+  .note.data { color: #ffd08a; }
   /* The demo's storm in place of the live radar's: said where the button is, in the button's colour. */
   .note.replay {
     margin-top: 18px;
@@ -541,32 +544,44 @@ const FEATURES = [
   }
   .board.quiet:hover { background: rgba(255, 255, 255, 0.22); }
   .hint {
-    flex: 1 1 200px;
+    display: none;
+    flex-basis: 100%;
     margin: 0;
     color: var(--ink-3);
     font-size: 13px;
     line-height: 1.4;
   }
-  .hint.grounded { flex-basis: 100%; color: var(--ink-2); font-size: 14px; }
+  .hint.grounded { display: block; color: var(--ink-2); font-size: 14px; }
 
-  ul {
+  ol {
     display: grid;
     gap: 16px;
     margin: 40px 0 0;
     padding: 0;
     list-style: none;
+    counter-reset: step;
   }
   li {
     display: grid;
     grid-template-columns: 22px minmax(0, 1fr);
-    gap: 14px;
+    gap: 0 14px;
     align-items: start;
-    color: var(--mc-orange);
-    font-size: 16px;
+    counter-increment: step;
   }
-  li :global(svg) { margin-top: 2px; }
+  li::before {
+    content: counter(step);
+    grid-row: span 2;
+    display: grid;
+    place-items: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: rgba(255, 149, 0, 0.18);
+    color: var(--mc-orange);
+    font: 700 12px/1 var(--mc-font);
+  }
   h2 {
-    margin: 0;
+    margin: 2px 0 0;
     color: var(--ink);
     font-size: 15px;
     font-weight: 650;
@@ -623,13 +638,17 @@ const FEATURES = [
     .screen span { display: none; }
     .home.top { display: none; }
     .home.by-board { display: inline-flex; height: 52px; padding: 0 22px 0 18px; font-size: 16px; }
-    .hint { order: 1; }
-    ul { display: none; }
+    .hint { display: block; order: 1; }
+    .go .note { order: 2; }
+    ol { display: none; }
+    .eyebrow { margin-bottom: 10px; }
     .lede { margin-top: 12px; }
     .go { margin-top: 20px; }
   }
   @container mc-frame (max-height: 620px) {
-    ul { display: none; }
+    .hint { display: block; order: 1; }
+    .go .note { order: 2; }
+    ol { display: none; }
   }
   /* The smallest phones: the button by the way in says whose the page is. */
   @container mc-frame (max-width: 400px) {

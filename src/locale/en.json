@@ -188,27 +188,26 @@
     },
     "flight": {
       "fly": "Fly",
-      "fly_title": "Plan a flight in an airliner towards the storms, and fly it (keyboard or gamepad)",
+      "fly_title": "Plan an airliner flight into the storms and fly it with keyboard or gamepad",
       "page": {
         "by": "by meteocool",
         "headline": "Fly through live clouds.",
-        "lede": "The thunderstorms on this radar are real and minutes old. meteoair builds them in three dimensions and puts you in the cockpit of an A320 among them.",
+        "lede": "Every colour on this map is rain falling right now, every flash a lightning strike from the last few minutes. For years we have watched these storms from above. Now you can fly into them.",
         "board": "Plan a flight",
-        "hint": "Move the map to the weather you want to fly at first.",
-        "hint_touch": "Move the map to the weather you want to fly at first. Then turn your phone sideways: you fly with your thumbs.",
-        "unavailable": "meteoair flies on the 3D map, which this page does not have.",
+        "find": "Find a storm",
+        "find_text": "Drag the map to the weather that calls you: a line of thunderstorms, a core of hail, a sky full of lightning.",
+        "plan": "Plan your flight",
+        "plan_text": "Choose the storm, then how high and how fast you meet it.",
+        "fly": "Fly in",
+        "fly_text": "Go as close as you dare, with keyboard or gamepad. Record the moment and share it.",
+        "fly_text_touch": "Turn your phone sideways and go as close as you dare. Record the moment and share it.",
+        "unavailable": "meteoair needs meteocool's 3D map, and this page does not have it.",
         "open_map": "Open the radar map",
-        "live": "Live weather",
-        "live_text": "Radar volumes from across Europe, with rain, hail, icing and lightning where the storms are.",
-        "deck": "A working flight deck",
-        "deck_text": "Live cockpit screens, weather radar, autopilot and warnings; seen from the cockpit or from outside.",
-        "controls": "Keys, gamepad or touch",
-        "controls_text": "Pick a storm, a level and a speed on the flight plan, then take off. Record the flight as a video.",
         "back": "Back",
         "loading": "Loading {percent}%",
         "loading_title": "Loading the aircraft, its cockpit and the soundtrack: {percent}%",
         "ready": "Ready for take-off",
-        "failed": "The flight did not load.",
+        "failed": "The flight did not load. Check your connection and try again.",
         "retry": "Try again",
         "fullscreen": "Full screen",
         "fullscreen_exit": "Leave full screen",
@@ -216,17 +215,17 @@
         "imprint": "Imprint",
         "privacy": "Privacy",
         "demo_tag": "Tech demo",
-        "demo": "A game made to show live radar in 3D. It wants a recent device, and may not run on older ones.",
-        "data": "Taking off loads about {mb} MB. On a mobile connection, Wi-Fi is the better choice.",
+        "demo": "Runs best on a recent computer or phone.",
+        "data": "Taking off downloads about {mb} MB. Use Wi-Fi if you can.",
         "replay_tag": "Recorded storm",
-        "replay": "There are no thunderstorms on the live radar right now, so you will fly through a recorded storm from the meteocool demo: real radar and lightning, replayed.",
-        "replay_on": "You are flying through a recorded storm from the meteocool demo, because there are no thunderstorms on the live radar right now: real radar and lightning, replayed.",
-        "replay_live": "Fly the live weather instead"
+        "replay": "The sky is quiet right now, so you will fly through a recorded storm: real radar and lightning, replayed.",
+        "replay_on": "The sky is quiet right now, so this is a recorded storm: real radar and lightning, replayed.",
+        "replay_live": "Fly the quiet sky instead"
       },
       "plan": {
         "title": "Flight plan",
-        "chart": "Chart: the start, the heading and the way to the storm",
-        "chart_hint": "Click the chart to move the start",
+        "chart": "Chart of your start, heading and route to the storm",
+        "chart_hint": "Click the chart to move your starting point",
         "aircraft": "Aircraft",
         "preview": "{name}, turning",
         "specs": "{length} m long · {span} m span · cruises M{mach} · ceiling FL{ceiling}",
@@ -236,7 +235,7 @@
         "level": "Level",
         "speed": "Speed",
         "heading": "Heading",
-        "aim": "On the storm",
+        "aim": "Aim at the storm",
         "briefing": "Briefing",
         "brief": {
           "route": "ROUTE",
@@ -263,7 +262,7 @@
         "tops": "tops"
       },
       "minimap": {
-        "title": "Map round the aircraft",
+        "title": "Map around the aircraft",
         "range": "Radar map, {nm} NM to its edge",
         "range_title": "{nm} NM to the edge of the map · click for another range",
         "heading_up": "HDG",
@@ -280,39 +279,39 @@
       },
       "model_credit": "Aircraft: “Airbus A320 Lufthansa With cockpit interior” by izcyk, CC BY 4.0",
       "leave": "Leave",
-      "leave_title": "End the flight, back to Studio (Esc)",
-      "leave_title_plan": "End the flight, back to its plan (Esc)",
-      "leave_title_map": "End the flight, back to the map (Esc)",
+      "leave_title": "End the flight and return to Studio (Esc)",
+      "leave_title_plan": "End the flight and return to its plan (Esc)",
+      "leave_title_map": "End the flight and return to the map (Esc)",
       "boarding": "Finding the storms…",
       "loading": {
         "title": "Preparing the flight",
         "what": "The aircraft, its cockpit and the soundtrack",
         "progress": "{loaded} of {total} MB",
-        "failed": "The flight did not load. Check the connection and try again.",
+        "failed": "The flight did not load. Check your connection and try again.",
         "retry": "Try again",
         "back": "Back"
       },
       "sound": {
         "on": "Music on",
         "off": "Music off",
-        "on_title": "The music is on: turn it off (the flight's sounds stay)",
-        "off_title": "The music is off: turn it on"
+        "on_title": "Turn off the music. The flight sounds stay on.",
+        "off_title": "Turn on the music"
       },
       "share": {
         "plan": "Share",
-        "plan_title": "Copy a link that takes off from this plan: the start, heading, level and speed, over the weather of the moment it is opened",
+        "plan_title": "Copy a link to this flight plan. It flies through whatever weather is live when someone opens it.",
         "title": "A flight through live clouds on meteoair",
-        "note": "The link shares this start: the place, heading, level and speed. The clouds are always the newest radar's, whenever it is opened.",
+        "note": "It starts from the same place, heading, level and speed, in the newest radar clouds whenever someone opens it.",
         "moment": "Share this moment",
-        "moment_title": "Copy a link that takes off from right here: the same place, attitude, speed and state of the aircraft",
-        "moment_note": "The link takes off from this moment: the same place, attitude, speed and state of the aircraft. The clouds are the radar's newest when it is opened."
+        "moment_title": "Copy a link that starts from this exact moment: same place, attitude, speed and aircraft state",
+        "moment_note": "It starts from this exact moment, in the newest radar clouds whenever someone opens it."
       },
       "fullscreen": "Full screen (F)",
       "fullscreen_exit": "Leave full screen (F)",
-      "paused": "Paused · P resumes",
+      "paused": "Paused · press P to resume",
       "muted": "Music off",
-      "muted_title": "The music is off; M turns it on",
-      "clear_sky": "No weather on the radar: free flight",
+      "muted_title": "Music off · press M to turn it on",
+      "clear_sky": "The sky is quiet: no weather on the radar. Fly anywhere.",
       "terrain": "TERRAIN  PULL UP",
       "stall": "STALL",
       "overspeed": "OVERSPEED",
@@ -330,16 +329,16 @@
         "air": "Outside",
         "frames": "Frames",
         "target": "Storm",
-        "radio": "Over ground"
+        "radio": "Above ground"
       },
       "keys": {
         "title": "Flying",
-        "throttle": "Throttle up / down · on the ground, S at idle: reverse",
+        "throttle": "Throttle up / down · on the ground, hold S at idle to reverse",
         "rudder": "Rudder left / right",
         "pitch": "Nose down / nose up",
         "roll": "Roll left / right",
-        "warp": "Hold: four times as fast",
-        "brake": "Hold: speed brake · on the ground, the brakes",
+        "warp": "Hold to fly 4× as fast",
+        "brake": "Hold for the speed brake · on the ground, the wheel brakes",
         "gear": "Landing gear down / up",
         "autopilot": "Autopilot: wings level, hold altitude",
         "next": "Next storm / start again",
@@ -351,22 +350,22 @@
         "pause": "Pause",
         "mute": "Music off / on",
         "fullscreen": "Full screen",
-        "help": "These keys",
+        "help": "Show these keys",
         "leave": "End the flight (asks first)",
         "leave_plan": "End the flight, back to its plan (asks first)",
-        "flaps": "Flaps in / out, a step",
+        "flaps": "Flaps in / out one step",
         "speedbrake": "Speed brake out / in",
-        "radar": "Radar colours on the ground on / off",
+        "radar": "Show radar colours on the ground, or hide them",
         "autobrake": "Autobrake armed / off",
         "parking": "Parking brake, on the ground",
-        "click": "Move a lever or push a button of the flight deck",
-        "zoom": "Look closer at the flight deck",
+        "click": "Move levers and press buttons in the cockpit",
+        "zoom": "Zoom in on the flight deck",
         "silence": "Silence the alarms sounding now",
         "pad": {
           "title": "Gamepad",
           "stick": "Nose down / up, roll left / right",
-          "throttle": "Throttle down / up · on the ground, LT at idle: reverse",
-          "leave": "End the flight (asks first; A ends it)"
+          "throttle": "Throttle down / up · on the ground, hold LT at idle to reverse",
+          "leave": "End the flight (asks first, A confirms)"
         }
       },
       "cockpit": {
@@ -393,7 +392,7 @@
         "thrust": {
           "name": "Thrust levers",
           "hint": "Drag forward or back · W / S",
-          "ground": "Drag forward or back · held back at idle: reverse · W / S"
+          "ground": "Drag forward or back · hold back at idle to reverse · W / S"
         },
         "sidestick": {
           "name": "Sidestick",
@@ -422,7 +421,7 @@
         "parkingBrake": {
           "name": "Parking brake",
           "hint": "Click: set / release · K",
-          "air": "Holds the wheels on the ground only",
+          "air": "Works on the ground only",
           "set": "Set"
         },
         "masterWarning": {
@@ -435,7 +434,7 @@
         },
         "weatherRadar": {
           "name": "Radar on the ground",
-          "hint": "Click: paint the radar's colours on the ground, or not · O"
+          "hint": "Click: show radar colours on the ground, or hide them · O"
         }
       },
       "touch": {
@@ -448,8 +447,8 @@
         "rudder": "Rudder",
         "rudder_short": "RUD",
         "brake": "Brake",
-        "brake_title": "Hold: speed brake · on the ground, the brakes",
-        "warp_title": "Hold: four times as fast",
+        "brake_title": "Hold for the speed brake · on the ground, the wheel brakes",
+        "warp_title": "Hold to fly 4× as fast",
         "gear": "Gear",
         "flaps": "Flaps",
         "flaps_in": "Flaps in a step",
@@ -469,8 +468,8 @@
         "inspect": "Inspect",
         "sound": "Music",
         "tilt": "Tilt",
-        "tilt_title": "Fly by tilting the phone, from how it is held now",
-        "tilt_refused": "This browser does not say how the phone is held: tilt is off.",
+        "tilt_title": "Fly by tilting your phone. The way you hold it now counts as level.",
+        "tilt_refused": "Tilt is off. This browser does not share how your phone is held.",
         "help": "Help",
         "show": "Show the flight deck again",
         "turn": "Turn your phone sideways to fly",
