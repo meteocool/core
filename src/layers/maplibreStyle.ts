@@ -17,7 +17,9 @@ import type {
  * per feature, MapLibre wants the whole thing declared up front.
  */
 
-const SOURCE = "basemap";
+/** The basemap tiles' source, which the flight's water is drawn from as well. */
+export const BASEMAP_SOURCE = "basemap";
+const SOURCE = BASEMAP_SOURCE;
 
 /** #rrggbb to its three channels. */
 function channels(hex: string): [number, number, number] {

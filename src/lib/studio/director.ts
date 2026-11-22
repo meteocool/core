@@ -98,6 +98,8 @@ export interface FlightSupport {
   makeScenicPass: typeof import("../../layers/scenicPass").makeScenicPass;
   /** The mountain peaks charted on the ground while flying; see flight/peaks.ts. */
   peaks: typeof import("./flight/peaks").peaks;
+  /** Lakes, rivers and the sea drawn as water, with the sky and the sun in them; see flight/water.ts. */
+  water: typeof import("./flight/water").water;
 }
 
 /** A listed volume, as the flight aims at and charts one. */

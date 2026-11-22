@@ -212,8 +212,8 @@ void main() {
   colour = vec4(paint * alpha, alpha);
 }`;
 
-/** Where the sun of the white cloud stands (the cloud shader's `SUN`): east, north and up. */
-const SUN_DIRECTION: [number, number, number] = [-0.8, -0.25, 0.55];
+/** Where the sun of the white cloud stands (the cloud shader's `SUN`), and of the glitter on the flight's water: east, north and up. */
+export const SUN_DIRECTION: [number, number, number] = [-0.8, -0.25, 0.55];
 
 function link(context: WebGL2RenderingContext, vertex: string, fragment: string): WebGLProgram {
   const program = context.createProgram()!;

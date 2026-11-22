@@ -1410,6 +1410,7 @@ export default class Cells3DCapability extends Capability {
           gl.setSky(FLIGHT_SKY);
           this.ensureAircraft(gl);
           this.flightSupport?.peaks.add(gl, { dark: this.dark, satellite: this.satellite, nameKeys: this.nameKeys }, this.rasterAnchor(gl));
+          this.flightSupport?.water.add(gl, { satellite: this.satellite, dark: this.dark }, this.flightQuality);
         }
       });
       // Keep the shared View in step so switching back to the flat map lands
@@ -3158,6 +3159,7 @@ export default class Cells3DCapability extends Capability {
         this.flightSupport?.peaks.add(gl, { dark: this.dark, satellite: this.satellite, nameKeys: this.nameKeys }, this.rasterAnchor(gl));
         if (!this.terrainWanted) applyTerrain(gl, true, this.dark, this.drapeSize());
         this.applyFlightLod(gl);
+        support.water.add(gl, { satellite: this.satellite, dark: this.dark }, this.flightQuality);
       }
       this.applySections();
       this.setDirected(true);
@@ -3188,6 +3190,7 @@ export default class Cells3DCapability extends Capability {
       if (this.styleReady) this.applyFlightLod(gl);
       budgetDrapes(gl, null);
       flightFog(gl, false);
+      had?.water.remove(gl);
       gl._camera?.transform?.clearNearFarZOverride?.();
       gl.setCenterClampedToGround(before.clamped);
       if (pose && had) {
@@ -3413,6 +3416,7 @@ export default class Cells3DCapability extends Capability {
     // down to half a screen's points each way, where nothing else has kept it moving.
     this.gl?.setPixelRatio(Math.max(Math.min(full, 0.5), full * Math.min(1, Math.sqrt(next / 0.45))));
     this.applyCloudDetail();
+    if (this.gl) this.flightSupport?.water.quality(this.gl, next);
   }
 
   /**

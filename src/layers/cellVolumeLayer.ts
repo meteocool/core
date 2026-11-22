@@ -741,7 +741,7 @@ export const DIM_UNOPENABLE = 0.45;
 /** Anything indexable by 16 numbers: MapLibre hands over gl-matrix's own type. */
 export type Mat4 = ArrayLike<number>;
 
-function multiply(a: Mat4, b: Mat4): Float64Array {
+export function multiply(a: Mat4, b: Mat4): Float64Array {
   const out = new Float64Array(16);
   for (let c = 0; c < 4; c += 1) {
     for (let r = 0; r < 4; r += 1) {
