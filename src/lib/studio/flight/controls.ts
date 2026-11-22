@@ -21,6 +21,8 @@ import type { ControlInput } from "./physics";
 /** What a press does, once. */
 export type FlightAction =
   | "autopilot" | "next" | "restart" | "view" | "style" | "inspect" | "record" | "pause" | "mute" | "help" | "leave"
+  /** The cut through a storm being cut open turned anticlockwise or clockwise, pushed out towards the eye or deeper in. */
+  | "cutLeft" | "cutRight" | "cutNearer" | "cutDeeper"
   | "gear" | "fullscreen" | "flapsOut" | "flapsIn" | "speedbrake" | "radar" | "confirm" | "autobrake" | "parkingBrake"
   /** The master warning or caution light pressed: the alarms raised now are silenced. */
   | "silence";
@@ -42,6 +44,11 @@ const ACTIONS: Record<string, FlightAction> = {
   KeyP: "pause",
   KeyM: "mute",
   KeyI: "inspect",
+  // Beside each other under the right hand, as < and > are, and [ and ].
+  Comma: "cutLeft",
+  Period: "cutRight",
+  BracketLeft: "cutNearer",
+  BracketRight: "cutDeeper",
   KeyG: "gear",
   KeyF: "fullscreen",
   // U over J on the keyboard: up and down, in and out.

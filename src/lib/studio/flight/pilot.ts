@@ -18,7 +18,7 @@ import { isMapStyle, mapStyleOf } from "../../cloudStyle";
 import { isHandheld } from "../../gpuBudget";
 import type { CloudStyle } from "../../cloudStyle";
 import { captionOf, recordStage, saveRecording } from "../director";
-import type { InspectMode, Stage, StormTileInfo } from "../director";
+import type { FlightCut, InspectMode, Stage, StormTileInfo } from "../director";
 import type { Recording } from "../record";
 import { flightStatus, INITIAL_FLIGHT_STATUS, studioFlying, studioFov, studioOpen } from "../store";
 import type { FlightCrash, FlightStatus, FlightView, FlightWarning } from "../store";
@@ -39,6 +39,8 @@ import { EXHAUSTS, SEAT, SUN, throughWindows, WHEELS_BELOW_M } from "./cockpit";
 import { FLIGHT_SUPPORT } from "./support";
 import { coresOf, echoTop, flatOffset, MARK_APART_KM, MARK_REACH_KM, markAltitude, marksNear, MARKS_SHOWN } from "./marks";
 import { bearingDeg, destination, distanceM } from "./geo";
+import { CUT_PUSH_STEP, CUT_TURN_STEP, cutThrough, facingFrom, moved, UNSET_CUT } from "./cut";
+import type { CutSetting } from "./cut";
 import type { StormMark } from "./marks";
 import { cockpitEye, inAircraft, outsideEye, seenFrom } from "./view";
 import type { Attitude as FlightAttitude, Eye, Look } from "./view";
@@ -229,6 +231,8 @@ const SLOW_S = 0.25;
 /** What the instruments draw, rewritten every frame. */
 export interface Telemetry {
   state: AircraftState;
+  /** Where the cut through the storm being cut open stands; null with none. */
+  cut: FlightCut | null;
   /** Indicated airspeed, m/s, and Mach number. */
   ias: number;
   mach: number;
@@ -415,6 +419,8 @@ export class Pilot {
   private marked: StormMark[] = [];
   /** The storm being looked into, and how; see `inspect`. */
   private inspected: { mark: StormMark; mode: InspectMode } | null = null;
+  /** Where the cut through it stands, once it has been cut open; see cut.ts. */
+  private cutSetting: CutSetting = UNSET_CUT;
   /** What the flight sounds like (sound.ts); from take-off to landing. */
   private sound: FlightSound | null = null;
   /** The alarms the reader has silenced (alarms.ts), from frame to frame. */
@@ -442,7 +448,7 @@ export class Pilot {
     this.telemetry = {
       state: this.startState(), ias: 0, mach: 0, ground: null, radarAltitude: null, target: null, dbz: null,
       cloud: 0, rain: 0, turbulence: 0, severity: 0, hail: 0, ice: 0, frost: 0, wet: 0, charge: 0, sun: 1, sky: 1, draft: 0, temperature: 0, fps: 60, quality: 1,
-      storms: stage.stormTiles(), marks: [], chart: { storms: [], target: null }, fade: 0, flash: 0, brake: false, time: 0, gear: 0, flapLever: 0, rolled: 0,
+      storms: stage.stormTiles(), marks: [], cut: null, chart: { storms: [], target: null }, fade: 0, flash: 0, brake: false, time: 0, gear: 0, flapLever: 0, rolled: 0,
     };
   }
 
@@ -696,6 +702,14 @@ export class Pilot {
       case "inspect":
         this.inspectNext();
         break;
+      case "cutLeft":
+      case "cutRight":
+        this.moveCut({ turnDeg: action === "cutLeft" ? -CUT_TURN_STEP : CUT_TURN_STEP });
+        break;
+      case "cutNearer":
+      case "cutDeeper":
+        this.moveCut({ pushKm: action === "cutNearer" ? -CUT_PUSH_STEP : CUT_PUSH_STEP });
+        break;
       case "gear":
         // Standing on it, it stays down.
         if (this.telemetry.state.onGround) return;
@@ -777,6 +791,8 @@ export class Pilot {
   }
 
   private lookInto(next: { mark: StormMark; mode: InspectMode } | null): void {
+    // Another storm, or none, is cut afresh: facing the aircraft, through its middle.
+    if (next?.mark !== this.inspected?.mark) this.cutSetting = UNSET_CUT;
     this.inspected = next;
     this.applyInspection();
     this.status({ inspecting: next?.mode ?? null });
@@ -789,11 +805,34 @@ export class Pilot {
    */
   private applyInspection(): void {
     const looked = this.inspected;
-    const { state } = this.telemetry;
-    this.stage.inspectStorm(looked && {
-      lon: looked.mark.lon, lat: looked.mark.lat, mode: looked.mode,
-      from: bearingDeg(state.lon, state.lat, looked.mark.lon, looked.mark.lat),
-    });
+    const cutting = looked?.mode === "cut";
+    if (looked && cutting && this.cutSetting.facingDeg === null) {
+      this.cutSetting = facingFrom(this.cutSetting, this.telemetry.state, looked.mark);
+    }
+    const setting = this.cutSetting;
+    const cut = looked && cutting && setting.facingDeg !== null
+      ? cutThrough(looked.mark, { ...setting, facingDeg: setting.facingDeg }) : null;
+    this.telemetry.cut = cut;
+    this.stage.inspectStorm(looked && { lon: looked.mark.lon, lat: looked.mark.lat, mode: looked.mode, cut });
+    this.status({ cut: cut && { facingDeg: Math.round(cut.facingDeg) % 360, pushKm: setting.pushKm } });
+  }
+
+  /**
+   * Move the cut through the storm being cut open: turned so many degrees
+   * clockwise and pushed so many kilometres deeper; or set to a facing and
+   * a push, as the deck's sliders have them; or, for `face`, turned to face
+   * the aircraft again where it is now.
+   */
+  moveCut(change: { turnDeg?: number; pushKm?: number; facingDeg?: number; pushTo?: number; face?: boolean }): void {
+    const looked = this.inspected;
+    if (looked?.mode !== "cut") return;
+    let setting = change.face ? facingFrom(this.cutSetting, this.telemetry.state, looked.mark) : this.cutSetting;
+    if (change.facingDeg !== undefined) setting = { ...setting, facingDeg: change.facingDeg };
+    if (change.pushTo !== undefined) setting = { ...setting, pushKm: change.pushTo };
+    const facingDeg = setting.facingDeg ?? bearingDeg(looked.mark.lon, looked.mark.lat, this.telemetry.state.lon, this.telemetry.state.lat);
+    this.cutSetting = moved({ ...setting, facingDeg }, change.turnDeg ?? 0, change.pushKm ?? 0);
+    this.applyInspection();
+    if (this.paused) this.refresh();
   }
 
   /** A paused flight's picture, made again: the eye has turned, or what it looks into has changed, and no frame is coming to show it. */

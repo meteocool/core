@@ -85,7 +85,8 @@ import type { StudioPlanesLayer } from "../layers/studioPlanesLayer";
 import { DEFAULT_FOV, STUDIO_MAX_PITCH } from "../lib/studio/scene";
 import type { StudioCamera } from "../lib/studio/scene";
 import { studioFlying, studioFov, studioOpen, studioPlanes, studioSelectedPlane } from "../lib/studio/store";
-import type { FlightEye, FlightPose, FlightSupport, InspectMode, StormTileInfo, StudioSupport } from "../lib/studio/director";
+import type { FlightCut, FlightEye, FlightPose, FlightSupport, InspectMode, StormTileInfo, StudioSupport } from "../lib/studio/director";
+import type { SectionPlane } from "../lib/studio/planes";
 import type { AircraftLayer, AircraftScreen, AircraftView, WeatherView } from "../layers/aircraftLayer";
 import type { StormMark } from "../lib/studio/flight/marks";
 import type { CoarsePlace, Lookout } from "../lib/studio/flight/selection";
@@ -1022,7 +1023,7 @@ export default class Cells3DCapability extends Capability {
   /** The share of their size a flight's place names are drawn at; see `FLIGHT_LABELS`. */
   private flightLabelSize = LABEL_SIZES[LABEL_SIZES.length - 1][1];
   /** The storm a flight is looking into, as the layer has it; see `inspectStorm`. */
-  private inspected: { key: string; heading: number; mode: InspectMode; at: [number, number] } | null = null;
+  private inspected: { key: string; mode: InspectMode; at: [number, number]; cut: FlightCut | null } | null = null;
 
   /** Where a flight's clouds begin, kilometres above the sea; see `setCloudBase`. */
   private cloudBaseKm = 1.5;
@@ -2048,7 +2049,9 @@ export default class Cells3DCapability extends Capability {
     // A flight cuts the storm it looks into; the map, the one a reader opened.
     const looked = this.inspected;
     if (looked) {
-      this.cloudsLayer?.setCut(looked.mode === "cut" ? looked.key : null, looked.heading);
+      // The layer's cut runs along its heading and takes away what is to the right of it.
+      const { cut } = looked;
+      this.cloudsLayer?.setCut(looked.mode === "cut" && cut ? looked.key : null, (cut?.facingDeg ?? 90) - 90, cut && [cut.lon, cut.lat]);
       // Seen through, a storm is where its mark is: its tile, from far off, is as wide as several storms.
       this.cloudsLayer?.setInspection(looked.mode === "cut" ? null : {
         key: looked.key, ...INSPECTIONS[looked.mode], ...(looked.mode === "xray" ? { at: looked.at } : null),
@@ -2057,6 +2060,7 @@ export default class Cells3DCapability extends Capability {
       this.cloudsLayer?.setInspection(null);
       this.cloudsLayer?.setCut(this.opened?.path ?? null, (this.opened?.heading ?? 0) + turn);
     }
+    if (this.flight) this.studioLayer?.setPlanes(...this.flightCutSheet());
     if (this.shown) this.gl?.triggerRepaint();
   }
 
@@ -2793,13 +2797,14 @@ export default class Cells3DCapability extends Capability {
 
   /** Cut the clouds by Studio's planes and draw them, or by none of them outside Studio. */
   private applySections(): void {
-    // Not while flying: from the cockpit a plane is not to be seen, only the hole it cuts in a storm.
+    // Not Studio's own while flying: the flight has a cut of its own (`flightCutSheet`).
     const support = this.studioSupport;
     const cutting = this.studio && !this.flight && support !== null;
     const planes = cutting ? get(studioPlanes) : [];
     const selected = get(studioSelectedPlane);
     this.cloudsLayer?.setSections(cutting && support ? support.clipPlanes(planes) : null);
-    this.studioLayer?.setPlanes(planes, selected);
+    if (this.flight) this.studioLayer?.setPlanes(...this.flightCutSheet());
+    else this.studioLayer?.setPlanes(planes, selected);
 
     // A handle on the ground under each plane that stands on it, to drag it
     // by. A level plane has no place on the ground; its height is in its panel.
@@ -3267,12 +3272,26 @@ export default class Cells3DCapability extends Capability {
   }
 
   /**
+   * The flight's cut as a sheet, for Studio's plane layer to draw: from the
+   * cockpit the hole alone does not say where the cut stands or which way it
+   * runs.
+   */
+  private flightCutSheet(): [SectionPlane[], number | null, number | undefined] {
+    const cut = this.inspected?.mode === "cut" ? this.inspected.cut : null;
+    if (!cut) return [[], null, undefined];
+    const plane: SectionPlane = {
+      id: 1, lon: cut.lon, lat: cut.lat, heightKm: 0, facingDeg: cut.facingDeg, tiltDeg: 0, slabKm: null, enabled: true,
+    };
+    return [[plane], plane.id, cut.halfKm];
+  }
+
+  /**
    * Look into the storm at a place, for a flight. The volume drawn there,
    * the finest of those held: found again each time, since the one drawn
    * changes as the aircraft comes nearer. A cut stands across the line of
    * sight, with the side towards the eye taken away.
    */
-  inspectStorm(target: { lon: number; lat: number; from: number; mode: InspectMode } | null): boolean {
+  inspectStorm(target: { lon: number; lat: number; mode: InspectMode; cut: FlightCut | null } | null): boolean {
     let found: { key: string; zoom: number } | null = null;
     if (target && this.flight) {
       for (const [key, { cutaway }] of this.cutaways) {
@@ -3283,9 +3302,8 @@ export default class Cells3DCapability extends Capability {
         if (!found || tile[0] > found.zoom) found = { key, zoom: tile[0] };
       }
     }
-    // The layer's cut runs along its heading and takes away what is to the right of it.
     this.inspected = found && target
-      ? { key: found.key, heading: target.from + 90, mode: target.mode, at: [target.lon, target.lat] } : null;
+      ? { key: found.key, mode: target.mode, at: [target.lon, target.lat], cut: target.mode === "cut" ? target.cut : null } : null;
     this.applyCut();
     return found !== null;
   }

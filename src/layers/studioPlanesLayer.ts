@@ -78,8 +78,11 @@ function multiply(a: ArrayLike<number>, b: ArrayLike<number>): Float64Array {
 }
 
 export interface StudioPlanesLayer extends CustomLayerInterface {
-  /** The planes to draw, and which of them is being worked on. */
-  setPlanes(planes: readonly SectionPlane[], selected: number | null): void;
+  /**
+   * The planes to draw, and which of them is being worked on; as wide as
+   * `halfKm` to either side where that is given, else by the view.
+   */
+  setPlanes(planes: readonly SectionPlane[], selected: number | null, halfKm?: number): void;
 }
 
 export function makeStudioPlanesLayer(id: string): StudioPlanesLayer {
@@ -89,15 +92,17 @@ export function makeStudioPlanesLayer(id: string): StudioPlanesLayer {
   let vertexArray: WebGLVertexArrayObject | null = null;
   let planes: readonly SectionPlane[] = [];
   let selected: number | null = null;
+  let fixedHalfKm: number | null = null;
 
   return {
     id,
     type: "custom",
     renderingMode: "3d",
 
-    setPlanes(next, chosen) {
+    setPlanes(next, chosen, halfKm) {
       planes = next;
       selected = chosen;
+      fixedHalfKm = halfKm ?? null;
       if (map?.getContainer().isConnected) map.triggerRepaint();
     },
 
@@ -136,7 +141,7 @@ export function makeStudioPlanesLayer(id: string): StudioPlanesLayer {
       // The ground the view spans, in kilometres, which the sheets are sized by.
       const acrossKm = ((EARTH_M / 1000) * Math.cos((lat * Math.PI) / 180) * map.getContainer().clientWidth)
         / (512 * 2 ** map.getZoom());
-      const halfKm = Math.min(Math.max(acrossKm * SHEET_SHARE, 4), 400);
+      const halfKm = fixedHalfKm ?? Math.min(Math.max(acrossKm * SHEET_SHARE, 4), 400);
 
       gl.useProgram(program);
       gl.bindVertexArray(vertexArray);

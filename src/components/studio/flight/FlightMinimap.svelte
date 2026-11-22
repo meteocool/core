@@ -167,6 +167,7 @@ export function draw(telemetry: Telemetry): void {
     cores,
     target: telemetry.target,
     inspected,
+    cut: telemetry.cut,
     track,
     strikes: strikes.map((strike): ChartStrike => ({
       lon: strike.lon, lat: strike.lat, ground: strike.ground, age: (time - strike.born) / (strike.ground ? STRIKE_S : FLICKER_S),

@@ -12,7 +12,8 @@
  * Flat, as the 3D map is flat (`flatOffset`): what is on the ground there is
  * in the same place here, and a radar tile is a square.
  */
-import { EARTH_RADIUS_M, wrap180 } from "../../../lib/studio/flight/geo";
+import { destination, EARTH_RADIUS_M, wrap180 } from "../../../lib/studio/flight/geo";
+import type { FlightCut } from "../../../lib/studio/director";
 import { flatOffset } from "../../../lib/studio/flight/marks";
 import type { StormMark } from "../../../lib/studio/flight/marks";
 import type { Telemetry } from "../../../lib/studio/flight/pilot";
@@ -253,6 +254,8 @@ export interface ChartContent<Picture = CanvasImageSource> {
   target: Telemetry["target"];
   /** The storm being looked into. */
   inspected: { lon: number; lat: number } | null;
+  /** Where the cut through it stands, while it is cut open: drawn as the 3D view draws it, a line in Studio's accent. */
+  cut?: FlightCut | null;
   /** Where the aircraft has been, the oldest first. */
   track: ReadonlyArray<readonly [number, number]>;
   strikes: readonly ChartStrike[];
@@ -260,6 +263,8 @@ export interface ChartContent<Picture = CanvasImageSource> {
 
 const HALO = "rgba(5, 7, 10, 0.85)";
 const INK = "#f2f4f7";
+/** Studio's accent, which the cut's sheet in the 3D view is drawn in (layers/studioPlanesLayer.ts). */
+const CUT_ACCENT = "#ff9e1c";
 const RING = "rgba(242, 244, 247, 0.34)";
 const STRIKE = "#ffe14a";
 /** The aircraft on the map, nose to tail, pixels. */
@@ -403,6 +408,21 @@ export function drawChart(context: CanvasRenderingContext2D, chart: Chart, conte
     context.beginPath();
     context.arc(x, y, 9, 0, 2 * Math.PI);
     context.stroke();
+  }
+  if (content.cut) {
+    const { cut } = content;
+    const [a, b] = [cut.facingDeg - 90, cut.facingDeg + 90].map((bearing) => {
+      const [lon, lat] = destination(cut.lon, cut.lat, bearing, cut.halfKm * 1000);
+      return place(chart, lon, lat);
+    });
+    for (const [colour, width] of [[HALO, 4], [CUT_ACCENT, 2]] as const) {
+      context.strokeStyle = colour;
+      context.lineWidth = width;
+      context.beginPath();
+      context.moveTo(a[0], a[1]);
+      context.lineTo(b[0], b[1]);
+      context.stroke();
+    }
   }
   context.restore();
 

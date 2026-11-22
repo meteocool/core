@@ -23,6 +23,9 @@ import { faRightFromBracket } from "@fortawesome/free-solid-svg-icons/faRightFro
 import { faQuestion } from "@fortawesome/free-solid-svg-icons/faQuestion";
 import { faExpand } from "@fortawesome/free-solid-svg-icons/faExpand";
 import { faCompress } from "@fortawesome/free-solid-svg-icons/faCompress";
+import { faRotateLeft } from "@fortawesome/free-solid-svg-icons/faRotateLeft";
+import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
+import { CUT_PUSH_KM, CUT_TURN_STEP } from "../../../lib/studio/flight/cut";
 import Icon from "../../Icon.svelte";
 import FlightKeys from "./FlightKeys.svelte";
 import TouchControls from "./TouchControls.svelte";
@@ -355,7 +358,7 @@ const WARNINGS = {
 } as const;
 </script>
 
-<div class="flight-deck view-{status.view}" class:inspecting={status.inspecting !== null} class:touch={$touchControls} aria-label={$_("studio.flight.aria")} role="region">
+<div class="flight-deck view-{status.view}" class:inspecting={status.inspecting !== null} class:cutting={status.cut !== null && status.view !== "clean"} class:touch={$touchControls} aria-label={$_("studio.flight.aria")} role="region">
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="look"
@@ -506,11 +509,30 @@ const WARNINGS = {
     <span class="muted" title={$_("studio.flight.muted_title")}><MusicIcon off /> {$_("studio.flight.muted")}</span>
   {/if}
   {#if status.inspecting && status.view !== "clean"}
-    <div class="inspect glass glass-pill" role="group" aria-label={$_("studio.flight.inspect.title")}>
-      <Segmented label={$_("studio.flight.inspect.title")}
-        options={INSPECT.map((mode) => ({ value: mode, label: $_(`studio.flight.inspect.${mode}`) }))}
-        value={status.inspecting} on:change={(event) => pilot.inspectAs(event.detail)} />
-      <CloseDisc on:click={() => pilot.inspectAs(null)} />
+    <div class="inspect glass glass-pill" class:cutting={status.cut !== null} role="group" aria-label={$_("studio.flight.inspect.title")}>
+      <div class="modes">
+        <Segmented label={$_("studio.flight.inspect.title")}
+          options={INSPECT.map((mode) => ({ value: mode, label: $_(`studio.flight.inspect.${mode}`) }))}
+          value={status.inspecting} on:change={(event) => pilot.inspectAs(event.detail)} />
+        <CloseDisc on:click={() => pilot.inspectAs(null)} />
+      </div>
+      {#if status.cut}
+        <!-- The cut is drawn where it stands (an orange sheet); here it is moved, as a section plane in Studio is. -->
+        <div class="cut-set" role="group" aria-label={$_("studio.flight.inspect.cut_set")}>
+          <button type="button" class="turn" title={$_("studio.flight.inspect.cut_left")} aria-label={$_("studio.flight.inspect.cut_left")}
+            on:click={() => pilot.moveCut({ turnDeg: -CUT_TURN_STEP })}><Icon icon={faRotateLeft} /></button>
+          <button type="button" class="turn" title={$_("studio.flight.inspect.cut_right")} aria-label={$_("studio.flight.inspect.cut_right")}
+            on:click={() => pilot.moveCut({ turnDeg: CUT_TURN_STEP })}><Icon icon={faRotateRight} /></button>
+          <label class="depth" title={$_("studio.flight.inspect.cut_depth_title")}>
+            <span>{$_("studio.flight.inspect.cut_depth")}</span>
+            <input type="range" min={-CUT_PUSH_KM} max={CUT_PUSH_KM} step="0.5" value={status.cut.pushKm}
+              on:input={(event) => pilot.moveCut({ pushTo: Number(event.currentTarget.value) })} />
+            <output>{status.cut.pushKm > 0 ? "+" : ""}{status.cut.pushKm.toFixed(1)} km</output>
+          </label>
+          <button type="button" class="face" title={$_("studio.flight.inspect.cut_face_title")}
+            on:click={() => pilot.moveCut({ face: true })}>{$_("studio.flight.inspect.cut_face")}</button>
+        </div>
+      {/if}
     </div>
   {/if}
   {#if status.recording}
@@ -782,6 +804,74 @@ const WARNINGS = {
     --mc-sheet-card: rgba(255, 255, 255, 0.26);
   }
   .flight-deck > .inspect :global(*) { pointer-events: auto; }
+  .flight-deck > .inspect > .modes { display: flex; align-items: center; gap: 10px; }
+  /* Cut open, it has a second row: where the cut stands. */
+  .flight-deck > .inspect.cutting {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    border-radius: 22px;
+  }
+  .cut-set {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 4px 2px;
+    color: var(--mc-text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .cut-set button {
+    height: 34px;
+    min-width: 34px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-sheet-card);
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+  }
+  .cut-set button:hover { background: rgba(255, 255, 255, 0.38); }
+  .cut-set button.turn { padding: 0; }
+  .cut-set .depth {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  /* A track of its own: a browser's is lost on the glass. The thumb in Studio's accent, which the cut's sheet is drawn in. */
+  .cut-set input[type="range"] {
+    flex: 1;
+    min-width: 80px;
+    height: 4px;
+    margin: 0;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.4);
+    appearance: none;
+    cursor: pointer;
+  }
+  .cut-set input[type="range"]::-webkit-slider-thumb {
+    width: 18px;
+    height: 18px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #ff9e1c;
+    appearance: none;
+  }
+  .cut-set input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    background: #ff9e1c;
+  }
+  .cut-set output {
+    min-width: 4.6em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
   .flight-deck > .inspect :global(.segmented button) {
     height: 40px;
     padding: 0 20px;
@@ -791,11 +881,15 @@ const WARNINGS = {
   /* The warnings and a recording's mark stand clear of it. */
   .flight-deck.inspecting .alerts { top: max(13%, calc(var(--mc-safe-top) + 84px)); }
   .flight-deck.inspecting .rec { top: calc(var(--mc-safe-top) + 78px); }
+  .flight-deck.cutting .alerts { top: max(13%, calc(var(--mc-safe-top) + 128px)); }
+  .flight-deck.cutting .rec { top: calc(var(--mc-safe-top) + 122px); }
   /* In a window too narrow for it between the speed and the altitude, it goes under them. */
   @container mc-frame (max-width: 1100px) {
     .flight-deck > .inspect { top: calc(var(--mc-safe-top) + 60px); }
     .flight-deck.inspecting .alerts { top: max(13%, calc(var(--mc-safe-top) + 130px)); }
     .flight-deck.inspecting .rec { top: calc(var(--mc-safe-top) + 124px); }
+    .flight-deck.cutting .alerts { top: max(13%, calc(var(--mc-safe-top) + 174px)); }
+    .flight-deck.cutting .rec { top: calc(var(--mc-safe-top) + 168px); }
   }
   .mark.target i { border-color: #ff4fd8; }
   .mark.target span:first-of-type { color: #ffc2f1; }
@@ -992,6 +1086,7 @@ const WARNINGS = {
     .flight-deck.touch > .inspect { top: calc(var(--deck-top) + 44px); gap: 6px; padding: 4px 6px; }
     .flight-deck.touch > .inspect :global(.segmented button) { height: 34px; padding: 0 14px; font-size: 14px; }
     .flight-deck.touch.inspecting .alerts { top: calc(var(--deck-top) + 96px); }
+    .flight-deck.touch.cutting .alerts { top: calc(var(--deck-top) + 140px); }
   }
   /* Held upright, the top row is two: the heading goes under the speed. */
   @container mc-frame (max-width: 560px) {

@@ -1256,9 +1256,10 @@ export interface CloudsLayer extends CustomLayerInterface {
    * Open one storm, by the key it was handed over under, with a cut at this
    * heading. Every cloud near it is cut by the same plane (`CUT_REACH_KM`),
    * so the cut runs across the storm rather than stopping at the tile's
-   * edge, and nothing stands whole in front of the face.
+   * edge, and nothing stands whole in front of the face. Through `at`,
+   * longitude and latitude, where it is given; else through the storm's middle.
    */
-  setCut(key: string | null, headingDeg: number): void;
+  setCut(key: string | null, headingDeg: number, at?: readonly [number, number] | null): void;
   /**
    * Draw one storm another way than the rest, to look into it: the cloud
    * handed over under `key` and every one near it (`CUT_REACH_KM`, as a cut
@@ -1349,6 +1350,7 @@ export function makeCloudsLayer(
   const clouds = new Map<string, Cloud>();
   let cutKey: string | null = null;
   let cutHeading = 0;
+  let cutAt: readonly [number, number] | null = null;
   let inspection: { key: string; style: CloudStyle | null; peel: number; at?: readonly [number, number] } | null = null;
   let glow: [number, number, number, number] = [0, 0, 0, 0];
   let detail = 1;
@@ -1580,9 +1582,10 @@ export function makeCloudsLayer(
       onPeelTop(peeling.length ? Math.max(...peeling.map((cloud) => cloud.peelFloor)) : null);
     },
 
-    setCut(key, headingDeg) {
+    setCut(key, headingDeg, at = null) {
       cutKey = key;
       cutHeading = headingDeg;
+      cutAt = at;
     },
 
     setColormap(name) {
@@ -1742,7 +1745,9 @@ export function makeCloudsLayer(
       // The cut, on the map, carried into each cut tile's cube; see `carryCut`.
       const opened = cutKey !== null && sections === null ? clouds.get(cutKey) : undefined;
       const along = (cutHeading * Math.PI) / 180;
-      const cutPoint = opened ? cutPointOf(opened.model, opened.cutaway) : null;
+      const cutThrough = opened && cutAt ? MercatorCoordinate.fromLngLat({ lng: cutAt[0], lat: cutAt[1] }, 0) : null;
+      const cutPoint = !opened ? null
+        : cutThrough ? [cutThrough.x, cutThrough.y, 0] as [number, number, number] : cutPointOf(opened.model, opened.cutaway);
       const metre = opened ? opened.model[0] / opened.cutaway.extentM[0] : 0;
       // The storm looked into, and where it stands: the clouds round it are drawn as it is.
       const inspected = inspection ? clouds.get(inspection.key) : undefined;

@@ -36,6 +36,8 @@ const ROWS: Array<[string[], string]> = [
   [["C"], "style"],
   [["O"], "radar"],
   [["I"], "inspect"],
+  [[",", "."], "cut_turn"],
+  [["[", "]"], "cut_push"],
   [["R"], "record"],
   [["P"], "pause"],
   [["M"], "mute"],
