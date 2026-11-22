@@ -1,11 +1,16 @@
 /**
  * Everything a flight needs before it can start, loaded once for the page,
  * with how far along it is: the flight's code (Studio's chunk), the
- * aircraft's model and textures, decoded; the flight's two pieces of the
- * soundtrack; and the sounds the flight makes up for itself. The menus' own
- * piece comes before all of it (`loadMenuMusic`): it is what is heard first. Once it is done the flight
- * starts with all of it there: the aircraft drawn, the deck's buttons and
- * the cockpit's controls answering, the sound and the music playing.
+ * aircraft's model and textures, decoded; the flight's theme and its
+ * suspenseful piece; and the sounds the flight makes up for itself. The
+ * menus' own piece comes before all of it (`loadMenuMusic`): it is what is
+ * heard first. The flight's music takes it and a second theme in turn after
+ * the theme; the flight fetches whichever of them it has not got once it is
+ * ready, one after the other, uncounted: neither is heard before the theme
+ * has played.
+ * Once it is done the flight starts with all of it there: the aircraft
+ * drawn, the deck's buttons and the cockpit's controls answering, the sound
+ * and the music playing.
  *
  * It starts when the reader takes off, not before: it is large, and a
  * phone's data may be counted, so neither the meteoair page nor the flight's
@@ -25,7 +30,7 @@
  */
 import { writable } from "svelte/store";
 import { AIRCRAFT_BYTES, AIRCRAFT_FILES, AIRCRAFT_MODEL, fetchAsset, forgetAsset } from "./assets";
-import { pieceLoaded, setSoundtrack, SOUNDTRACK } from "./soundtrack";
+import { FLIGHT_ROTATION, pieceLoaded, setSoundtrack, SOUNDTRACK } from "./soundtrack";
 import type { PieceName } from "./soundtrack";
 
 /** How the loading stands: not begun, under way, done, or failed; and how much has come, bytes, of how much. */
@@ -121,6 +126,8 @@ export function preloadFlight(): Promise<void> {
 
   const all = Promise.all([code, model, aircraft, piece("theme"), piece("tension")]).then(() => {
     report("ready");
+    // The rest of the flight's music, in the order it plays; nothing for what is had already.
+    void FLIGHT_ROTATION.reduce((after, name) => after.then(() => loadPiece(name)), Promise.resolve(true));
   }, (error: unknown) => {
     console.warn("The flight did not load", error);
     loading = null;

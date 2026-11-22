@@ -1,16 +1,19 @@
 /**
  * The soundtrack, and the switch for all of the flight's sound, which the
- * menus share. Three pieces: the menus' own (the meteoair page and the
- * flight's plan); the flight's theme; and a suspenseful one, which the
- * flight's mix brings up under the theme when the flight gets difficult
- * (soundMix.ts: `tension`).
+ * menus share. Four files: the menus' own piece (the meteoair page and the
+ * flight's plan); the flight's theme and a second one; and a suspenseful
+ * one, which the flight's mix brings up under the flight's music when the
+ * flight gets difficult (soundMix.ts: `tension`). The flight's music takes
+ * the two themes and the menus' piece in turn (`FLIGHT_ROTATION`), and always
+ * opens with the theme, so that a flight never starts on what the menus
+ * played up to it.
  *
  * Streamed, never decoded whole: a piece as floats would be 60 MB and more,
  * far more than a phone should spend on music. Each file is fetched once
  * (preload.ts) and played from memory by a media element, whose sound goes
  * into the page's one audio context. Two elements take turns at each piece:
- * the next time round starts a few seconds before it ends, under its closing
- * fade, so it loops without a gap.
+ * the next time round, or the next piece in turn, starts a few seconds before
+ * it ends, under its closing fade, so it goes on without a gap.
  *
  * A browser lets a page play only once the reader has clicked or pressed a
  * key on it: the context is made and the elements are woken on the first
@@ -19,32 +22,57 @@
  *
  * Two listen. A menu, to its own piece, through a fade of its own
  * (`claimMenuMusic`): in as a menu comes up, out as the last one goes. And
- * the flight, whose sound (sound.ts) takes the theme and the suspenseful
+ * the flight, whose sound (sound.ts) takes its music and the suspenseful
  * piece into its own graph and sets them to the flight. The suspenseful
  * piece plays for as long as the flight's sound does, silent until the mix
  * wants it, so it rises out of nothing rather than starting. Taking off, the
  * menu's piece fades out across the loading and the take-off, and the theme
- * comes up as the flight begins; leaving, the theme goes with the flight and
- * the plan brings the menu's piece back.
+ * comes up as the flight begins; leaving, the flight's music goes with the
+ * flight and the plan brings the menu's piece back.
  *
  * Small and free of the flight's code: the meteoair page loads it to play
  * while the reader reads.
  */
 import { get, writable } from "svelte/store";
 
-export type PieceName = "menu" | "theme" | "tension";
+export type PieceName = "menu" | "theme" | "theme2" | "tension";
 
 /**
- * Where each piece is served from; its size, bytes, which its loading is
- * counted against until the server says; and how long before its end the
- * next time round begins, seconds: inside its own closing fade.
+ * Where each file is served from; its size, bytes, which its loading is
+ * counted against until the server says; and how long before its end what
+ * follows it begins, seconds: inside its own closing fade.
  */
 const AUDIO = `${import.meta.env?.BASE_URL ?? "/"}audio/`;
 export const SOUNDTRACK: Record<PieceName, { url: string; bytes: number; overlap: number }> = {
-  menu: { url: `${AUDIO}menu.mp3`, bytes: 2_877_696, overlap: 4 },
+  menu: { url: `${AUDIO}menu.mp3`, bytes: 3_173_421, overlap: 4 },
   theme: { url: `${AUDIO}theme.mp3`, bytes: 2_560_128, overlap: 3.5 },
+  theme2: { url: `${AUDIO}theme-2.mp3`, bytes: 3_316_269, overlap: 4 },
   tension: { url: `${AUDIO}tension.mp3`, bytes: 5_033_616, overlap: 4 },
 };
+
+/**
+ * The flight's music, in the order it plays, round again: the theme first,
+ * always, then the second, then the menus' piece, as far from the take-off
+ * as it can be. A file not had (yet) is passed over.
+ */
+export const FLIGHT_ROTATION: readonly PieceName[] = ["theme", "theme2", "menu"];
+
+/**
+ * Which of a rotation's files follows the one at `from`: the next that has
+ * come, round again; `from` itself where no other has.
+ */
+export function nextInRotation(from: number, had: readonly boolean[]): number {
+  for (let step = 1; step <= had.length; step++) {
+    const index = (from + step) % had.length;
+    if (had[index]) return index;
+  }
+  return from;
+}
+
+/** Where a rotation opens: its first file that has come, or its first. */
+export function rotationOpening(had: readonly boolean[]): number {
+  return Math.max(0, had.indexOf(true));
+}
 
 /** Whether the reader turned the music off: kept for the next visit too. */
 const MUTED_KEY = "studioFlightMuted";
@@ -120,26 +148,37 @@ export function pageAudio(): AudioContext | null {
 
 type Listener = "menu" | "flight";
 
-/** One of a piece's two elements, and its share of the piece: the one playing at 1, the one waiting at 0. */
+/** One of a piece's two elements, the file in it (its place in the piece's rotation), and its share of the piece: the one playing at 1, the one waiting at 0. */
 interface Deck {
   element: HTMLAudioElement;
   gain: GainNode;
+  file: number;
 }
 
-/** A piece: two media elements taking turns at it, into one node. */
+/**
+ * A piece: one file looped, or several in turn (`FLIGHT_ROTATION`); two
+ * media elements taking turns at it, into one node.
+ */
 class Piece {
   private decks: Deck[] = [];
   private out: GainNode | null = null;
-  /** Which deck is playing the piece; and whether the other has begun it again under its end. */
+  /** Which deck is playing the piece; and whether the other has begun what follows under its end. */
   private front = 0;
   private overlap = false;
-  private src: string | null = null;
+  /** Each file of the rotation, in memory, once it has come. */
+  private readonly srcs: Array<string | null>;
   /** Whether each element has been played once from a click or a key, as Safari wants before it plays one unasked. */
   private primed = false;
   private on = false;
   private watch: ReturnType<typeof setInterval> | null = null;
 
-  constructor(private readonly overlapS: number) {}
+  /** The files, in the order they play. */
+  private readonly files: readonly PieceName[];
+
+  constructor(files: readonly PieceName[]) {
+    this.files = files;
+    this.srcs = files.map(() => null);
+  }
 
   /** The node the piece comes out of, made with the context on first asking; null where there can be none. */
   output(): GainNode | null {
@@ -148,15 +187,17 @@ class Piece {
     if (!audio || typeof Audio === "undefined") return null;
     try {
       const out = audio.createGain();
+      const opening = this.opening();
       this.decks = [0, 1].map((index) => {
         const element = new Audio();
         element.preload = "auto";
-        if (this.src) element.src = this.src;
         const gain = audio.createGain();
         gain.gain.value = index === this.front ? 1 : 0;
         audio.createMediaElementSource(element).connect(gain).connect(out);
         element.addEventListener("ended", () => this.ended(index));
-        return { element, gain };
+        const deck = { element, gain, file: -1 };
+        this.hold(deck, index === this.front ? opening : this.following(opening));
+        return deck;
       });
       this.out = out;
     } catch {
@@ -166,26 +207,30 @@ class Piece {
     return this.out;
   }
 
-  /** The file to play, in memory. */
-  setSource(src: string): void {
-    this.src = src;
-    for (const { element } of this.decks) element.src = src;
+  /** One of the piece's files, in memory: played from now on, where it comes in turn. */
+  setSource(name: PieceName, src: string): void {
+    const file = this.files.indexOf(name);
+    if (file < 0 || this.srcs[file] !== null) return;
+    this.srcs[file] = src;
+    const [front, back] = [this.decks[this.front], this.decks[1 - this.front]];
+    if (front && !this.srcs[front.file]) this.hold(front, this.opening());
+    if (back && !this.overlap) this.hold(back, this.following(front.file));
     this.primed = false;
   }
 
   available(): boolean {
-    return this.src !== null;
+    return this.srcs.some((src) => src !== null);
   }
 
   /** Whether everything a click or a key could do for the piece is done. */
   unlocked(): boolean {
-    return this.primed || this.src === null;
+    return this.primed || !this.available();
   }
 
   /** In a click or a key: what lets both elements play from now on. */
   unlock(): void {
     if (!this.output()) return;
-    if (!this.src) {
+    if (!this.available()) {
       // Nothing to play yet: loaded in the click, which is what Safari asks of an element before it plays one later.
       for (const { element } of this.decks) element.load();
       return;
@@ -193,7 +238,7 @@ class Piece {
     if (this.primed) return;
     this.primed = true;
     this.decks.forEach((deck, index) => {
-      if (!deck.element.paused) return;
+      if (!deck.element.paused || !deck.element.src) return;
       void deck.element.play().then(() => {
         if (this.sounding(index)) return;
         deck.element.pause();
@@ -206,7 +251,7 @@ class Piece {
 
   /** Play, or stop where it is. */
   set(on: boolean): void {
-    this.on = on && this.src !== null && this.decks.length > 0;
+    this.on = on && this.available() && this.decks.length > 0;
     if (this.on) {
       this.play(this.front);
       if (this.overlap) this.play(1 - this.front);
@@ -218,6 +263,51 @@ class Piece {
     this.watch = null;
   }
 
+  /**
+   * Back to the rotation's opening, from the top, unless it is in the middle
+   * of that already: a flight starts on the theme, wherever the last one left
+   * the music. A piece of one file is left where it is.
+   */
+  rewind(): void {
+    const [front, back] = [this.decks[this.front], this.decks[1 - this.front]];
+    const opening = this.opening();
+    if (!front || !back || (front.file === opening && !this.overlap)) return;
+    for (const { element } of this.decks) element.pause();
+    this.overlap = false;
+    this.hold(front, opening);
+    this.hold(back, this.following(opening));
+    front.element.currentTime = 0;
+    back.element.currentTime = 0;
+    for (const deck of [front, back]) {
+      const level = deck === front ? 1 : 0;
+      deck.gain.gain.cancelScheduledValues(0);
+      if (context) deck.gain.gain.setValueAtTime(level, context.currentTime);
+      else deck.gain.gain.value = level;
+    }
+    if (this.on) this.play(this.front);
+  }
+
+  /** Which files have come. */
+  private had(): boolean[] {
+    return this.srcs.map((src) => src !== null);
+  }
+
+  private opening(): number {
+    return rotationOpening(this.had());
+  }
+
+  private following(file: number): number {
+    return nextInRotation(file, this.had());
+  }
+
+  /** A deck given one of the files to play, if it has not got it. */
+  private hold(deck: Deck, file: number): void {
+    const src = this.srcs[file];
+    if (deck.file === file || !src) return;
+    deck.file = file;
+    deck.element.src = src;
+  }
+
   /** Whether a deck should be sounding now. */
   private sounding(index: number): boolean {
     return this.on && (index === this.front || this.overlap);
@@ -225,7 +315,7 @@ class Piece {
 
   private play(index: number): void {
     const { element } = this.decks[index];
-    if (!element.paused) return;
+    if (!element.paused || !element.src) return;
     void element.play().catch(() => {
       // Not allowed yet: the next click or key tries again.
       this.primed = false;
@@ -234,34 +324,37 @@ class Piece {
     });
   }
 
-  /** Near the end of the piece: the next time round, from the top, under its closing bars. */
+  /** Near the end of a file: what follows it, from the top, under its closing bars. */
   private loop(): void {
     const audio = context;
     const front = this.decks[this.front];
     const back = this.decks[1 - this.front];
     if (!audio || !front || this.overlap) return;
+    const overlapS = SOUNDTRACK[this.files[front.file]].overlap;
     const { duration, currentTime } = front.element;
-    if (!Number.isFinite(duration) || duration < this.overlapS * 4 || currentTime < duration - this.overlapS) return;
+    if (!Number.isFinite(duration) || duration < overlapS * 4 || currentTime < duration - overlapS) return;
     this.overlap = true;
     const at = audio.currentTime + LEAD_S;
+    this.hold(back, this.following(front.file));
     back.element.currentTime = 0;
     back.gain.gain.cancelScheduledValues(at);
     back.gain.gain.setValueAtTime(0, at);
     back.gain.gain.setTargetAtTime(1, at, LOOP_IN_S);
-    // The piece's own ending fades already; this takes the last of it under.
+    // The file's own ending fades already; this takes the last of it under.
     front.gain.gain.cancelScheduledValues(at);
     front.gain.gain.setTargetAtTime(0, at + 1, Math.max(0.2, (duration - currentTime) / 4));
     this.play(1 - this.front);
   }
 
-  /** A deck has played the piece to its end: the other is the one playing it now. */
+  /** A deck has played its file to the end: the other is the one playing now, and this one is given what follows that. */
   private ended(index: number): void {
-    const { element } = this.decks[index];
-    element.currentTime = 0;
+    const deck = this.decks[index];
+    deck.element.currentTime = 0;
     if (index !== this.front) return;
     const next = 1 - index;
     if (!this.overlap) {
-      // The end came before it was looked out for (a slow timer): straight on from the top.
+      // The end came before it was looked out for (a slow timer): straight on to what follows, from the top.
+      this.hold(this.decks[next], this.following(deck.file));
       const gain = this.decks[next].gain.gain;
       if (context) {
         gain.cancelScheduledValues(0);
@@ -271,16 +364,18 @@ class Piece {
     }
     this.front = next;
     this.overlap = false;
+    this.hold(deck, this.following(this.decks[next].file));
     if (this.sounding(next)) this.play(next);
   }
 }
 
 /** The pieces, who listens to them, and the menus' fade. */
 class Music {
-  readonly pieces: Record<PieceName, Piece> = {
-    menu: new Piece(SOUNDTRACK.menu.overlap),
-    theme: new Piece(SOUNDTRACK.theme.overlap),
-    tension: new Piece(SOUNDTRACK.tension.overlap),
+  readonly pieces: Record<"menu" | "theme" | "tension", Piece> = {
+    menu: new Piece(["menu"]),
+    // The flight's music: the themes and the menus' piece in turn (`FLIGHT_ROTATION`).
+    theme: new Piece(FLIGHT_ROTATION),
+    tension: new Piece(["tension"]),
   };
   private menu: GainNode | null = null;
   private readonly wanted = new Set<Listener>();
@@ -359,9 +454,11 @@ const music = new Music();
 
 /**
  * The flight's two pieces into its graph, each into its own input, until what
- * is handed back is called. Null where there is no music at all.
+ * is handed back is called; its music back to the theme, as a flight opens.
+ * Null where there is no music at all.
  */
 export function plugMusic(inputs: Record<"theme" | "tension", AudioNode>): (() => void) | null {
+  music.pieces.theme.rewind();
   const plugged: Array<[GainNode, AudioNode]> = [];
   for (const name of ["theme", "tension"] as const) {
     const out = music.pieces[name].output();
@@ -386,21 +483,25 @@ export function wantMusic(on: boolean): void {
   music.want("flight", on);
 }
 
-/** Whether there is a theme for the flight to play: loaded, and somewhere to play it. */
+/** Whether there is music for the flight to play: loaded, and somewhere to play it. */
 export function musicAvailable(): boolean {
   return music.pieces.theme.available() && soundAvailable();
 }
 
-/** Whether a piece has been fetched. */
+/** Each file, in memory, once fetched: one copy, for every piece that plays it. */
+const sources: Partial<Record<PieceName, string>> = {};
+
+/** Whether a file has been fetched. */
 export function pieceLoaded(name: PieceName): boolean {
-  return music.pieces[name].available();
+  return sources[name] !== undefined;
 }
 
-/** A piece, fetched (preload.ts): played from memory from now on. */
+/** A file, fetched (preload.ts): played from memory from now on, by every piece it is part of. */
 export function setSoundtrack(name: PieceName, bytes: ArrayBuffer): void {
-  const piece = music.pieces[name];
-  if (piece.available() || typeof URL === "undefined" || typeof Blob === "undefined") return;
-  piece.setSource(URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" })));
+  if (pieceLoaded(name) || typeof URL === "undefined" || typeof Blob === "undefined") return;
+  const src = URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" }));
+  sources[name] = src;
+  for (const piece of Object.values(music.pieces)) piece.setSource(name, src);
   // A piece that came in after the first click still has to be played from one, where Safari is strict.
   if (!music.unlocked()) listen();
   music.sync();
