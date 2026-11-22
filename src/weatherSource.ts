@@ -11,7 +11,14 @@
  *
  * `?weather=live` is the reader's own "the live weather, whatever it is",
  * which the page never overrides.
+ *
+ * A link shared in flight says whose weather it was flown in, in its
+ * snapshot (lib/studio/snapshot.ts, `weather`), and is flown in the same
+ * again where the address does not say otherwise: a moment over the demo's
+ * storm is over that storm, whoever opens it and wherever.
  */
+import { readSnapshot, SNAPSHOT_KEY } from "./lib/studio/snapshot";
+
 export const WEATHER_KEY = "weather";
 export type WeatherChoice = "demo" | "live" | null;
 
@@ -23,8 +30,10 @@ export function isFlightPage(location: Pick<Location, "pathname" | "hash">): boo
 /** What a location asks of the weather, on the flight's page; null anywhere else, or where it asks nothing. */
 export function weatherChoice(location: Pick<Location, "pathname" | "hash" | "search">): WeatherChoice {
   if (!isFlightPage(location)) return null;
-  const asked = new URLSearchParams(location.search).get(WEATHER_KEY)?.toLowerCase();
-  return asked === "demo" || asked === "live" ? asked : null;
+  const query = new URLSearchParams(location.search);
+  const asked = (query.get(WEATHER_KEY) ?? readSnapshot(query.get(SNAPSHOT_KEY))?.weather);
+  const choice = typeof asked === "string" ? asked.toLowerCase() : null;
+  return choice === "demo" || choice === "live" ? choice : null;
 }
 
 /** Whether this build has a demo to fall back on: one with live weather of its own, not the demo itself nor a dev server's proxy. */

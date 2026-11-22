@@ -50,3 +50,12 @@ test("a flight's link is made on app.meteocool.com on production, which the apps
   assert.equal(flightLinkOrigin("https://app.meteocool.com", true), "https://app.meteocool.com");
   assert.equal(flightLinkOrigin("https://next.meteocool.com", false), "https://next.meteocool.com");
 });
+
+test("a moment shared over the demo's storm is flown over it again, unless the address says otherwise", async () => {
+  const { writeSnapshot } = await import("../../src/lib/studio/snapshot.ts");
+  const demo = writeSnapshot({ weather: "demo" });
+  assert.equal(weatherChoice(at("/meteoair.html", `?fly=45.3,9.3&s=${demo}`)), "demo");
+  assert.equal(weatherChoice(at("/meteoair.html", `?fly=45.3,9.3&s=${writeSnapshot({ weather: "live" })}`)), "live");
+  assert.equal(weatherChoice(at("/meteoair.html", `?fly=45.3,9.3&s=${demo}&weather=live`)), "live");
+  assert.equal(weatherChoice(at("/", `?s=${demo}`)), null);
+});

@@ -39,7 +39,7 @@ import FlightLoading from "./flight/FlightLoading.svelte";
 import { Director } from "../../lib/studio/director";
 import type { Stage } from "../../lib/studio/director";
 import { FLIGHT_STYLE, Pilot } from "../../lib/studio/flight/pilot";
-import { planHere, startOf } from "../../lib/studio/flight/plan";
+import { planHere, resumedPlan } from "../../lib/studio/flight/plan";
 import type { FlightPlan } from "../../lib/studio/flight/plan";
 import { distanceM } from "../../lib/studio/flight/geo";
 import { stormSystems } from "../../lib/studio/flight/spawn";
@@ -51,7 +51,7 @@ import { radarMapHref } from "../../lib/studio/flightPage";
 import { closeStudio } from "../../lib/studio/session";
 import { STUDIO_SUPPORT } from "../../lib/studio/support";
 import {
-  flightPlanAsked, flightRequest, studioAspect, studioFlightOnly, studioFlying, studioPlaying, studioRecording,
+  flightPlanAsked, flightRequest, flightStatus, studioAspect, studioFlightOnly, studioFlying, studioPlaying, studioRecording,
 } from "../../lib/studio/store";
 import type { FlightRequest } from "../../lib/studio/store";
 import { sendLink } from "../../lib/share";
@@ -77,8 +77,6 @@ let planning = ($studioFlightOnly && !get(flightRequest)) || get(flightPlanAsked
 /** Studio up for the flight alone: the flight's own page, or the 3D map's Fly (`flightPlanAsked`). */
 $: flightAlone = $studioFlightOnly || $flightPlanAsked;
 
-/** The plan the flight under way took off with: what its link gives (`share`). */
-let flown: FlightPlan | null = null;
 /** Where the reader goes when the flight under way ends, for one asked for with somewhere to go back to. */
 let back: (() => void) | null = null;
 
@@ -138,7 +136,6 @@ function unload(): void {
 }
 
 function takeOff(flightPlan: FlightPlan): void {
-  flown = flightPlan;
   pilot = new Pilot(stage, { credits, modelCredit: $_("studio.flight.model_credit"), onLeave: () => cut(land) }, flightPlan);
   pilot.start();
 }
@@ -168,7 +165,6 @@ function backToMap(): void {
 function land(): void {
   const flying = pilot;
   pilot = null;
-  flown = null;
   flying?.stop();
   const going = back;
   back = null;
@@ -220,9 +216,12 @@ function board(request: FlightRequest): void {
       return;
     }
     const camera = stage.studioCamera();
-    const flightPlan = planHere(
-      request.start, stormSystems(tiles), (lon, lat) => stage.groundElevation(lon, lat), camera?.bearing ?? 0, FLIGHT_STYLE,
+    const systems = stormSystems(tiles);
+    const planned = planHere(
+      request.start, systems, (lon, lat) => stage.groundElevation(lon, lat), camera?.bearing ?? 0, FLIGHT_STYLE,
     );
+    // A link shared in flight takes off from the moment it was shared, not from a start of its own (lib/studio/flightLink.ts).
+    const flightPlan = request.start.snapshot ? resumedPlan(planned, request.start.snapshot, systems) : planned;
     boarding = null;
     back = request.back ?? null;
     flightRequest.set(null);
@@ -245,12 +244,17 @@ function unboard(): void {
 const asked = get(flightRequest);
 if (asked) board(asked);
 
-/** Send the start of the flight under way: the plan it took off with, not where it has got to. */
+/**
+ * Send this moment of the flight under way: where the aircraft is and
+ * everything about it, for the link to take off from again. The flight is
+ * held while the reader sends it.
+ */
 function share(anchor: Element | null): void {
-  if (!flown) return;
-  const start = startOf(flown, stormSystems(stage.stormTiles()));
+  if (!pilot) return;
+  const start = pilot.shareable();
+  if (!get(flightStatus).paused && !get(flightStatus).leaving) pilot.act("pause");
   void sendLink({ url: flightLinkUrl(flightLinkOrigin(window.location.origin), start), title: $_("studio.flight.share.title") }, anchor,
-    { card: false, note: $_("studio.flight.share.note") });
+    { card: false, note: $_("studio.flight.share.moment_note") });
 }
 
 // The map can end a flight itself: when the 3D map is put away under it.

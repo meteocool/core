@@ -299,11 +299,13 @@
         "off_title": "Music and sound are off: turn them on"
       },
       "share": {
-        "flight": "Share this flight's start",
         "plan": "Share",
         "plan_title": "Copy a link that takes off from this plan: the start, heading, level and speed, over the weather of the moment it is opened",
         "title": "A flight through live clouds on meteoair",
-        "note": "The link shares this start: the place, heading, level and speed. The clouds are always the newest radar's, whenever it is opened."
+        "note": "The link shares this start: the place, heading, level and speed. The clouds are always the newest radar's, whenever it is opened.",
+        "moment": "Share this moment",
+        "moment_title": "Copy a link that takes off from right here: the same place, attitude, speed and state of the aircraft",
+        "moment_note": "The link takes off from this moment: the same place, attitude, speed and state of the aircraft. The clouds are the radar's newest when it is opened."
       },
       "fullscreen": "Full screen (F)",
       "fullscreen_exit": "Leave full screen (F)",

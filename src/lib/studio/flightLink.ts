@@ -18,10 +18,24 @@
  * storm, in place of a live radar with none (src/weatherSource.ts), says so
  * in its link, which then opens on that storm too.
  *
+ * A link shared in flight carries more: the whole moment it was shared,
+ * as `s`, a JSON object in base64url (`FlightSnapshot`). The aircraft's
+ * state as it was (attitude, speed, the levers, the gear, what has come
+ * off it), where the reader was looking, and the real time and the radar
+ * scan it was flown through, so a page that can replay that scan one day
+ * can put the receiver in the same sky. The keys above are still written
+ * beside it, for whatever reads only those. Nothing in `s` is promised to
+ * a later version: what a page does not know, it leaves out.
+ *
  * Pure and free of the flight's code, so the page can read a link before
  * any of that is fetched.
  */
 import { demoWeather, WEATHER_KEY } from "../../weatherSource";
+import { readSnapshot, SNAPSHOT_KEY, writeSnapshot } from "./snapshot";
+import type { FlightSnapshot } from "./snapshot";
+
+export { readSnapshot, SNAPSHOT_KEY, writeSnapshot };
+export type { FlightSnapshot };
 
 /** A flight's start, as a link has it. */
 export interface FlightStart {
@@ -34,13 +48,16 @@ export interface FlightStart {
   /** The speed as it is set: indicated knots, or a Mach number; null for one chosen for the level. */
   speed: { knots: number } | { mach: number } | null;
   view: "cockpit" | "outside";
+  /** The moment a link shared in flight was taken at (`s`); none for a start alone. */
+  snapshot?: FlightSnapshot;
 }
+
 
 /** The page a flight's link opens on. */
 export const FLIGHT_LINK_PAGE = "meteoair.html";
 
 /** The query's keys, all of them: what a page reading the link takes out of its address once the flight is over. */
-export const FLIGHT_LINK_KEYS = ["fly", "hdg", "alt", "spd", "view"] as const;
+export const FLIGHT_LINK_KEYS = ["fly", "hdg", "alt", "spd", "view", SNAPSHOT_KEY] as const;
 
 const FEET = 3.28084;
 
@@ -79,11 +96,13 @@ export function readFlightLink(search: string): FlightStart | null {
   const heading = /^\d{1,3}(\.\d+)?$/.test(hdg) && Number(hdg) <= 360 ? Number(hdg) % 360 : null;
   const alt = (query.get("alt") ?? "").trim();
   const spd = (query.get("spd") ?? "").trim();
+  const snapshot = readSnapshot(query.get(SNAPSHOT_KEY));
   return {
     lat, lon, heading,
     altitude: alt ? readLevel(alt) : null,
     speed: spd ? readSpeed(spd) : null,
     view: query.get("view")?.trim().toLowerCase() === "outside" ? "outside" : "cockpit",
+    ...(snapshot ? { snapshot } : {}),
   };
 }
 
@@ -96,6 +115,7 @@ export function flightLinkQuery(start: FlightStart): string {
     parts.push(`spd=${"mach" in start.speed ? `M${start.speed.mach.toFixed(2)}` : `${Math.round(start.speed.knots)}kt`}`);
   }
   if (start.view === "outside") parts.push("view=outside");
+  if (start.snapshot) parts.push(`${SNAPSHOT_KEY}=${writeSnapshot(start.snapshot)}`);
   return parts.join("&");
 }
 

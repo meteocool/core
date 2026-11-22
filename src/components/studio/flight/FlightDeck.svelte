@@ -443,6 +443,13 @@ const WARNINGS = {
         aria-label={$_("studio.flight.sound.on")} aria-pressed={!$flightMuted}>
         <Icon icon={$flightMuted ? faVolumeXmark : faVolumeHigh} />
       </button>
+      {#if share && $shareAvailable}
+        <!-- This moment of the flight as a link: the flight is held while it is sent. -->
+        <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={(event) => share?.(event.currentTarget)}
+          title={$_("studio.flight.share.moment_title")} aria-label={$_("studio.flight.share.moment")}>
+          <Icon icon={shareIcon()} />
+        </button>
+      {/if}
       {#if canFullscreen}
         <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => pilot.act("fullscreen")}
           title={$_($fullscreen ? "studio.flight.fullscreen_exit" : "studio.flight.fullscreen")}
@@ -485,9 +492,9 @@ const WARNINGS = {
           <button type="button" class="glass-pill end" on:click={() => pilot.leave()}>{$_("studio.flight.leave_ask.end")} <kbd>↵</kbd></button>
         </div>
         {#if share && $shareAvailable}
-          <!-- The link to where this flight began, while it is held: the start it took off from, not where it has got to. -->
+          <!-- The link to this moment of the flight, while it is held: where it has got to, and all of the aircraft as it is. -->
           <button type="button" class="share" on:click={(event) => share?.(event.currentTarget)}>
-            <Icon icon={shareIcon()} /> {$_("studio.flight.share.flight")}
+            <Icon icon={shareIcon()} /> {$_("studio.flight.share.moment")}
           </button>
         {/if}
       </section>

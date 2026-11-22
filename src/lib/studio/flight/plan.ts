@@ -11,8 +11,9 @@
  * No map and no stores here; the page that shows it is
  * components/studio/flight/Preflight.svelte.
  */
+import { CLOUD_STYLES } from "../../cloudStyle";
 import type { CloudStyle } from "../../cloudStyle";
-import type { FlightStart } from "../flightLink";
+import type { FlightSnapshot, FlightStart } from "../flightLink";
 import { indicatedFromTrue, machOf, speedOfSound, trueFromIndicated } from "./atmosphere";
 import { freezingLevel, USUAL_BASE_KM } from "./cloudBase";
 import { bearingDeg, destination, distanceM, offsetM, wrap180, wrap360 } from "./geo";
@@ -60,6 +61,8 @@ export interface FlightPlan {
   radarOnGround: boolean;
   /** Whether the storms ahead carry a mark in the view. */
   marks: boolean;
+  /** The moment of another flight this one takes off from, from a link shared in flight (`resumedPlan`); none for a flight of its own. */
+  resume?: FlightSnapshot;
 }
 
 const FEET = 3.28084;
@@ -119,6 +122,52 @@ export function planFrom(approach: Approach, style: CloudStyle): FlightPlan {
 export const approachOf = (plan: FlightPlan): Approach => ({
   lon: plan.lon, lat: plan.lat, heading: plan.heading, altitude: plan.altitude, target: plan.target,
 });
+
+/** A snapshot's object under `key`, or an empty one. */
+export const snapshotPart = (snapshot: FlightSnapshot, key: string): Record<string, unknown> => {
+  const part = snapshot[key];
+  return part !== null && typeof part === "object" && !Array.isArray(part) ? (part as Record<string, unknown>) : {};
+};
+const finite = (value: unknown): number | null => (typeof value === "number" && Number.isFinite(value) ? value : null);
+
+/** As high as a resumed flight is put, metres: past the airliner's ceiling, so nothing a link says sends it to space. */
+const RESUME_CEILING_M = 15_000;
+
+/**
+ * The plan for a flight taken off from a moment of another (lib/studio/flightLink.ts,
+ * `FlightSnapshot`): where that one was, which way it pointed, how high and
+ * how fast, seen as it was seen and its storms drawn as they were. The rest
+ * of that moment, the attitude and the levers and the damage, the pilot
+ * takes from `resume` at take-off. A flight started again (`next`, `restart`)
+ * starts from the same place, level.
+ */
+export function resumedPlan(plan: FlightPlan, snapshot: FlightSnapshot, systems: readonly StormSystem[] = []): FlightPlan {
+  const state = snapshotPart(snapshot, "state");
+  // The storm that one was flown at, where it is still on the radar: the nearest system to where it was.
+  const aimed = snapshotPart(snapshot, "target");
+  const [aimedLon, aimedLat] = [finite(aimed.lon), finite(aimed.lat)];
+  const near = aimedLon === null || aimedLat === null ? [] : systems
+    .map((system) => ({ system, away: distanceM(aimedLon, aimedLat, system.lon, system.lat) }))
+    .filter(({ away }) => away < SAME_STORM_KM * 1000)
+    .sort((one, other) => one.away - other.away);
+  const [lon, lat, heading, altitude, tas] = ["lon", "lat", "heading", "altitude", "tas"].map((key) => finite(state[key]));
+  const style = CLOUD_STYLES.find((one) => one === snapshot.style);
+  return {
+    ...plan,
+    lon: lon ?? plan.lon,
+    lat: lat ?? plan.lat,
+    heading: heading === null ? plan.heading : wrap360(heading),
+    altitude: altitude === null ? plan.altitude : Math.min(Math.max(altitude, 0), RESUME_CEILING_M),
+    tas: tas === null ? plan.tas : Math.max(tas, 0),
+    target: near[0]?.system ?? plan.target,
+    aimed: false,
+    view: snapshot.view === "outside" || snapshot.view === "clean" ? "outside" : snapshot.view === "cockpit" ? "cockpit" : plan.view,
+    style: style ?? plan.style,
+    radarOnGround: typeof snapshot.radarOnGround === "boolean" ? snapshot.radarOnGround : plan.radarOnGround,
+    marks: typeof snapshot.marks === "boolean" ? snapshot.marks : plan.marks,
+    resume: snapshot,
+  };
+}
 
 /**
  * Starts chosen by hand for a recorded storm the demo replays, so that the

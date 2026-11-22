@@ -27,8 +27,10 @@ import { Keys } from "./controls";
 import type { FlightAction } from "./controls";
 import { FLAPS_MOST, levelFlight, MAX_DT, moveGear, overspeed, PITCH_RATE, ROLL_RATE, SPEEDBRAKE, step, terrainAhead } from "./physics";
 import type { AircraftState, Environment } from "./physics";
-import { approachOf, cruiseSpeed } from "./plan";
+import { approachOf, cruiseSpeed, snapshotPart } from "./plan";
 import type { FlightPlan } from "./plan";
+import type { FlightSnapshot, FlightStart } from "../flightLink";
+import { demoBackend } from "../../../weatherSource";
 import { chooseApproach, towards } from "./spawn";
 import type { Approach } from "./spawn";
 import { USUAL_BASE_KM } from "./cloudBase";
@@ -280,6 +282,20 @@ export interface Telemetry {
 
 const prefersReducedMotion = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+/** A snapshot's numbers to as many places as matter, so a link stays short: a centimetre of position, a hundred-thousandth of the rest. */
+function rounded(value: unknown, key = ""): unknown {
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) return null;
+    const places = key === "lon" || key === "lat" ? 1e7 : 1e5;
+    return Math.round(value * places) / places;
+  }
+  if (Array.isArray(value)) return value.map((item) => rounded(item));
+  if (value !== null && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([name, item]) => [name, rounded(item, name)]));
+  }
+  return value;
+}
+
 export class Pilot {
   readonly telemetry: Telemetry;
   private readonly listeners = new Set<(telemetry: Telemetry) => void>();
@@ -438,6 +454,7 @@ export class Pilot {
     peelLevel.set(0);
     studioFov.set(FLIGHT_FOV);
     flightStatus.set({ ...INITIAL_FLIGHT_STATUS, view: this.flightPlan.view, clearSky: this.approach.target === null });
+    if (this.flightPlan.resume) this.resume(this.flightPlan.resume);
     studioFlying.set(true);
     this.place();
     // Taking off is a click or a key: when a page may begin to make sound.
@@ -491,6 +508,95 @@ export class Pilot {
       cloudStyle.set(own);
     }
     this.listeners.clear();
+  }
+
+  /**
+   * This moment of the flight, for a link to take off from again
+   * (lib/studio/flightLink.ts): the real time and where the aircraft is,
+   * the radar scan it is flying through, and everything `resume` puts back.
+   * A plain object, written for a page to read and nothing promised past
+   * that; the transient parts of an end (the debris, the fires) are left
+   * out.
+   */
+  snapshot(): FlightSnapshot {
+    const { state, ground, time, gear, flapLever, frost, ias } = this.telemetry;
+    const status = get(flightStatus);
+    const times = get(cloudsTime);
+    const scan = times.shown ?? times.newest;
+    const { touchdown: _touchdown, crash: _crash, ...flying } = state;
+    const { debris: _debris, shed: _shed, fires: _fires, blasts: _blasts, coming: _coming, jolt: _jolt, violence: _violence, ...damage } = this.damage;
+    const target = this.approach.target;
+    return rounded({
+      v: 1,
+      at: new Date().toISOString(),
+      where: { lon: state.lon, lat: state.lat, altitude: state.altitude, ground, ias },
+      scan: scan === null ? null : new Date(scan * 1000).toISOString(),
+      // Whose weather it is flown in: the demo's recorded storm (on demo.meteocool.com, or in place of a live radar's), or the live radar's.
+      weather: demoBackend ? "demo" : "live",
+      site: typeof window === "undefined" ? null : window.location.host,
+      aircraft: this.flightPlan.aircraft,
+      state: flying,
+      gearDown: this.gearDown, gear, flapLever, speedbrake: this.speedbrake, autopilot: this.autopilot,
+      autobrake: this.autobrake, parkingBrake: this.parkingBrake, radarOnGround: this.radarOnGround, marks: this.flightPlan.marks,
+      frost, damage,
+      view: status.view, style: get(cloudStyle), head: this.head, orbit: this.orbit, distance: this.distance, zoomed: this.zoomed,
+      flown: time,
+      target: target ? { lon: target.lon, lat: target.lat, peakDbz: target.peakDbz } : null,
+    }) as FlightSnapshot;
+  }
+
+  /** This moment as a flight's link has it: its start where the aircraft is now, as it points, and the whole snapshot with it. */
+  shareable(): FlightStart {
+    const { state, ias } = this.telemetry;
+    const view = get(flightStatus).view;
+    return {
+      lat: state.lat, lon: state.lon, heading: state.heading, altitude: state.altitude,
+      speed: ias > 0 ? { knots: ias * 1.943844 } : null,
+      view: view === "cockpit" ? "cockpit" : "outside",
+      snapshot: this.snapshot(),
+    };
+  }
+
+  /**
+   * Put back a moment of another flight (`snapshot`), at take-off: the
+   * aircraft as it was, its levers and gear, what had come off it, and
+   * where it was seen from. Whatever the snapshot lacks, or has in a shape
+   * this flight does not know, stays as the plan had it.
+   */
+  private resume(snapshot: FlightSnapshot): void {
+    const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
+    const flag = (value: unknown, otherwise: boolean) => (typeof value === "boolean" ? value : otherwise);
+    const state: Record<string, unknown> = { ...this.telemetry.state };
+    for (const [key, value] of Object.entries(snapshotPart(snapshot, "state"))) {
+      if (key === "touchdown" || key === "crash" || ["lon", "lat", "altitude", "heading"].includes(key)) continue;
+      if ((key in state || key === "slipRate") && (finite(value) || typeof value === "boolean")) state[key] = value;
+    }
+    this.telemetry.state = state as unknown as AircraftState;
+    this.gearDown = flag(snapshot.gearDown, false);
+    if (finite(snapshot.gear)) this.telemetry.gear = Math.min(Math.max(snapshot.gear, 0), 1);
+    if (finite(snapshot.flapLever)) this.telemetry.flapLever = Math.min(Math.max(Math.round(snapshot.flapLever), 0), FLAPS_MOST);
+    if (finite(snapshot.frost)) this.telemetry.frost = Math.min(Math.max(snapshot.frost, 0), 1);
+    this.speedbrake = flag(snapshot.speedbrake, false);
+    this.autobrake = flag(snapshot.autobrake, true);
+    this.parkingBrake = flag(snapshot.parkingBrake, false);
+    this.autopilot = finite(snapshot.autopilot) && !this.telemetry.state.onGround ? snapshot.autopilot : null;
+    const saved = snapshotPart(snapshot, "damage");
+    if (Object.keys(saved).length) this.damage = { ...intact(finite(saved.seed) ? saved.seed : 1), ...saved } as Damage;
+    const look = (value: unknown, otherwise: Look): Look => {
+      const part = value !== null && typeof value === "object" ? (value as Record<string, unknown>) : {};
+      return finite(part.yaw) && finite(part.pitch) ? { yaw: part.yaw, pitch: part.pitch } : otherwise;
+    };
+    this.head = look(snapshot.head, this.head);
+    this.orbit = look(snapshot.orbit, this.orbit);
+    if (finite(snapshot.distance)) this.distance = clamp(snapshot.distance, OUTSIDE_RANGE);
+    if (finite(snapshot.zoomed)) this.zoomed = clamp(snapshot.zoomed, COCKPIT_FOV_RANGE);
+    const views: readonly FlightView[] = ["cockpit", "outside", "clean"];
+    const view = views.find((one) => one === snapshot.view) ?? this.flightPlan.view;
+    const { gear, flapLever } = this.telemetry;
+    this.status({
+      view, autopilot: this.autopilot !== null, lost: [...surfacesLost(this.damage)], flaps: flapLever,
+      gear: gear <= 0 ? "up" : gear >= 1 ? "down" : "moving", onGround: this.telemetry.state.onGround,
+    });
   }
 
   /** End the flight, as the reader has said to. */
