@@ -13,6 +13,7 @@
  * stands on the start, and with the sun behind, so the towers ahead are lit.
  */
 import { bearingDeg, destination, distanceM, offsetM, wrap180, wrap360 } from "./geo";
+import { inRadarGap, radarGapAlong } from "./radarGaps";
 
 /** A listed volume, as much of one as this needs. */
 export interface StormTile {
@@ -246,12 +247,15 @@ export const isHeavy = (system: Pick<StormSystem, "peakDbz" | "strikes">): boole
  * - heavy core: ×1 to 45 dBZ, ×3 at 55, ×4 at 60
  * - lightning: ×(1 + √strikes / 2), so ×6 at 100 strikes, ×11 at 400
  * - relief: ×(1 + 2 × range weight), so ×5 in the Alps, ×2.8 in the Apennines
+ * - where the radar sees little (radarGaps.ts): ×0.1, offered only when
+ *   nothing else near is worth it
  */
 export function stormWorth(system: StormSystem): number {
   const heavy = 1 + Math.max(0, system.peakDbz - 45) / 5;
   const lightning = 1 + Math.sqrt(system.strikes) / 2;
   const relief = 1 + 2 * reliefAt(system.lon, system.lat);
-  return system.strength * heavy * lightning * relief;
+  const seen = inRadarGap(system.lon, system.lat) ? GAP_WORTH : 1;
+  return system.strength * heavy * lightning * relief * seen;
 }
 
 /**
@@ -270,10 +274,16 @@ export function rankSystems(systems: readonly StormSystem[], lookLon: number, lo
   return [...systems].sort((a, b) => score(b) - score(a));
 }
 
+/** What a storm where the radar sees little is worth, of what it would be. */
+const GAP_WORTH = 0.1;
+/** How far past the storm's middle the way in is looked along for where the radar sees little, km: where the flight goes on to. */
+const GAP_BEYOND_KM = 120;
+
 /**
  * The way in to a system: the best of twelve bearings round it. A start
- * with another storm on it scores next to nothing; then high ground under
- * the way in, then the sun behind.
+ * with another storm on it scores next to nothing, and so, nearly, does a
+ * way in that starts or runs on where the radar sees little (radarGaps.ts); then high
+ * ground under the way in, then the sun behind.
  */
 export function approachTo(
   system: StormSystem, tiles: readonly StormTile[], groundAt: (lon: number, lat: number) => number | null = () => null,
@@ -291,7 +301,8 @@ export function approachTo(
       relief += reliefAt(x, y) / (START_KM / 10 + 1);
     }
     const sunBehind = (1 + Math.cos((wrap180(heading - (SUN_BEARING + 180)) * Math.PI) / 180)) / 2;
-    const score = (crowded ? 0.05 : 1) * (1 + 0.6 * relief) * (0.45 + 0.55 * sunBehind);
+    const blind = radarGapAlong(lon, lat, heading, distanceM(lon, lat, system.lon, system.lat) / KM + GAP_BEYOND_KM);
+    const score = (crowded ? 0.05 : 1) * (inRadarGap(lon, lat) ? 0.3 : 1) * (1 - 0.95 * blind) ** 2 * (1 + 0.6 * relief) * (0.45 + 0.55 * sunBehind);
     if (!best || score > best.score) best = { score, lon, lat, heading };
   }
   const { lon, lat, heading } = best!;
@@ -356,10 +367,11 @@ export function clearSkyStart(
 /**
  * The systems in order of how severe they are: the strongest echo first, and
  * of two as strong, the larger. What N steps through, from the worst weather
- * on the radar down.
+ * on the radar down; those where the radar sees little after all the rest.
  */
 export function bySeverity(systems: readonly StormSystem[]): StormSystem[] {
-  return [...systems].sort((a, b) => b.peakDbz - a.peakDbz || b.strength - a.strength);
+  const blind = (system: StormSystem) => (inRadarGap(system.lon, system.lat) ? 1 : 0);
+  return [...systems].sort((a, b) => blind(a) - blind(b) || b.peakDbz - a.peakDbz || b.strength - a.strength);
 }
 
 /** A system this near the one flown at is that one, in a newer list: storms move between scans, km. */
