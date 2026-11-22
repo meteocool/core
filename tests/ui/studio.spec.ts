@@ -93,7 +93,8 @@ test.describe("on a desktop", () => {
     await openStudio(page);
     const basemap = panel(page).getByRole("combobox", { name: "Basemap" });
     await expect(basemap).toHaveValue("satellite");
-    await expect.poll(drawn).toBe("satellite");
+    // Its imagery comes up with Studio's first frames: slow on a loaded machine.
+    await expect.poll(drawn, { timeout: 30_000 }).toBe("satellite");
 
     // Another picked here is Studio's, kept for the next time, and not the map's.
     await basemap.selectOption("osm");

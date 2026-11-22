@@ -76,8 +76,12 @@ test("a flight's link takes off at once from where it says, and once it is over 
   expect(Math.round(plan.feet)).toBe(12_000);
   // The link stays while it flies: a reload is the same flight.
   expect(new URL(page.url()).searchParams.get("fly")).toBe("50.4000,9.6000");
-  // Over, it comes down on the page's plan, and the address is the page's own again.
+  // Over, it comes down on the page's plan, and the address is the page's own again. Asked once the
+  // black of take-off has lifted: a scene change is not started under it, so an Enter there is dropped.
+  await expect.poll(() => page.evaluate(() => (document.querySelector(".mc-curtain") as HTMLElement | null)?.style.opacity ?? "0"),
+    { timeout: 60_000 }).toBe("0");
   await page.keyboard.press("Escape");
+  await expect(page.getByRole("alertdialog", { name: "End the flight?" })).toBeVisible();
   await page.keyboard.press("Enter");
   await expect(page.getByRole("region", { name: "Flight plan" })).toBeVisible({ timeout: 30_000 });
   expect(new URL(page.url()).search).toBe(`?${VIEW}`);
@@ -85,7 +89,7 @@ test("a flight's link takes off at once from where it says, and once it is over 
   await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
 });
 
-test("nothing of the flight but its menu music loads until take-off: then the loading card, with how far along it is",
+test("the page loads nothing of the flight but its menu music, the plan only the aircraft it shows: the rest comes at take-off, with the loading card",
   async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
     test.setTimeout(150_000);
@@ -104,13 +108,13 @@ test("nothing of the flight but its menu music loads until take-off: then the lo
     // The tech demo is said, and a desktop's connection is not warned of.
     await expect(landing(page)).toContainText("Tech demo");
     await expect(landing(page).locator(".note.data")).toHaveCount(0);
-    // Pressed: on to the plan at once, and still nothing large while it is read.
+    // Pressed: on to the plan at once, which fetches the aircraft its preview turns, and nothing else large.
     await board(page).click();
     const plan = page.getByRole("region", { name: "Flight plan" });
     await expect(plan).toBeVisible({ timeout: 60_000 });
-    await expect(plan.getByRole("button", { name: /^Sound (on|off)$/ })).toBeVisible();
+    await expect(plan.getByRole("button", { name: /^Music (on|off)$/ })).toBeVisible();
     await page.waitForTimeout(3_000);
-    expect(asked).toEqual([]);
+    expect(asked.filter((url) => !url.includes("/models/a320/"))).toEqual([]);
     await expect(plan.getByRole("button", { name: "Take off" })).not.toHaveAttribute("title", /\d+%/);
     // Taking off loads it, the loading card counting, and the flight starts once it is in.
     await plan.getByRole("button", { name: "Take off" }).click();
@@ -130,10 +134,10 @@ test("the deck's sound button is the plan's switch", async ({ page }, testInfo) 
   const plan = page.getByRole("region", { name: "Flight plan" });
   await expect(plan).toBeVisible({ timeout: 60_000 });
   // Off in the plan, off in the flight, and remembered.
-  await plan.getByRole("button", { name: /^Sound (on|off)$/ }).click();
+  await plan.getByRole("button", { name: /^Music (on|off)$/ }).click();
   await plan.getByRole("button", { name: "Take off" }).click();
   await expect(page.getByRole("region", { name: "Flight deck" })).toBeVisible({ timeout: 90_000 });
-  const sound = page.getByRole("region", { name: "Flight deck" }).getByRole("button", { name: "Sound on" });
+  const sound = page.getByRole("region", { name: "Flight deck" }).getByRole("button", { name: "Music on" });
   const muted = await page.evaluate(() => localStorage.getItem("studioFlightMuted"));
   await expect(sound).toHaveAttribute("aria-pressed", muted === "1" ? "false" : "true");
   await sound.click();

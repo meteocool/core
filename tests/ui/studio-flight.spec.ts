@@ -237,10 +237,10 @@ test.describe("on a desktop", () => {
     expect(plan.feet).toBeLessThanOrEqual(41_000);
     expect(plan.tas).toBeGreaterThan(150);
     expect(plan.view).toBe("cockpit");
-    // Asked whether to end it, the way back is said to be the map; with a link to give meanwhile.
+    // Asked whether to end it, the way back is said to be the map; with a link to this moment meanwhile.
     await page.keyboard.press("Escape");
     await expect(leaveAsk(page)).toContainText("back to the map");
-    await expect(leaveAsk(page).getByRole("button", { name: "Share this flight's start" })).toBeVisible();
+    await expect(leaveAsk(page).getByRole("button", { name: "Share this moment" })).toBeVisible();
     await page.keyboard.press("Enter");
     // Ended: the flat map, where it was looking, and not Studio.
     await expect(deck(page)).toBeHidden();

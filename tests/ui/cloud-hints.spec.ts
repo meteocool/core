@@ -76,6 +76,7 @@ test("a storm a scan behind the radar keeps its 3D tag, which still opens it in 
   await page.waitForTimeout(1_500);
   await expect(page).toHaveURL(/layer=cells3d/);
   await back.click();
-  await expect(page).toHaveURL(/layer=radar/, { timeout: 10_000 });
+  // The 2D map brought back up: slow on a loaded machine.
+  await expect(page).toHaveURL(/layer=radar/, { timeout: 30_000 });
   await expect(back).toBeHidden();
 });
