@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./test";
-import { emptyAircraft } from "./app";
+import { curtainUp, emptyAircraft } from "./app";
 
 /**
  * Studio's flight: the 3D map from the cockpit of an airliner. On a desktop
@@ -237,7 +237,8 @@ test.describe("on a desktop", () => {
     expect(plan.feet).toBeLessThanOrEqual(41_000);
     expect(plan.tas).toBeGreaterThan(150);
     expect(plan.view).toBe("cockpit");
-    // Asked whether to end it, the way back is said to be the map; with a link to this moment meanwhile.
+    // Asked whether to end it, once take-off's black has lifted, the way back is said to be the map; with a link to this moment meanwhile.
+    await curtainUp(page);
     await page.keyboard.press("Escape");
     await expect(leaveAsk(page)).toContainText("back to the map");
     await expect(leaveAsk(page).getByRole("button", { name: "Share this moment" })).toBeVisible();
@@ -273,7 +274,9 @@ test.describe("on a desktop", () => {
     // A step of flaps: the lever's place reads out while they travel and after.
     await page.keyboard.press("j");
     await expect(deck(page).getByLabel("Flaps")).toHaveText("1");
+    await curtainUp(page);
     await page.keyboard.press("Escape");
+    await expect(leaveAsk(page)).toBeVisible();
     await page.keyboard.press("Enter");
     await expect(panel(page)).toBeVisible();
     expect(await offGround()).toBe(false);

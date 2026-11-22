@@ -1,6 +1,6 @@
 import type { CDPSession, Page } from "@playwright/test";
 import { expect, test } from "./test";
-import { emptyAircraft, noGeocoder } from "./app";
+import { curtainUp, emptyAircraft, noGeocoder } from "./app";
 
 /**
  * The flight on its side (lib/sideways.ts): in the apps, whose web view
@@ -104,6 +104,8 @@ test.describe("a phone held upright, the page forced on its side", () => {
     // Off, and paused, for the controls to be read as they are held.
     await flightPlan(page).getByRole("button", { name: "Take off" }).tap();
     await expect(deck(page)).toBeVisible({ timeout: 90_000 });
+    // A finger on take-off's black reaches nothing under it.
+    await curtainUp(page);
     expect(await turnOf(page)).toBe(90);
     await page.evaluate(() => (window as any).flightPilot.paused || (window as any).flightPilot.act("pause"));
     // No word about turning the phone: it is turned.

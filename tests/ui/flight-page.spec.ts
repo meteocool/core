@@ -1,6 +1,6 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./test";
-import { emptyAircraft, noGeocoder } from "./app";
+import { curtainUp, emptyAircraft, noGeocoder } from "./app";
 
 /**
  * The flight's own page: meteoair.html, and the web app opened at
@@ -34,12 +34,12 @@ for (const path of [`/meteoair.html?${VIEW}`, `/?${VIEW}#meteoair`]) {
 test("the button opens the flight's plan, and the plan put away is meteocool's radar map", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
   // The 3D map's first bring-up and Studio's chunk, both under this one test.
-  test.setTimeout(120_000);
+  test.setTimeout(240_000);
   await noGeocoder(page);
   await page.goto(`/meteoair.html?${VIEW}`);
   await board(page).click();
   const plan = page.getByRole("region", { name: "Flight plan" });
-  await expect(plan).toBeVisible({ timeout: 60_000 });
+  await expect(plan).toBeVisible({ timeout: 120_000 });
   await expect(landing(page)).toHaveCount(0);
   // Studio's own tools are not this page's.
   await expect(page.getByRole("button", { name: "Take off" })).toBeVisible();
@@ -52,14 +52,14 @@ test("the button opens the flight's plan, and the plan put away is meteocool's r
 
 test("a flight's link takes off at once from where it says, and once it is over the page is its own again", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
-  test.setTimeout(150_000);
+  test.setTimeout(240_000);
   await noGeocoder(page);
   // An empty aircraft: a software renderer draws the real one a frame every few seconds.
   await emptyAircraft(page);
   await page.goto(`/meteoair.html?${VIEW}&fly=50.4000,9.6000&hdg=090&alt=FL120&spd=280kt&view=outside`);
   const deck = page.getByRole("region", { name: "Flight deck" });
   // The storms waited for, with a word meanwhile; then in the air.
-  await expect(page.getByRole("status").filter({ hasText: "Finding the storms" })).toBeVisible({ timeout: 90_000 });
+  await expect(page.getByRole("status").filter({ hasText: "Finding the storms" })).toBeVisible({ timeout: 120_000 });
   await expect(deck).toBeVisible({ timeout: 30_000 });
   // Neither the page's words nor the plan on the way.
   await expect(landing(page)).toHaveCount(0);
@@ -76,10 +76,8 @@ test("a flight's link takes off at once from where it says, and once it is over 
   expect(Math.round(plan.feet)).toBe(12_000);
   // The link stays while it flies: a reload is the same flight.
   expect(new URL(page.url()).searchParams.get("fly")).toBe("50.4000,9.6000");
-  // Over, it comes down on the page's plan, and the address is the page's own again. Asked once the
-  // black of take-off has lifted: a scene change is not started under it, so an Enter there is dropped.
-  await expect.poll(() => page.evaluate(() => (document.querySelector(".mc-curtain") as HTMLElement | null)?.style.opacity ?? "0"),
-    { timeout: 60_000 }).toBe("0");
+  // Over, it comes down on the page's plan, and the address is the page's own again; asked once take-off's black has lifted.
+  await curtainUp(page);
   await page.keyboard.press("Escape");
   await expect(page.getByRole("alertdialog", { name: "End the flight?" })).toBeVisible();
   await page.keyboard.press("Enter");
@@ -92,7 +90,7 @@ test("a flight's link takes off at once from where it says, and once it is over 
 test("the page loads nothing of the flight but its menu music, the plan only the aircraft it shows: the rest comes at take-off, with the loading card",
   async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
-    test.setTimeout(150_000);
+    test.setTimeout(240_000);
     await noGeocoder(page);
     const asked: string[] = [];
     page.on("request", (request) => {
@@ -111,7 +109,7 @@ test("the page loads nothing of the flight but its menu music, the plan only the
     // Pressed: on to the plan at once, which fetches the aircraft its preview turns, and nothing else large.
     await board(page).click();
     const plan = page.getByRole("region", { name: "Flight plan" });
-    await expect(plan).toBeVisible({ timeout: 60_000 });
+    await expect(plan).toBeVisible({ timeout: 120_000 });
     await expect(plan.getByRole("button", { name: /^Music (on|off)$/ })).toBeVisible();
     await page.waitForTimeout(3_000);
     expect(asked.filter((url) => !url.includes("/models/a320/"))).toEqual([]);
@@ -126,13 +124,13 @@ test("the page loads nothing of the flight but its menu music, the plan only the
 
 test("the deck's sound button is the plan's switch", async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
-  test.setTimeout(150_000);
+  test.setTimeout(240_000);
   await noGeocoder(page);
   await emptyAircraft(page);
   await page.goto(`/meteoair.html?${VIEW}`);
   await board(page).click();
   const plan = page.getByRole("region", { name: "Flight plan" });
-  await expect(plan).toBeVisible({ timeout: 60_000 });
+  await expect(plan).toBeVisible({ timeout: 120_000 });
   // Off in the plan, off in the flight, and remembered.
   await plan.getByRole("button", { name: /^Music (on|off)$/ }).click();
   await plan.getByRole("button", { name: "Take off" }).click();

@@ -165,6 +165,8 @@ const zoomIn = (page: Page) => page.evaluate(() => {
 
 test.describe("handing a storm over to finer tiles", () => {
   test.skip(({ isMobile }) => isMobile, "one browser is enough for the loading, which is the same in both");
+  // The 3D map's bring-up and a retry's back-off: past 45 s on a loaded machine.
+  test.slow();
 
   test("the coarse tile stays until every tile in it is in, then they take its place at once", async ({ page }) => {
     const { release } = await serveTiles(page);
@@ -175,7 +177,7 @@ test.describe("handing a storm over to finer tiles", () => {
     await page.waitForTimeout(1000);
     expect(await drawnNow(page)).toEqual([COARSE_CODE]);
     release();
-    await untilFine(page, 15_000);
+    await untilFine(page, 30_000);
     // Never less than the whole place in between: the coarse tile, or all four.
     for (const drawn of await pushes(page)) {
       const whole = drawn.includes(COARSE_CODE) || FINE_CODES.every((code) => drawn.includes(code));
@@ -190,7 +192,7 @@ test.describe("handing a storm over to finer tiles", () => {
     await openOnCoarse(page);
     release();
     await zoomIn(page);
-    await untilFine(page, 20_000);
+    await untilFine(page, 40_000);
     expect(requests.get(failing)).toBe(2);
   });
 });

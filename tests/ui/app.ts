@@ -60,6 +60,15 @@ export async function noGeocoder(page: Page): Promise<void> {
 }
 
 /**
+ * The black between scenes lifted (lib/curtain.ts). Asked before keys that
+ * change the scene: one is not started under the black, so its key is dropped.
+ */
+export async function curtainUp(page: Page, timeout = 60_000): Promise<void> {
+  await expect.poll(() => page.evaluate(() => (document.querySelector(".mc-curtain") as HTMLElement | null)?.style.opacity ?? "0"),
+    { timeout }).toBe("0");
+}
+
+/**
  * The flight's aircraft with nothing in it: a model file with no meshes and
  * no textures. A software renderer draws the real one a frame every few
  * seconds, and the flight waits for a model before it takes off, so the
