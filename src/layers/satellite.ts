@@ -15,14 +15,14 @@ import { darkTheme } from "./base";
  * worldwide and national orthophotos over a growing part of Europe.
  *
  * 512 px WebP tiles. Everywhere has them to zoom 12; past that only the
- * orthophoto countries do, to zoom 16 for most of them. Elsewhere a tile past
+ * orthophoto countries do, to zoom 17 (about 0.4 m a pixel). Elsewhere a tile past
  * 12 is a 404, so a missing tile is cut out of the nearest ancestor that
  * exists (see satelliteTile) instead of leaving a hole in the map.
  */
 const SATELLITE_TILES = "https://tiles.versatiles.org/tiles/satellite-raster";
 
-/** Past this the server answers 503 or nothing; OpenLayers overzooms instead. */
-export const SATELLITE_MAX_ZOOM = 16;
+/** Nothing is served past this, though the TileJSON says 19; both maps overzoom instead. */
+export const SATELLITE_MAX_ZOOM = 17;
 
 /** The zoom every place on Earth has imagery to. */
 export const SATELLITE_GLOBAL_ZOOM = 12;
