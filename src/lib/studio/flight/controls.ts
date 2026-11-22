@@ -21,7 +21,7 @@ import type { ControlInput } from "./physics";
 /** What a press does, once. */
 export type FlightAction =
   | "autopilot" | "next" | "restart" | "view" | "style" | "inspect" | "record" | "pause" | "mute" | "help" | "leave"
-  /** The cut through a storm being cut open turned anticlockwise or clockwise, pushed out towards the eye or deeper in. */
+  /** The cut through a storm being cut open turned anticlockwise or clockwise, pushed out towards the eye or deeper in; a peeled storm peeled less or more. */
   | "cutLeft" | "cutRight" | "cutNearer" | "cutDeeper"
   | "gear" | "fullscreen" | "flapsOut" | "flapsIn" | "speedbrake" | "radar" | "confirm" | "autobrake" | "parkingBrake"
   /** The master warning or caution light pressed: the alarms raised now are silenced. */

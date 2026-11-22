@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { CUT_HALF_KM, CUT_PUSH_KM, cutThrough, facingFrom, moved, UNSET_CUT } from "../../src/lib/studio/flight/cut.ts";
+import { CUT_HALF_KM, CUT_HALF_MOST_KM, CUT_PUSH_KM, CUT_WIDENS, cutThrough, facingFrom, moved, UNSET_CUT } from "../../src/lib/studio/flight/cut.ts";
 import { bearingDeg, distanceM } from "../../src/lib/studio/flight/geo.ts";
 
 const storm = { lon: 4.6, lat: 43.3 };
@@ -19,6 +19,12 @@ test("pushed deeper, a cut moves away from the side it takes away", () => {
   const cut = cutThrough(storm, { facingDeg: 90, pushKm: 5 });
   assert.ok(Math.abs(distanceM(storm.lon, storm.lat, cut.lon, cut.lat) - 5000) < 1);
   assert.ok(Math.abs(bearingDeg(storm.lon, storm.lat, cut.lon, cut.lat) - 270) < 0.5);
+});
+
+test("a cut far off is drawn wider, up to a most", () => {
+  assert.equal(cutThrough(storm, { facingDeg: 0, pushKm: 0 }, 20).halfKm, CUT_HALF_KM);
+  assert.equal(cutThrough(storm, { facingDeg: 0, pushKm: 0 }, 200).halfKm, 200 * CUT_WIDENS);
+  assert.equal(cutThrough(storm, { facingDeg: 0, pushKm: 0 }, 2000).halfKm, CUT_HALF_MOST_KM);
 });
 
 test("turning wraps round the compass and pushing stops at its reach", () => {

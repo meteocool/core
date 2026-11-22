@@ -101,6 +101,13 @@ const BASE_S = 120;
 
 /** The ways of looking into a storm, in the order the key takes them. */
 const INSPECT_MODES: InspectMode[] = ["xray", "cut", "peel"];
+/**
+ * How far a storm looked into is peeled until the reader says otherwise, as
+ * the map draws one with none given (`Stage.inspectStorm`); and by how much
+ * a key peels it more or less.
+ */
+const INSPECT_PEEL = 0.72;
+const PEEL_STEP = 0.05;
 
 /** How fast rain falls, m/s: next to nothing beside an aircraft's speed, and what makes it slant. */
 const FALL_M_S = 7;
@@ -421,6 +428,8 @@ export class Pilot {
   private inspected: { mark: StormMark; mode: InspectMode } | null = null;
   /** Where the cut through it stands, once it has been cut open; see cut.ts. */
   private cutSetting: CutSetting = UNSET_CUT;
+  /** How far a storm looked into is peeled, 0 to 1: the reader's for the rest of the flight once they have moved it. */
+  private peelSetting = INSPECT_PEEL;
   /** What the flight sounds like (sound.ts); from take-off to landing. */
   private sound: FlightSound | null = null;
   /** The alarms the reader has silenced (alarms.ts), from frame to frame. */
@@ -708,7 +717,9 @@ export class Pilot {
         break;
       case "cutNearer":
       case "cutDeeper":
-        this.moveCut({ pushKm: action === "cutNearer" ? -CUT_PUSH_STEP : CUT_PUSH_STEP });
+        // Peeled, the same keys peel it less and more: deeper in, either way.
+        if (this.inspected?.mode === "peel") this.peelTo(action === "cutNearer" ? -PEEL_STEP : PEEL_STEP, true);
+        else this.moveCut({ pushKm: action === "cutNearer" ? -CUT_PUSH_STEP : CUT_PUSH_STEP });
         break;
       case "gear":
         // Standing on it, it stays down.
@@ -811,10 +822,28 @@ export class Pilot {
     }
     const setting = this.cutSetting;
     const cut = looked && cutting && setting.facingDeg !== null
-      ? cutThrough(looked.mark, { ...setting, facingDeg: setting.facingDeg }) : null;
+      ? cutThrough(looked.mark, { ...setting, facingDeg: setting.facingDeg },
+        distanceM(this.telemetry.state.lon, this.telemetry.state.lat, looked.mark.lon, looked.mark.lat) / 1000)
+      : null;
     this.telemetry.cut = cut;
-    this.stage.inspectStorm(looked && { lon: looked.mark.lon, lat: looked.mark.lat, mode: looked.mode, cut });
-    this.status({ cut: cut && { facingDeg: Math.round(cut.facingDeg) % 360, pushKm: setting.pushKm } });
+    const peeling = looked?.mode === "peel";
+    this.stage.inspectStorm(looked && {
+      lon: looked.mark.lon, lat: looked.mark.lat, mode: looked.mode, cut, ...(peeling ? { peel: this.peelSetting } : null),
+    });
+    this.status({
+      cut: cut && { facingDeg: Math.round(cut.facingDeg) % 360, pushKm: setting.pushKm },
+      peel: looked && peeling ? { level: this.peelSetting, coreDbz: Math.round(looked.mark.peakDbz) } : null,
+    });
+  }
+
+  /** Peel the storm being peeled this far, 0 to 1; or by so much more, for `by`. */
+  peelTo(level: number, by = false): void {
+    if (this.inspected?.mode !== "peel") return;
+    const next = Math.round(Math.min(Math.max(by ? this.peelSetting + level : level, 0), 1) * 100) / 100;
+    if (next === this.peelSetting) return;
+    this.peelSetting = next;
+    this.applyInspection();
+    if (this.paused) this.refresh();
   }
 
   /**

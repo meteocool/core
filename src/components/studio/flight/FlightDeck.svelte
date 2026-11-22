@@ -26,6 +26,9 @@ import { faCompress } from "@fortawesome/free-solid-svg-icons/faCompress";
 import { faRotateLeft } from "@fortawesome/free-solid-svg-icons/faRotateLeft";
 import { faRotateRight } from "@fortawesome/free-solid-svg-icons/faRotateRight";
 import { CUT_PUSH_KM, CUT_TURN_STEP } from "../../../lib/studio/flight/cut";
+import { dbzColour } from "../../../lib/cellVolume";
+import { STYLE_FIELD } from "../../../lib/cloudStyle";
+import { radarColormap } from "../../../stores";
 import Icon from "../../Icon.svelte";
 import FlightKeys from "./FlightKeys.svelte";
 import TouchControls from "./TouchControls.svelte";
@@ -78,6 +81,16 @@ let marks: Array<HTMLElement | null> = MARKS.map(() => null);
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 /** The ways of looking into a marked storm, as the chooser offers them. */
 const INSPECT: InspectMode[] = ["cut", "peel", "xray"];
+
+/** The peel slider's track: the radar's colours from the faintest echo a peeled storm shows to its core, which a full peel leaves. */
+function peelTrack(coreDbz: number, colormap: string): string {
+  const floor = STYLE_FIELD.cloud.floor;
+  const top = Math.max(coreDbz, floor);
+  return `linear-gradient(to right, ${Array.from({ length: 10 }, (_unused, i) => {
+    const [r, g, b] = dbzColour(floor + ((top - floor) * i) / 9, colormap);
+    return `rgb(${r}, ${g}, ${b}) ${(i / 9) * 100}%`;
+  }).join(", ")})`;
+}
 
 function drawMarks(telemetry: Telemetry): void {
   marks.forEach((element, index) => {
@@ -358,7 +371,7 @@ const WARNINGS = {
 } as const;
 </script>
 
-<div class="flight-deck view-{status.view}" class:inspecting={status.inspecting !== null} class:cutting={status.cut !== null && status.view !== "clean"} class:touch={$touchControls} aria-label={$_("studio.flight.aria")} role="region">
+<div class="flight-deck view-{status.view}" class:inspecting={status.inspecting !== null} class:cutting={(status.cut !== null || status.peel !== null) && status.view !== "clean"} class:touch={$touchControls} aria-label={$_("studio.flight.aria")} role="region">
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="look"
@@ -509,7 +522,7 @@ const WARNINGS = {
     <span class="muted" title={$_("studio.flight.muted_title")}><MusicIcon off /> {$_("studio.flight.muted")}</span>
   {/if}
   {#if status.inspecting && status.view !== "clean"}
-    <div class="inspect glass glass-pill" class:cutting={status.cut !== null} role="group" aria-label={$_("studio.flight.inspect.title")}>
+    <div class="inspect glass glass-pill" class:cutting={status.cut !== null || status.peel !== null} role="group" aria-label={$_("studio.flight.inspect.title")}>
       <div class="modes">
         <Segmented label={$_("studio.flight.inspect.title")}
           options={INSPECT.map((mode) => ({ value: mode, label: $_(`studio.flight.inspect.${mode}`) }))}
@@ -532,6 +545,15 @@ const WARNINGS = {
           <button type="button" class="face" title={$_("studio.flight.inspect.cut_face_title")}
             on:click={() => pilot.moveCut({ face: true })}>{$_("studio.flight.inspect.cut_face")}</button>
         </div>
+      {/if}
+      {#if status.peel}
+        <!-- As the 3D map's own peel (PeelSlider.svelte): the track is the palette, from the faintest echo drawn to the storm's core. -->
+        <label class="peel-set" title={$_("studio.flight.inspect.peel_title")}>
+          <span>{$_("studio.flight.inspect.peel_level")}</span>
+          <input type="range" min="0" max="1" step="0.01" value={status.peel.level} style:--track={peelTrack(status.peel.coreDbz, $radarColormap)}
+            on:input={(event) => pilot.peelTo(Number(event.currentTarget.value))} />
+          <output>{Math.round(status.peel.level * 100)}%</output>
+        </label>
       {/if}
     </div>
   {/if}
@@ -867,6 +889,54 @@ const WARNINGS = {
     border-radius: 50%;
     background: #ff9e1c;
   }
+  .peel-set {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 6px 2px;
+    color: var(--mc-text);
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .peel-set input {
+    flex: 1;
+    min-width: 80px;
+    height: 28px;
+    margin: 0;
+    background: transparent;
+    appearance: none;
+    cursor: pointer;
+  }
+  .peel-set input::-webkit-slider-runnable-track {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--track);
+    box-shadow: inset 0 0 0 1px var(--mc-hairline);
+  }
+  .peel-set input::-moz-range-track {
+    height: 8px;
+    border-radius: 4px;
+    background: var(--track);
+    box-shadow: inset 0 0 0 1px var(--mc-hairline);
+  }
+  .peel-set input::-webkit-slider-thumb {
+    width: 22px;
+    height: 22px;
+    margin-top: -7px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+    appearance: none;
+  }
+  .peel-set input::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+  .peel-set output,
   .cut-set output {
     min-width: 4.6em;
     text-align: right;

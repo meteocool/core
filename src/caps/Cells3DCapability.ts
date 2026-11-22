@@ -242,7 +242,8 @@ const AIRCRAFT_LAYER = "flight-aircraft";
 
 /**
  * How a storm a flight looks into is drawn, bar the cut, which is the
- * layer's own: peeled most of the way to its core in the radar's colours, or
+ * layer's own: peeled most of the way to its core in the radar's colours
+ * (or as far as the reader has said, `Stage.inspectStorm`), or
  * left as it is, in the flight's own style, with the stronger half of what
  * is inside it showing through.
  */
@@ -1023,7 +1024,7 @@ export default class Cells3DCapability extends Capability {
   /** The share of their size a flight's place names are drawn at; see `FLIGHT_LABELS`. */
   private flightLabelSize = LABEL_SIZES[LABEL_SIZES.length - 1][1];
   /** The storm a flight is looking into, as the layer has it; see `inspectStorm`. */
-  private inspected: { key: string; mode: InspectMode; at: [number, number]; cut: FlightCut | null } | null = null;
+  private inspected: { key: string; mode: InspectMode; at: [number, number]; cut: FlightCut | null; peel: number | null } | null = null;
 
   /** Where a flight's clouds begin, kilometres above the sea; see `setCloudBase`. */
   private cloudBaseKm = 1.5;
@@ -2055,6 +2056,7 @@ export default class Cells3DCapability extends Capability {
       // Seen through, a storm is where its mark is: its tile, from far off, is as wide as several storms.
       this.cloudsLayer?.setInspection(looked.mode === "cut" ? null : {
         key: looked.key, ...INSPECTIONS[looked.mode], ...(looked.mode === "xray" ? { at: looked.at } : null),
+        ...(looked.mode === "peel" && looked.peel !== null ? { peel: looked.peel } : null),
       });
     } else {
       this.cloudsLayer?.setInspection(null);
@@ -3291,7 +3293,7 @@ export default class Cells3DCapability extends Capability {
    * changes as the aircraft comes nearer. A cut stands across the line of
    * sight, with the side towards the eye taken away.
    */
-  inspectStorm(target: { lon: number; lat: number; mode: InspectMode; cut: FlightCut | null } | null): boolean {
+  inspectStorm(target: { lon: number; lat: number; mode: InspectMode; cut: FlightCut | null; peel?: number } | null): boolean {
     let found: { key: string; zoom: number } | null = null;
     if (target && this.flight) {
       for (const [key, { cutaway }] of this.cutaways) {
@@ -3303,7 +3305,10 @@ export default class Cells3DCapability extends Capability {
       }
     }
     this.inspected = found && target
-      ? { key: found.key, mode: target.mode, at: [target.lon, target.lat], cut: target.mode === "cut" ? target.cut : null } : null;
+      ? {
+        key: found.key, mode: target.mode, at: [target.lon, target.lat],
+        cut: target.mode === "cut" ? target.cut : null, peel: target.peel ?? null,
+      } : null;
     this.applyCut();
     return found !== null;
   }

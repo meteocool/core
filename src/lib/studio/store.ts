@@ -152,6 +152,8 @@ export interface FlightStatus {
    * direction of the side taken away, and how far past its middle, km.
    */
   cut: { facingDeg: number; pushKm: number } | null;
+  /** How far it is peeled while it is peeled, 0 to 1, and the strongest echo in it, dBZ: what a full peel leaves. */
+  peel: { level: number; coreDbz: number } | null;
   /** The landing gear: up and locked, on its way, or down and locked (G). */
   gear: "up" | "moving" | "down";
   /** Where the flap lever is, 0 (in) to 4 (all the way out), and whether the flaps are still on their way there. */
@@ -183,7 +185,7 @@ export interface FlightStatus {
 
 export const INITIAL_FLIGHT_STATUS: FlightStatus = {
   view: "cockpit", warnings: [], paused: false, recording: false, keys: true, autopilot: false, warp: false,
-  clearSky: false, low: false, inspecting: null, cut: null, gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false,
+  clearSky: false, low: false, inspecting: null, cut: null, peel: null, gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false,
   reverse: false, alphaFloor: false, landing: null, crash: null, lost: [], alarms: [], silenced: [], radarOnGround: false, leaving: false,
 };
 

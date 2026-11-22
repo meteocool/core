@@ -162,11 +162,12 @@ export interface Stage {
   /**
    * Look into the storm at a place, or into none for null: `cut` open by an
    * upright section plane, drawn where it stands, through `cut`'s point with
-   * the side `facingDeg` points to taken away; `peel`ed to its core in the
-   * radar's colours, or left as it is with its core showing through it
-   * (`xray`). Whether there is a storm drawn there to look into.
+   * the side `facingDeg` points to taken away; `peel`ed towards its core in
+   * the radar's colours, as far as `peel` (0 to 1, as the map's own peel) where
+   * given; or left as it is with its core showing through it (`xray`).
+   * Whether there is a storm drawn there to look into.
    */
-  inspectStorm(target: { lon: number; lat: number; mode: InspectMode; cut: FlightCut | null } | null): boolean;
+  inspectStorm(target: { lon: number; lat: number; mode: InspectMode; cut: FlightCut | null; peel?: number } | null): boolean;
   /** The storm cells the radar network tracks, as marks for the view (flight/marks.ts); none where it tracks none. */
   trackedCells(): StormMark[];
   /** Draw the aircraft as this camera sees it, or not at all for null (layers/aircraftLayer.ts). */
