@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  initialMemory, LOW_APPROACH_M, LOW_APPROACH_S, mixSound, TENSE_LEAST, TENSE_OFF, TENSE_ON, TENSION_IN_S, tensionOf,
+  initialMemory, LOW_APPROACH_M, LOW_APPROACH_S, mixSound, TENSE_HOLD_S, TENSE_LEAST, TENSE_OFF, TENSE_ON, TENSION_IN_S, tensionOf,
 } from "../../src/lib/studio/flight/soundMix.ts";
 import type { MusicLevels, SoundInput, SoundMemory, SoundStatus } from "../../src/lib/studio/flight/soundMix.ts";
 
@@ -120,7 +120,9 @@ test("what makes a flight difficult: a strong storm near or around it, jammed ge
   assert.ok(tensionOf({ ...CRUISE, storm: { peakDbz: 40, distance: 5_000 } }, status, 0, 0) < TENSE_OFF, "nor a weak one near");
   assert.ok(tensionOf({ ...CRUISE, dbz: 56 }, status, 0, 0) >= TENSE_ON, "inside a strong storm");
   assert.ok(tensionOf(CRUISE, { warnings: ["gearJammed"] }, 0, 0) >= TENSE_ON);
-  assert.ok(tensionOf({ ...CRUISE, lost: 1 }, status, 0, 0) >= TENSE_ON, "a part come off");
+  const one = tensionOf({ ...CRUISE, lost: 1 }, status, 0, 0);
+  assert.ok(one < TENSE_ON && one > TENSE_OFF, "one part come off is half a reason");
+  assert.ok(tensionOf({ ...CRUISE, lost: 2 }, status, 0, 0) >= TENSE_ON, "two are a whole one");
   const flaps = tensionOf(CRUISE, { warnings: ["flapsJammed"] }, 0, 0);
   assert.ok(flaps < TENSE_ON && flaps > TENSE_OFF, "jammed flaps alone are not quite");
   assert.ok(tensionOf(CRUISE, status, LOW_APPROACH_S[1], 0) >= TENSE_ON);
@@ -136,9 +138,11 @@ test("tension crossfades the theme into the suspenseful piece in a few seconds, 
   const storm = { storm: { peakDbz: 63, distance: 4_000 }, dbz: 56 };
   const rising = fly(40, () => ({ input: storm }));
   const at = (seconds: number) => rising.frames[Math.round(seconds / FRAME)];
-  // Not a jump: a second in barely begun; a few seconds on, most of the way; soon wholly the suspenseful piece.
-  assert.ok(at(1).tension < 0.4, `a second in: ${at(1).tension}`);
-  assert.ok(at(TENSION_IN_S * 1.5).tension > 0.8, `${TENSION_IN_S * 1.5} s in: ${at(TENSION_IN_S * 1.5).tension}`);
+  // Not at once: nothing while it waits to hear the trouble last; then a second in barely begun; a few seconds on, most of the way.
+  assert.ok(at(TENSE_HOLD_S - 0.5).tension < 0.01, `before it is held: ${at(TENSE_HOLD_S - 0.5).tension}`);
+  assert.ok(at(TENSE_HOLD_S + 1).tension < 0.4, `a second in: ${at(TENSE_HOLD_S + 1).tension}`);
+  const most = TENSE_HOLD_S + TENSION_IN_S * 1.5;
+  assert.ok(at(most).tension > 0.8, `${most} s in: ${at(most).tension}`);
   const full = rising.music;
   assert.ok(full.tension > 0.99 && full.theme < 0.02, "the theme gone under it");
   // Both heard at once only on the way across.
@@ -157,7 +161,7 @@ test("tension crossfades the theme into the suspenseful piece in a few seconds, 
 
 test("tension never flickers: it takes more to begin than to keep, and once begun it is clearly there", () => {
   // Hovering at the threshold: jammed flaps alone just under it, jammed gear just over, by turns.
-  const wobble = (t: number) => ({ status: { warnings: [Math.sin(t) > 0 ? "gearJammed" as const : "flapsJammed" as const] } });
+  const wobble = (t: number) => ({ status: { warnings: [Math.sin(t / 2) > 0 ? "gearJammed" as const : "flapsJammed" as const] } });
   const run = fly(120, wobble);
   assert.ok(run.music.tension >= Math.sin((TENSE_LEAST * Math.PI) / 2) * 0.9, "held at least its least once begun");
   const swing = run.frames.slice(-1800).map((frame) => frame.tension);
@@ -172,10 +176,24 @@ test("a long, low approach and warnings held build tension over time", () => {
   assert.ok(low.music.tension > 0.6);
   const brief = fly(LOW_APPROACH_S[0] - 5, () => ({ input: { height: LOW_APPROACH_M - 50 } }));
   assert.ok(brief.music.tension < 0.01);
-  const warned = fly(80, () => ({ status: { warnings: ["bank", "sink"] } }));
+  const warned = fly(80, () => ({ status: { warnings: ["overspeed", "sink"], alarms: ["overspeed", "sink"] } }));
   assert.ok(warned.music.tension > 0.6);
-  const one = fly(80, () => ({ status: { warnings: ["bank"] } }));
+  const one = fly(80, () => ({ status: { warnings: ["overspeed"], alarms: ["overspeed"] } }));
   assert.ok(one.music.tension < 0.01, "one warning is not trouble enough");
+  const voiced = fly(80, () => ({ status: { warnings: ["overspeed", "bank"], alarms: ["overspeed", "bank"] } }));
+  assert.ok(voiced.music.tension < 0.01, "nor one with the bank angle called: a voice is not an alarm");
+});
+
+test("one alarm is not the suspenseful piece: an overspeed that sheds a surface, or an alarm that comes and goes", () => {
+  // An overspeed, and five seconds on an aileron fluttered off: half a minute of it, and still the theme.
+  const shed = fly(30, (t) => {
+    const lost = t >= 5 ? ["lost.leftAileron" as const] : [];
+    return { input: { lost: lost.length }, status: { warnings: ["overspeed"], alarms: ["overspeed", ...lost] } };
+  });
+  assert.ok(Math.max(...shed.frames.map((frame) => frame.tension)) < 0.01, `${shed.music.tension}`);
+  // Jammed gear, a real reason, but only for a moment: no swell of suspense for it.
+  const blip = fly(20, (t) => ({ status: { warnings: t < TENSE_HOLD_S - 1 ? ["gearJammed" as const] : [] } }));
+  assert.ok(Math.max(...blip.frames.map((frame) => frame.tension)) < 0.01);
 });
 
 test("the suspenseful piece is shaped as the theme is: muffled in cloud, ducked in the cockpit", () => {

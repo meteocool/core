@@ -129,6 +129,8 @@ export interface MusicMemory {
   drive: number;
   tension: number;
   tense: boolean;
+  /** Seconds it has been difficult enough to begin, without a break. */
+  difficultFor: number;
   /** Seconds the aircraft has been low over the ground, and with several warnings at once. */
   lowFor: number;
   warnedFor: number;
@@ -390,6 +392,12 @@ const WARP_UP = 0.3;
 export const TENSE_ON = 0.5;
 export const TENSE_OFF = 0.3;
 export const TENSE_LEAST = 1;
+/**
+ * How long it has to stay difficult enough before the suspenseful piece
+ * begins, seconds: one alarm going off, or a surface shed in it, is a
+ * moment, and the music waits to hear whether it is more than that.
+ */
+export const TENSE_HOLD_S = 4;
 export const TENSION_IN_S = 4;
 export const TENSION_OUT_S = 6;
 /** A new start's calm: the trouble before it gone in about this long, seconds, under the cut to black and out of it. */
@@ -397,7 +405,7 @@ export const CALM_AGAIN_S = 3;
 /** Below this height over the ground, metres (about 1,000 ft), for this long and up to this long, seconds, is a long low approach. */
 export const LOW_APPROACH_M = 300;
 export const LOW_APPROACH_S: [number, number] = [40, 120];
-/** Several warnings at once for this long and up to this long, seconds, is a flight in trouble. */
+/** Several warnings at once (a voice alone is not one) for this long and up to this long, seconds, is a flight in trouble. */
 export const WARNED_S: [number, number] = [8, 25];
 /** The theme under the suspenseful piece at its fullest: none of it, as the low-pass on its way out goes this low, Hz. */
 const THEME_LEAST = 0;
@@ -418,7 +426,8 @@ export function tensionOf(input: SoundInput, status: Pick<SoundStatus, "warnings
     0.8 * near, inside, worst,
     status.warnings.includes("gearJammed") ? 0.55 : 0,
     status.warnings.includes("flapsJammed") ? 0.45 : 0,
-    input.lost ? Math.min(1, 0.45 + 0.15 * input.lost) : 0,
+    // One surface shed is half a reason, as an overspeed held a little long sheds one; two are a whole one.
+    input.lost ? Math.min(1, 0.1 + 0.25 * input.lost) : 0,
     0.75 * ramp(lowFor, ...LOW_APPROACH_S),
     0.8 * ramp(warnedFor, ...WARNED_S),
   ];
@@ -432,7 +441,7 @@ const easeLog = (from: number, to: number, dt: number, tau: number) => Math.exp(
 /** What the soundtrack starts a flight from: silent, coming in, and calm. */
 export function initialMusic(): MusicMemory {
   return {
-    gain: 0, high: 20, low: MUSIC_LOW_MOST, drive: 0, tension: 0, tense: false, lowFor: 0, warnedFor: 0, clouded: 0, inCloud: false, swell: 0,
+    gain: 0, high: 20, low: MUSIC_LOW_MOST, drive: 0, tension: 0, tense: false, difficultFor: 0, lowFor: 0, warnedFor: 0, clouded: 0, inCloud: false, swell: 0,
     aloft: true, orbit: NaN, turning: 0, flight: NaN, calming: 0, age: 0,
   };
 }
@@ -475,9 +484,12 @@ export function mixMusic(
   const calming = fresh ? CALM_AGAIN_S : Math.max(0, memory.calming - dt);
   const low = aloft && (input.height ?? Infinity) < LOW_APPROACH_M;
   const lowFor = fresh ? 0 : low ? memory.lowFor + dt : Math.max(0, memory.lowFor - 3 * dt);
-  const warnedFor = fresh ? 0 : status.warnings.length >= 2 ? memory.warnedFor + dt : Math.max(0, memory.warnedFor - 2 * dt);
+  // A surface lost is counted for itself (tensionOf), and a voice alone (the bank angle) is no alarm.
+  const warned = status.warnings.filter((warning) => kindOf(warning).level !== null).length;
+  const warnedFor = fresh ? 0 : warned >= 2 ? memory.warnedFor + dt : Math.max(0, memory.warnedFor - 2 * dt);
   const difficulty = tensionOf(input, status, lowFor, warnedFor);
-  const tense = fresh ? difficulty >= TENSE_ON : memory.tense ? difficulty >= TENSE_OFF : difficulty >= TENSE_ON;
+  const difficultFor = !fresh && difficulty >= TENSE_ON ? memory.difficultFor + dt : 0;
+  const tense = memory.tense && !fresh ? difficulty >= TENSE_OFF : difficultFor >= TENSE_HOLD_S;
   const wanted = tense ? Math.max(TENSE_LEAST, difficulty) : 0;
   const tauTension = (input.ended ? 2 : calming > 0 && wanted <= memory.drive ? CALM_AGAIN_S / 3 : wanted > memory.drive ? TENSION_IN_S : TENSION_OUT_S) / 2;
   const drive = ease(memory.drive, wanted, dt, tauTension);
@@ -516,7 +528,7 @@ export function mixMusic(
   return {
     music,
     memory: {
-      gain: level, high: highNow, low: lowNow, drive, tension, tense, lowFor, warnedFor, clouded, inCloud, swell, aloft,
+      gain: level, high: highNow, low: lowNow, drive, tension, tense, difficultFor, lowFor, warnedFor, clouded, inCloud, swell, aloft,
       orbit: input.orbit ?? memory.orbit, turning, flight, calming, age,
     },
   };
