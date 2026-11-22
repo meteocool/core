@@ -426,11 +426,13 @@
     --mc-type-label: 500 13px/1.25 var(--mc-font);
     --mc-type-value: 600 17px/1.2 var(--mc-font);
     --mc-drawer-pad: 16px;
-    --mc-chip-h: 34px;
-    --mc-chip-pad: 13px;
-    --mc-chip-font: 600 14px/1 var(--mc-font);
-    --mc-chip-icon: 14px;
-    --mc-chip-gap: 8px;
+    /* Halfway between the desktop's 24px and a full thumb's 34px: big enough
+       to hit while swiping the row, without a strip of buttons over the map. */
+    --mc-chip-h: 29px;
+    --mc-chip-pad: 12px;
+    --mc-chip-font: 600 12.5px/1 var(--mc-font);
+    --mc-chip-icon: 12.5px;
+    --mc-chip-gap: 7px;
     --mc-chip-edge: inset 0 0 0 1px var(--mc-hairline);
   }
 }
