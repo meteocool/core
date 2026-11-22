@@ -14,8 +14,9 @@
  * each other's language), and the rewriter only runs when the response is HTML.
  *
  * It also forwards the native apps' API calls to this environment's backend
- * (api.ts), and answers the files that open shared links in the apps
- * (appLinks.ts).
+ * (api.ts), answers the files that open shared links in the apps
+ * (appLinks.ts), and the byte ranges a streamed soundtrack asks for
+ * (ranges.ts).
  */
 
 import {
@@ -28,6 +29,7 @@ import {
   volumeRedirect,
 } from "./api";
 import { appLinksResponse } from "./appLinks";
+import { isStreamedPath, withByteRange } from "./ranges";
 import { PREVIEW_HEIGHT, PREVIEW_WIDTH, previewPath } from "../src/lib/sharePreview";
 
 interface Env {
@@ -146,6 +148,12 @@ export default {
       return volumeRedirect(request, env.ASSET_ORIGIN);
     }
 
+    if (isStreamedPath(pathname)) {
+      // Asked for whole: the static assets ignore `Range`, which is cut here instead.
+      const whole = new Request(request);
+      whole.headers.delete("Range");
+      return withByteRange(request, await env.ASSETS.fetch(whole));
+    }
     if (pathname !== "/" && pathname !== "/index.html") {
       return env.ASSETS.fetch(request);
     }

@@ -1,16 +1,12 @@
 /**
  * Everything a flight needs before it can start, loaded once for the page,
- * with how far along it is: the flight's code (Studio's chunk), the
- * aircraft's model and textures, decoded; the flight's theme and its
- * suspenseful piece; and the sounds the flight makes up for itself. The
- * menus' own piece comes before all of it (`loadMenuMusic`): it is what is
- * heard first. The flight's music takes it and a second theme in turn after
- * the theme; the flight fetches whichever of them it has not got once it is
- * ready, one after the other, uncounted: neither is heard before the theme
- * has played.
- * Once it is done the flight starts with all of it there: the aircraft
- * drawn, the deck's buttons and the cockpit's controls answering, the sound
- * and the music playing.
+ * with how far along it is: the flight's code (Studio's chunk) and the
+ * aircraft's model and textures, decoded. Once it is done the flight starts
+ * with all of it there: the aircraft drawn, the deck's buttons and the
+ * cockpit's controls answering. The soundtrack is not part of it: the
+ * flight's music starts streaming as the loading begins (soundtrack.ts) and
+ * plays from whatever has come, and the sounds the flight makes up for
+ * itself need nothing fetched.
  *
  * It starts when the reader takes off, not before: it is large, and a
  * phone's data may be counted, so neither the meteoair page nor the flight's
@@ -22,16 +18,14 @@
  *
  * Progress is counted in bytes where they are known: the files' own, and an
  * estimate for the code, whose chunks say nothing of their size. What fails
- * says so; asking again tries again from where it failed. Only the music is
- * let go without: a flight without it is still a flight.
+ * says so; asking again tries again from where it failed.
  *
  * Small, and free of the flight's code, which it loads: the meteoair page
  * loads it at once.
  */
 import { writable } from "svelte/store";
-import { AIRCRAFT_BYTES, AIRCRAFT_FILES, AIRCRAFT_MODEL, fetchAsset, forgetAsset } from "./assets";
-import { FLIGHT_ROTATION, pieceLoaded, setSoundtrack, SOUNDTRACK } from "./soundtrack";
-import type { PieceName } from "./soundtrack";
+import { AIRCRAFT_BYTES, AIRCRAFT_FILES, AIRCRAFT_MODEL, fetchAsset } from "./assets";
+import { SOUNDTRACK, streamFlightMusic } from "./soundtrack";
 
 /** How the loading stands: not begun, under way, done, or failed; and how much has come, bytes, of how much. */
 export interface FlightLoad {
@@ -49,33 +43,10 @@ const TEXTURE_BYTES = 1_000_000;
 /** The longest the code may take to come, ms, before the loading is said to have failed. */
 const CODE_MOST_MS = 60_000;
 
-/** About what a flight fetches, bytes, the menus' music aside: what the meteoair page warns a phone of. */
+/** About what a flight fetches, bytes, the menus' music aside and its own streamed as it plays: what the meteoair page warns a phone of. */
 export const FLIGHT_BYTES = CODE_BYTES + AIRCRAFT_BYTES + TEXTURE_BYTES + SOUNDTRACK.theme.bytes + SOUNDTRACK.tension.bytes;
 
 let loading: Promise<void> | null = null;
-
-/** Fetch a piece of the soundtrack and hand it to the music, once; told of its bytes. A failure is let go: music is not needed to fly. */
-function loadPiece(name: PieceName, progress?: (loaded: number, total: number) => void): Promise<boolean> {
-  const { url, bytes } = SOUNDTRACK[name];
-  if (pieceLoaded(name)) {
-    progress?.(bytes, bytes);
-    return Promise.resolve(true);
-  }
-  return fetchAsset(url, bytes, progress).then((buffer) => {
-    setSoundtrack(name, buffer);
-    // The music keeps its own copy, to play from.
-    forgetAsset(url);
-    return true;
-  }, (error: unknown) => {
-    console.warn("The soundtrack did not load", error);
-    return false;
-  });
-}
-
-/** The menus' music: first, before what the flight needs, which it is not part of. */
-export function loadMenuMusic(): Promise<boolean> {
-  return loadPiece("menu");
-}
 
 /** The share of a load that has come, 0 to 1. */
 export function shareOf(load: FlightLoad): number {
@@ -87,7 +58,6 @@ export function preloadFlight(): Promise<void> {
   if (loading) return loading;
   const parts: Record<string, [number, number]> = {
     code: [0, CODE_BYTES], model: [0, AIRCRAFT_BYTES], textures: [0, TEXTURE_BYTES],
-    theme: [0, SOUNDTRACK.theme.bytes], tension: [0, SOUNDTRACK.tension.bytes],
   };
   // Once this try has failed, what of it still comes in says nothing more: the failure stands until the next.
   let over = false;
@@ -105,6 +75,8 @@ export function preloadFlight(): Promise<void> {
     report("loading");
   };
   report("loading");
+  // Its music, buffering meanwhile: not waited for.
+  streamFlightMusic();
 
   const within = <T>(promise: Promise<T>, ms: number) => Promise.race([
     promise,
@@ -119,15 +91,8 @@ export function preloadFlight(): Promise<void> {
     parts.textures = [got, known ? of : Math.max(of, TEXTURE_BYTES)];
     report("loading");
   }));
-  const piece = (name: PieceName) => loadPiece(name, counted(name)).then((loaded) => {
-    // A flight without its music is still a flight.
-    if (!loaded) parts[name] = [parts[name][1], parts[name][1]];
-  });
-
-  const all = Promise.all([code, model, aircraft, piece("theme"), piece("tension")]).then(() => {
+  const all = Promise.all([code, model, aircraft]).then(() => {
     report("ready");
-    // The rest of the flight's music, in the order it plays; nothing for what is had already.
-    void FLIGHT_ROTATION.reduce((after, name) => after.then(() => loadPiece(name)), Promise.resolve(true));
   }, (error: unknown) => {
     console.warn("The flight did not load", error);
     loading = null;

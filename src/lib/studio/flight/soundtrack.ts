@@ -9,16 +9,22 @@
  * played up to it.
  *
  * Streamed, never decoded whole: a piece as floats would be 60 MB and more,
- * far more than a phone should spend on music. Each file is fetched once
- * (preload.ts) and played from memory by a media element, whose sound goes
- * into the page's one audio context. Two elements take turns at each piece:
- * the next time round, or the next piece in turn, starts a few seconds before
- * it ends, under its closing fade, so it goes on without a gap.
+ * far more than a phone should spend on music. A media element plays each
+ * file from the server as it comes, and its sound goes into the page's one
+ * audio context. Nothing is fetched before it is wanted: the menus' piece
+ * once a menu is up, the sound is on and the reader has clicked; the
+ * flight's music and the suspenseful piece once the flight starts loading
+ * (`streamFlightMusic`), so they buffer across the loading screen without
+ * the flight waiting for them. Two elements take turns at each piece: the
+ * next time round, or the next file in turn, starts a few seconds before it
+ * ends, under its closing fade, so it goes on without a gap; the waiting
+ * element fetches its file only in the last half minute before it is due.
  *
  * A browser lets a page play only once the reader has clicked or pressed a
  * key on it: the context is made and the elements are woken on the first
  * one. Where there is no Web Audio, or a file cannot be had, that music is
- * not played and nothing else changes.
+ * not played and nothing else changes; a file that failed is asked for
+ * again the next time its piece is wanted.
  *
  * Two listen. A menu, to its own piece, through a fade of its own
  * (`claimMenuMusic`): in as a menu comes up, out as the last one goes. And
@@ -38,9 +44,9 @@ import { get, writable } from "svelte/store";
 export type PieceName = "menu" | "theme" | "theme2" | "tension";
 
 /**
- * Where each file is served from; its size, bytes, which its loading is
- * counted against until the server says; and how long before its end what
- * follows it begins, seconds: inside its own closing fade.
+ * Where each file is served from; its size, bytes, for what a flight is said
+ * to fetch; and how long before its end what follows it begins, seconds:
+ * inside its own closing fade.
  */
 const AUDIO = `${import.meta.env?.BASE_URL ?? "/"}audio/`;
 export const SOUNDTRACK: Record<PieceName, { url: string; bytes: number; overlap: number }> = {
@@ -53,7 +59,7 @@ export const SOUNDTRACK: Record<PieceName, { url: string; bytes: number; overlap
 /**
  * The flight's music, in the order it plays, round again: the theme first,
  * always, then the second, then the menus' piece, as far from the take-off
- * as it can be. A file not had (yet) is passed over.
+ * as it can be. A file not had (it failed) is passed over.
  */
 export const FLIGHT_ROTATION: readonly PieceName[] = ["theme", "theme2", "menu"];
 
@@ -113,6 +119,8 @@ const MENU_OUT_S = 0.8;
  * long enough for a fade to finish, and for the next menu to take it up.
  */
 const REST_MS = 2500;
+/** How long before a file ends the deck that follows it starts fetching, seconds. */
+const DUE_S = 30;
 /** How often the end of a piece is looked out for, ms. */
 const LOOP_WATCH_MS = 250;
 /**
@@ -165,7 +173,7 @@ class Piece {
   /** Which deck is playing the piece; and whether the other has begun what follows under its end. */
   private front = 0;
   private overlap = false;
-  /** Each file of the rotation, in memory, once it has come. */
+  /** Each file of the rotation, to stream, once the piece has been wanted; null before, and while a file has failed. */
   private readonly srcs: Array<string | null>;
   /** Whether each element has been played once from a click or a key, as Safari wants before it plays one unasked. */
   private primed = false;
@@ -190,13 +198,16 @@ class Piece {
       const opening = this.opening();
       this.decks = [0, 1].map((index) => {
         const element = new Audio();
-        element.preload = "auto";
+        // Nothing fetched until the piece is wanted (`stream`), and the waiting deck's not until its file is due.
+        element.preload = "none";
         const gain = audio.createGain();
         gain.gain.value = index === this.front ? 1 : 0;
         audio.createMediaElementSource(element).connect(gain).connect(out);
+        const deck: Deck = { element, gain, file: -1 };
         element.addEventListener("ended", () => this.ended(index));
-        const deck = { element, gain, file: -1 };
-        this.hold(deck, index === this.front ? opening : this.following(opening));
+        element.addEventListener("error", () => this.failed(deck));
+        if (index === this.front) this.hold(deck, opening, true);
+        else this.hold(deck, this.following(opening));
         return deck;
       });
       this.out = out;
@@ -207,15 +218,46 @@ class Piece {
     return this.out;
   }
 
-  /** One of the piece's files, in memory: played from now on, where it comes in turn. */
-  setSource(name: PieceName, src: string): void {
-    const file = this.files.indexOf(name);
-    if (file < 0 || this.srcs[file] !== null) return;
-    this.srcs[file] = src;
+  /**
+   * Stream the piece's files, those it has not got (all, the first time; one
+   * that failed, after): the playing deck's first seconds buffer from now on.
+   */
+  stream(): void {
+    if (this.srcs.every((src) => src !== null)) return;
+    this.files.forEach((name, file) => {
+      this.srcs[file] ??= SOUNDTRACK[name].url;
+    });
     const [front, back] = [this.decks[this.front], this.decks[1 - this.front]];
-    if (front && !this.srcs[front.file]) this.hold(front, this.opening());
-    if (back && !this.overlap) this.hold(back, this.following(front.file));
+    if (front && (front.file < 0 || !this.srcs[front.file])) this.hold(front, this.opening(), true);
+    if (front && back && !this.overlap) this.hold(back, this.following(front.file));
     this.primed = false;
+    // Where Safari is strict, an element given a file after the first click still has to be played from one.
+    listen();
+  }
+
+  /**
+   * A deck's file could not be had (the network, mostly): passed over until
+   * the piece is next wanted. Where it was the one playing, the piece falls
+   * quiet until then.
+   */
+  private failed(deck: Deck): void {
+    if (deck.file < 0 || !deck.element.error) return;
+    console.warn("The soundtrack did not load", this.files[deck.file], deck.element.error);
+    this.srcs[deck.file] = null;
+    deck.file = -1;
+    deck.element.removeAttribute("src");
+    deck.element.preload = "none";
+    deck.element.load();
+    if (deck !== this.decks[this.front]) return;
+    this.on = false;
+    this.overlap = false;
+    this.decks.forEach((each, index) => {
+      each.element.pause();
+      each.gain.gain.cancelScheduledValues(0);
+      each.gain.gain.value = index === this.front ? 1 : 0;
+    });
+    if (this.watch !== null) clearInterval(this.watch);
+    this.watch = null;
   }
 
   available(): boolean {
@@ -249,8 +291,9 @@ class Piece {
     });
   }
 
-  /** Play, or stop where it is. */
+  /** Play, streaming what it has not got as it starts, or stop where it is. */
   set(on: boolean): void {
+    if (on && !this.on && this.decks.length > 0) this.stream();
     this.on = on && this.available() && this.decks.length > 0;
     if (this.on) {
       this.play(this.front);
@@ -274,7 +317,7 @@ class Piece {
     if (!front || !back || (front.file === opening && !this.overlap)) return;
     for (const { element } of this.decks) element.pause();
     this.overlap = false;
-    this.hold(front, opening);
+    this.hold(front, opening, true);
     this.hold(back, this.following(opening));
     front.element.currentTime = 0;
     back.element.currentTime = 0;
@@ -300,11 +343,17 @@ class Piece {
     return nextInRotation(file, this.had());
   }
 
-  /** A deck given one of the files to play, if it has not got it. */
-  private hold(deck: Deck, file: number): void {
+  /**
+   * A deck given one of the files to play, if it has not got it; fetched
+   * from now on where `eager`, else not until it is played or due (`loop`).
+   */
+  private hold(deck: Deck, file: number, eager = false): void {
     const src = this.srcs[file];
-    if (deck.file === file || !src) return;
+    if (!src) return;
+    if (eager) deck.element.preload = "auto";
+    if (deck.file === file) return;
     deck.file = file;
+    deck.element.preload = eager ? "auto" : "none";
     deck.element.src = src;
   }
 
@@ -329,10 +378,16 @@ class Piece {
     const audio = context;
     const front = this.decks[this.front];
     const back = this.decks[1 - this.front];
-    if (!audio || !front || this.overlap) return;
+    if (!audio || !front || front.file < 0 || this.overlap) return;
     const overlapS = SOUNDTRACK[this.files[front.file]].overlap;
     const { duration, currentTime } = front.element;
-    if (!Number.isFinite(duration) || duration < overlapS * 4 || currentTime < duration - overlapS) return;
+    if (!Number.isFinite(duration)) return;
+    // What follows, fetched in time for its first seconds to be in when it comes in.
+    if (currentTime >= duration - DUE_S && back.element.preload !== "auto") {
+      this.hold(back, this.following(front.file));
+      back.element.preload = "auto";
+    }
+    if (duration < overlapS * 4 || currentTime < duration - overlapS) return;
     this.overlap = true;
     const at = audio.currentTime + LEAD_S;
     this.hold(back, this.following(front.file));
@@ -354,7 +409,7 @@ class Piece {
     const next = 1 - index;
     if (!this.overlap) {
       // The end came before it was looked out for (a slow timer): straight on to what follows, from the top.
-      this.hold(this.decks[next], this.following(deck.file));
+      this.hold(this.decks[next], this.following(deck.file), true);
       const gain = this.decks[next].gain.gain;
       if (context) {
         gain.cancelScheduledValues(0);
@@ -483,29 +538,23 @@ export function wantMusic(on: boolean): void {
   music.want("flight", on);
 }
 
-/** Whether there is music for the flight to play: loaded, and somewhere to play it. */
+/** Whether there is music for the flight to play: somewhere to play it; its files stream once it is wanted. */
 export function musicAvailable(): boolean {
-  return music.pieces.theme.available() && soundAvailable();
+  return soundAvailable() && typeof Audio !== "undefined";
 }
 
-/** Each file, in memory, once fetched: one copy, for every piece that plays it. */
-const sources: Partial<Record<PieceName, string>> = {};
-
-/** Whether a file has been fetched. */
-export function pieceLoaded(name: PieceName): boolean {
-  return sources[name] !== undefined;
-}
-
-/** A file, fetched (preload.ts): played from memory from now on, by every piece it is part of. */
-export function setSoundtrack(name: PieceName, bytes: ArrayBuffer): void {
-  if (pieceLoaded(name) || typeof URL === "undefined" || typeof Blob === "undefined") return;
-  const src = URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" }));
-  sources[name] = src;
-  for (const piece of Object.values(music.pieces)) piece.setSource(name, src);
-  // A piece that came in after the first click still has to be played from one, where Safari is strict.
-  if (!music.unlocked()) listen();
-  music.sync();
-  syncMenu();
+/**
+ * The flight is loading: its music and the suspenseful piece start streaming
+ * now, to have their first seconds in by the time it starts. Nothing waits
+ * for them.
+ */
+export function streamFlightMusic(): void {
+  for (const name of ["theme", "tension"] as const) {
+    const piece = music.pieces[name];
+    // Its elements, where the page has its context already; else the files are theirs once they are made.
+    if (context) piece.output();
+    piece.stream();
+  }
 }
 
 let claims = 0;

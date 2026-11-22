@@ -15,9 +15,10 @@
  * the plan on the way. Once that flight is over, its part of the address
  * goes, so a reload is this page again rather than the same flight.
  *
- * The page is the flight's menu: the menus' music plays on it from the
- * reader's first click or key (lib/studio/flight/soundtrack.ts), with a
- * switch for it, and on through the plan, until the flight takes it over.
+ * The page is the flight's menu: the menus' music streams and plays on it
+ * from the reader's first click or key (lib/studio/flight/soundtrack.ts),
+ * with a switch for it, and on through the plan, until the flight takes it
+ * over; nothing of it is fetched before that click, nor with the sound off.
  * Everything else the flight needs is large (lib/studio/flight/preload.ts),
  * so none of it is loaded on this page: the plan fetches the aircraft its
  * preview turns, take-off the rest, and a reader on a phone's data is told
@@ -33,7 +34,7 @@
  * where the website has its footer.
  */
 import logo from "../../assets/logo.svg";
-import { onDestroy, onMount } from "svelte";
+import { onDestroy } from "svelte";
 import { get } from "svelte/store";
 import { fade } from "svelte/transition";
 import { _ } from "svelte-i18n";
@@ -55,7 +56,7 @@ import type Cells3DCapability from "../../caps/Cells3DCapability";
 import { cells3dFailed, sharedActiveCap } from "../../stores";
 import { DeviceDetect } from "../../lib/DeviceDetect";
 import SoundSwitch from "../studio/flight/SoundSwitch.svelte";
-import { FLIGHT_BYTES, loadMenuMusic } from "../../lib/studio/flight/preload";
+import { FLIGHT_BYTES } from "../../lib/studio/flight/preload";
 import { liveSkyWorthFlying } from "../../lib/studio/flight/fallback";
 import { demoFallbackBuild, demoWeather, WEATHER_KEY, weatherChoice } from "../../weatherSource";
 import { radarMapHref } from "../../lib/studio/flightPage";
@@ -87,12 +88,6 @@ const MAP_TARGET = "map";
 const offered = Boolean(layerManager.getCapability("cells3d"));
 /** Whether it will be flown by touch: the page says how, in place of the keys. */
 const byTouch = touchFirst();
-
-/* The menus' music at once: it is what is heard first, and small. The rest
-   (the flight's code, its aircraft and its music) waits for the plan and the take-off. */
-onMount(() => {
-  if (offered) void loadMenuMusic();
-});
 
 /** The page loaded again with the weather set as asked, `board` to go on to the plan at once. */
 function reloadWith(weather: "demo" | "live" | null, board: boolean): void {

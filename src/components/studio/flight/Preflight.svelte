@@ -61,7 +61,7 @@ import { FLIGHT_BASEMAP } from "../../../lib/studio/store";
 import { flightLinkOrigin, flightLinkUrl } from "../../../lib/studio/flightLink";
 import { startOf } from "../../../lib/studio/flight/plan";
 import { sendLink } from "../../../lib/share";
-import { flightLoad, loadMenuMusic, shareOf } from "../../../lib/studio/flight/preload";
+import { flightLoad, shareOf } from "../../../lib/studio/flight/preload";
 import { claimMenuMusic } from "../../../lib/studio/flight/soundtrack";
 import { shareAvailable, shareIcon } from "../../../lib/shareSupport";
 import { followSideways } from "../../../lib/sideways";
@@ -309,7 +309,6 @@ function drawStorms(): void {
 onDestroy(claimMenuMusic());
 
 onMount(() => {
-  void loadMenuMusic();
   drawStorms();
   chart = new OlMap({
     target: chartElement ?? undefined,

@@ -9,3 +9,8 @@
 # The radars' photos (src/lib/radarInfo.ts): named by radar, not by content.
 /radars/*
   Cache-Control: public, max-age=604800
+
+# The soundtrack (src/lib/studio/flight/soundtrack.ts), streamed by two
+# elements a piece: kept, so the second plays from the browser's cache.
+/audio/*
+  Cache-Control: public, max-age=604800

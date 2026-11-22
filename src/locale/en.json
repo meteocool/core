@@ -295,7 +295,7 @@
       "boarding": "Finding the storms…",
       "loading": {
         "title": "Preparing the flight",
-        "what": "The aircraft, its cockpit and the soundtrack",
+        "what": "The aircraft and its cockpit",
         "progress": "{loaded} of {total} MB",
         "failed": "The flight did not load. Check your connection and try again.",
         "retry": "Try again",
