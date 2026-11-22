@@ -717,7 +717,10 @@ void main() {
   }
   if (far <= near) discard;
 
-  float dither = fract(sin(dot(gl_FragCoord.xy, vec2(12.9898, 78.233))) * 43758.5453);
+  // Where in its first step each ray starts, so the steps do not band: interleaved gradient noise, not a hash's white
+  // noise. Its neighbours differ evenly, so what is left of the steps is a fine, even weave that the picture's
+  // stretch over the map (scenicPass.ts) smooths away, not grain in clumps.
+  float dither = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
   if (uStyle == 2) marchShells(origin, direction, near, far, dither);
   else if (uStyle >= 3) marchSky(origin, direction, near, far, cutFace, dither);
   else marchMedium(origin, direction, near, far, cutFace, dither);

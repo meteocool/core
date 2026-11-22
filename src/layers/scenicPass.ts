@@ -43,7 +43,17 @@ void main() {
   colour = vec4(vec3(1.0, 0.96, 0.88) * (disc * 1.3 + glare), 0.0);
 }`;
 
-/* A picture drawn somewhere else, laid over this one: the clouds, which are drawn smaller and stretched. */
+/*
+ * A picture drawn somewhere else, laid over this one: the clouds, which are
+ * drawn smaller and stretched.
+ *
+ * Smoothed as it is stretched, by its edges: each point is the average of
+ * the picture's points round it, each weighed by how like the middle one it
+ * is. The steps a cloud is marched in leave a fine weave in it, a few
+ * hundredths either way, which this averages out; the edge of a cloud
+ * against the sky, or of a core against its cloud, differs by far more, and
+ * is left as sharp as it was drawn.
+ */
 const LAY_VERTEX = `#version 300 es
 out vec2 vAt;
 void main() {
@@ -57,7 +67,26 @@ precision highp float;
 in vec2 vAt;
 uniform sampler2D uPicture;
 out vec4 colour;
-void main() { colour = texture(uPicture, vAt); }`;
+// How unlike the middle a neighbour may be and still count: the weave's few hundredths, not an edge's tenths.
+const float LIKE = 32.0;
+void main() {
+  vec2 texel = 1.0 / vec2(textureSize(uPicture, 0));
+  vec4 middle = texture(uPicture, vAt);
+  vec4 sum = middle;
+  float weight = 1.0;
+  for (int y = -1; y <= 1; y += 1) {
+    for (int x = -1; x <= 1; x += 1) {
+      if (x == 0 && y == 0) continue;
+      vec4 near = texture(uPicture, vAt + vec2(x, y) * texel);
+      vec4 apart = near - middle;
+      // The corners count for less than the sides: a round blur, not a square one.
+      float w = exp(-dot(apart, apart) * LIKE) * (x == 0 || y == 0 ? 1.0 : 0.6);
+      sum += near * w;
+      weight += w;
+    }
+  }
+  colour = sum / weight;
+}`;
 
 /*
  * A storm seen through: its core, over the picture of its cloud.
