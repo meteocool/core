@@ -293,10 +293,10 @@
         "back": "Back"
       },
       "sound": {
-        "on": "Sound on",
-        "off": "Sound off",
-        "on_title": "Music and sound are on: turn them off",
-        "off_title": "Music and sound are off: turn them on"
+        "on": "Music on",
+        "off": "Music off",
+        "on_title": "The music is on: turn it off (the flight's sounds stay)",
+        "off_title": "The music is off: turn it on"
       },
       "share": {
         "plan": "Share",
@@ -310,8 +310,8 @@
       "fullscreen": "Full screen (F)",
       "fullscreen_exit": "Leave full screen (F)",
       "paused": "Paused · P resumes",
-      "muted": "Sound off",
-      "muted_title": "The flight's sound is off; M turns it on",
+      "muted": "Music off",
+      "muted_title": "The music is off; M turns it on",
       "clear_sky": "No weather on the radar: free flight",
       "terrain": "TERRAIN  PULL UP",
       "stall": "STALL",
@@ -349,7 +349,7 @@
         "inspect": "Look into the storm ahead: X-ray, cut, peeled",
         "record": "Record a video / stop",
         "pause": "Pause",
-        "mute": "Sound off / on",
+        "mute": "Music off / on",
         "fullscreen": "Full screen",
         "help": "These keys",
         "leave": "End the flight (asks first)",
@@ -467,7 +467,7 @@
         "pause": "Pause",
         "resume": "Resume",
         "inspect": "Inspect",
-        "sound": "Sound",
+        "sound": "Music",
         "tilt": "Tilt",
         "tilt_title": "Fly by tilting the phone, from how it is held now",
         "tilt_refused": "This browser does not say how the phone is held: tilt is off.",

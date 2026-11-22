@@ -6,8 +6,9 @@
  * on it. The context is the page's one (soundtrack.ts), made by then, or on
  * taking off, which is a click or a key; where it is still not allowed to
  * play, the next key or click starts it. The flight falls silent while the
- * tab is hidden and while muted, and the context is suspended then, costing
- * nothing; paused, only the soundtrack plays on, lower and darker. Leaving
+ * tab is hidden, and the context is suspended then, costing nothing;
+ * paused, only the soundtrack plays on, lower and darker. The mute is the
+ * music's alone: the engines, the weather and the cockpit's voice play on. Leaving
  * the flight fades it out and lets go of its graph. Where there is no Web
  * Audio at all, the flight is silent and nothing else changes.
  *
@@ -230,11 +231,10 @@ export class FlightSound {
     this.strike = true;
   }
 
-  /** M: sound off, or on again; remembered for the next flight. */
+  /** M: the music off, or on again; remembered for the next flight. The flight's own sounds stay. */
   toggleMute(): void {
     this.muted = !this.muted;
     setFlightMuted(this.muted);
-    if (this.muted) this.silence();
     this.sync();
     if (!this.muted && this.playing()) this.graph?.cue("unmute");
   }
@@ -266,8 +266,8 @@ export class FlightSound {
 
   /** Whether the context should run: something is to be heard, the flight's sounds or, paused, the soundtrack. */
   private wanted(): boolean {
-    return !this.disposed && !this.muted && !(typeof document !== "undefined" && document.hidden)
-      && (!this.paused || musicAvailable());
+    return !this.disposed && !(typeof document !== "undefined" && document.hidden)
+      && (!this.paused || (musicAvailable() && !this.muted));
   }
 
   /** Whether the flight's own sounds are heard now. */
@@ -284,7 +284,7 @@ export class FlightSound {
     if (!context || !graph || this.disposed) return;
     if (this.suspendTimer !== null) clearTimeout(this.suspendTimer);
     this.suspendTimer = null;
-    wantMusic(this.wanted());
+    wantMusic(this.wanted() && !this.muted);
     if (this.wanted()) {
       if (context.state !== "running") void context.resume().catch(() => undefined);
       graph.setWorld(this.paused ? 0 : 1);

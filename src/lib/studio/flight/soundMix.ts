@@ -203,7 +203,7 @@ export type SoundEvent =
 
 /** The continuous sounds, set every frame. */
 export interface SoundLevels {
-  /** The loudness of everything, 0 muted. */
+  /** The loudness of everything: 0 paused, when only the soundtrack plays on. */
   volume: number;
   /** The flight's sounds against the reader's own (the clicks): ducked through a cut to black. */
   world: number;
@@ -697,7 +697,7 @@ function voice(memory: VoiceMemory, input: SoundInput, status: SoundStatus, dt: 
  * thunder), 0 to 1.
  */
 export function mixSound(
-  memory: SoundMemory, input: SoundInput, status: SoundStatus, muted: boolean, dt: number, random: () => number = Math.random,
+  memory: SoundMemory, input: SoundInput, status: SoundStatus, musicMuted: boolean, dt: number, random: () => number = Math.random,
 ): { levels: SoundLevels; events: SoundEvent[]; callouts: Callout[]; quiet: CalloutKind[]; memory: SoundMemory } {
   const view = VIEWS[status.view];
   const cockpit = status.view === "cockpit";
@@ -838,7 +838,7 @@ export function mixSound(
   const alarmed = heard.length > 0 || said.memory.pulling || has("stall");
   const scored = mixMusic(memory.music, input, status, alarmed, dt);
   const levels: SoundLevels = {
-    volume: muted || status.paused ? 0 : VOLUME,
+    volume: status.paused ? 0 : VOLUME,
     world: 1 - 0.85 * clamp01(input.fade),
     engine,
     wind,
@@ -853,7 +853,8 @@ export function mixSound(
       gain: cockpit ? 1 : 0, terrain: said.memory.pulling, stall: has("stall"),
       chime: cockpit && heard.some((alarm) => kindOf(alarm).chime === "continuous"),
     },
-    music: scored.music,
+    // Muted, the music alone goes; it is still followed underneath, so it comes back as the flight is then.
+    music: musicMuted ? { ...scored.music, gain: 0 } : scored.music,
   };
   return {
     levels,

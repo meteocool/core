@@ -20,8 +20,6 @@
 import { onDestroy, onMount } from "svelte";
 import { _ } from "svelte-i18n";
 import { faRightFromBracket } from "@fortawesome/free-solid-svg-icons/faRightFromBracket";
-import { faVolumeXmark } from "@fortawesome/free-solid-svg-icons/faVolumeXmark";
-import { faVolumeHigh } from "@fortawesome/free-solid-svg-icons/faVolumeHigh";
 import { faQuestion } from "@fortawesome/free-solid-svg-icons/faQuestion";
 import { faExpand } from "@fortawesome/free-solid-svg-icons/faExpand";
 import { faCompress } from "@fortawesome/free-solid-svg-icons/faCompress";
@@ -44,6 +42,7 @@ import { flightStatus, studioFlightOnly } from "../../../lib/studio/store";
 import { fullscreen, fullscreenSupported } from "../../../lib/fullscreen";
 import { shareAvailable, shareIcon } from "../../../lib/shareSupport";
 import { flightMuted } from "../../../lib/studio/flight/sound";
+import MusicIcon from "./MusicIcon.svelte";
 import { touchCapable, touchControls } from "../../../lib/studio/flight/touch";
 import { frameDelta, pointWithin } from "../../../lib/sideways";
 
@@ -437,11 +436,11 @@ const WARNINGS = {
         title={$_("studio.flight.help_title")} aria-label={$_("studio.flight.help")} aria-pressed={status.keys}>
         <Icon icon={faQuestion} />
       </button>
-      <!-- The sound, the music's with it, on or off: M, and the menus' switch, are the same. -->
+      <!-- The music on or off, the flight's own sounds staying: M, and the menus' switch, are the same. -->
       <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => pilot.act("mute")}
         title={$_($flightMuted ? "studio.flight.sound.off_title" : "studio.flight.sound.on_title")}
         aria-label={$_("studio.flight.sound.on")} aria-pressed={!$flightMuted}>
-        <Icon icon={$flightMuted ? faVolumeXmark : faVolumeHigh} />
+        <MusicIcon off={$flightMuted} />
       </button>
       {#if share && $shareAvailable}
         <!-- This moment of the flight as a link: the flight is held while it is sent. -->
@@ -464,7 +463,7 @@ const WARNINGS = {
     </div>
   {/if}
   {#if $flightMuted && status.view !== "clean"}
-    <span class="muted" title={$_("studio.flight.muted_title")}><Icon icon={faVolumeXmark} /> {$_("studio.flight.muted")}</span>
+    <span class="muted" title={$_("studio.flight.muted_title")}><MusicIcon off /> {$_("studio.flight.muted")}</span>
   {/if}
   {#if status.inspecting && status.view !== "clean"}
     <div class="inspect glass glass-pill" role="group" aria-label={$_("studio.flight.inspect.title")}>

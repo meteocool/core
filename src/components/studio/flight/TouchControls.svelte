@@ -41,8 +41,6 @@ import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
 import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
 import { faRotate } from "@fortawesome/free-solid-svg-icons/faRotate";
 import { faRotateLeft } from "@fortawesome/free-solid-svg-icons/faRotateLeft";
-import { faVolumeHigh } from "@fortawesome/free-solid-svg-icons/faVolumeHigh";
-import { faVolumeXmark } from "@fortawesome/free-solid-svg-icons/faVolumeXmark";
 import Icon from "../../Icon.svelte";
 import { fullscreen, fullscreenSupported, toggleFullscreen } from "../../../lib/fullscreen";
 import { masterLights } from "../../../lib/studio/flight/alarms";
@@ -50,6 +48,7 @@ import type { FlightAction } from "../../../lib/studio/flight/controls";
 import { FLAPS_MOST } from "../../../lib/studio/flight/physics";
 import type { Pilot, Telemetry } from "../../../lib/studio/flight/pilot";
 import { flightMuted } from "../../../lib/studio/flight/sound";
+import MusicIcon from "./MusicIcon.svelte";
 import {
   axisInput, LEVER_IDLE, LEVER_IDLE_REST, LEVER_REVERSE, leverAt, leverRate, leverShare, pinchSteps, stickInput, tiltInput, tiltOf,
   touchCapable, touchControls, touchFirst,
@@ -513,7 +512,7 @@ onDestroy(() => {
               <Icon icon={faLayerGroup} /><span>{$_("studio.flight.touch.inspect")}</span>
             </button>
             <button type="button" class="key" class:lit={$flightMuted} tabindex="-1" aria-pressed={$flightMuted} on:click={act("mute")}>
-              <Icon icon={$flightMuted ? faVolumeXmark : faVolumeHigh} /><span>{$_("studio.flight.touch.sound")}</span>
+              <MusicIcon off={$flightMuted} /><span>{$_("studio.flight.touch.sound")}</span>
             </button>
             <button type="button" class="key" class:lit={tilting} tabindex="-1" aria-pressed={tilting}
               title={$_("studio.flight.touch.tilt_title")} on:click={toggleTilt}>

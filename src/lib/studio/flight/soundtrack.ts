@@ -46,7 +46,7 @@ export const SOUNDTRACK: Record<PieceName, { url: string; bytes: number; overlap
   tension: { url: `${AUDIO}tension.mp3`, bytes: 5_033_616, overlap: 4 },
 };
 
-/** Whether the reader turned the sound off: kept for the next visit too. */
+/** Whether the reader turned the music off: kept for the next visit too. */
 const MUTED_KEY = "studioFlightMuted";
 
 function storedMuted(): boolean {
@@ -57,10 +57,10 @@ function storedMuted(): boolean {
   }
 }
 
-/** Whether the sound is off, the music's and the flight's; the deck and the menus show it. */
+/** Whether the music is off, the menus' and the flight's; the flight's own sounds are not. The deck and the menus show it. */
 export const flightMuted = writable(storedMuted());
 
-/** Turn the sound off, or on again; remembered. */
+/** Turn the music off, or on again; remembered. */
 export function setFlightMuted(muted: boolean): void {
   flightMuted.set(muted);
   try {

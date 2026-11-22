@@ -515,10 +515,13 @@ test("the cockpit muffles the engines; outside they are full and the cockpit's o
   assert.ok(cockpit.thunder.gain > 0 && outside.thunder.gain > 0 && clean.thunder.gain > 0);
 });
 
-test("muted or paused, the volume is nothing; through a cut to black the world quietens", () => {
+test("paused, the volume is nothing; muted, only the music goes; through a cut to black the world quietens", () => {
   assert.equal(fly(CRUISE, 0.1).levels.volume, VOLUME);
   assert.ok(VOLUME > 0 && VOLUME <= 0.6);
-  assert.equal(fly(CRUISE, 0.1, { muted: true }).levels.volume, 0);
+  const muted = fly(CRUISE, 5, { muted: true }).levels;
+  assert.equal(muted.volume, VOLUME);
+  assert.equal(muted.music.gain, 0);
+  assert.ok(fly(CRUISE, 5).levels.music.gain > 0 && muted.engine.rumble > 0);
   assert.equal(fly(CRUISE, 0.1, { status: { ...STATUS, paused: true } }).levels.volume, 0);
   const cut = fly({ ...CRUISE, fade: 1, turbulence: 0.9 }, 5, { random: always });
   assert.ok(cut.levels.world < 0.2);

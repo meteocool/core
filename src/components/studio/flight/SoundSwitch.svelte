@@ -1,15 +1,13 @@
 <script lang="ts">
 /**
- * The sound's switch in the menus: the soundtrack, and the flight's sound
- * with it, on or off (lib/studio/flight/soundtrack.ts); the flight's M
- * key is the same switch. Shown off until the page may play, which a press
+ * The music's switch in the menus: the soundtrack on or off, the menus' and
+ * the flight's (lib/studio/flight/soundtrack.ts); the flight's own sounds
+ * stay. The flight's M key is the same switch. Shown off until the page may play, which a press
  * of this lets it do: a reader who has not clicked anywhere yet hears
  * nothing, and is not told the sound is on.
  */
 import { _ } from "svelte-i18n";
-import { faVolumeHigh } from "@fortawesome/free-solid-svg-icons/faVolumeHigh";
-import { faVolumeXmark } from "@fortawesome/free-solid-svg-icons/faVolumeXmark";
-import Icon from "../../Icon.svelte";
+import MusicIcon from "./MusicIcon.svelte";
 import { flightMuted, setFlightMuted, soundAvailable, soundLocked, unlockSound } from "../../../lib/studio/flight/soundtrack";
 
 /** How it looks: the meteoair page's pill on the dark wash, or a chip of the plan's. */
@@ -29,7 +27,7 @@ function press(): void {
 {#if available}
   <button type="button" class="switch {look}" data-sound-switch aria-pressed={on} on:click={press}
     title={$_(on ? "studio.flight.sound.on_title" : "studio.flight.sound.off_title")}>
-    <Icon icon={on ? faVolumeHigh : faVolumeXmark} />
+    <MusicIcon off={!on} />
     <span>{$_(on ? "studio.flight.sound.on" : "studio.flight.sound.off")}</span>
   </button>
 {/if}
