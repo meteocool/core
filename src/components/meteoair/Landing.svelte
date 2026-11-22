@@ -19,8 +19,9 @@
  * reader's first click or key (lib/studio/flight/soundtrack.ts), with a
  * switch for it, and on through the plan, until the flight takes it over.
  * Everything else the flight needs is large (lib/studio/flight/preload.ts),
- * so it is loaded only once the reader takes off, and a reader on a phone's
- * data is told how large first.
+ * so none of it is loaded on this page: the plan fetches the aircraft its
+ * preview turns, take-off the rest, and a reader on a phone's data is told
+ * how large first.
  *
  * On a live build (meteocool.com, next) with no thunderstorm on the radar
  * (lib/studio/flight/fallback.ts), the flight is the demo's recorded storm
@@ -88,7 +89,7 @@ const offered = Boolean(layerManager.getCapability("cells3d"));
 const byTouch = touchFirst();
 
 /* The menus' music at once: it is what is heard first, and small. The rest
-   (the flight's code, its aircraft and its music) waits for take-off. */
+   (the flight's code, its aircraft and its music) waits for the plan and the take-off. */
 onMount(() => {
   if (offered) void loadMenuMusic();
 });

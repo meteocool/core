@@ -216,7 +216,7 @@
         "privacy": "Privacy",
         "demo_tag": "Tech demo",
         "demo": "Runs best on a recent computer or phone.",
-        "data": "Taking off downloads about {mb} MB. Use Wi-Fi if you can.",
+        "data": "A flight downloads about {mb} MB. Use Wi-Fi if you can.",
         "replay_tag": "Recorded storm",
         "replay": "The sky is quiet right now, so you will fly through a recorded storm: real radar and lightning, replayed.",
         "replay_on": "The sky is quiet right now, so this is a recorded storm: real radar and lightning, replayed.",
@@ -475,7 +475,7 @@
         "turn": "Turn your phone sideways to fly",
         "turn_fullscreen": "Turn your phone sideways to fly · tap for full screen",
         "paused": "Paused",
-        "again": "Throttle up: take off again · Restart: back to the approach",
+        "again": "Throttle up to take off again · Restart to fly the approach again",
         "hint": {
           "stick": "Right thumb: the stick. Pull it down for nose up.",
           "throttle": "Left thumb: the throttle stays where you put it. Below idle on the ground: reverse.",
@@ -499,13 +499,13 @@
       "gear_jammed": "GEAR JAMMED",
       "alpha_floor": "A.FLOOR · full thrust",
       "crash": {
-        "terrain": "Ground too steep to land on",
-        "gear": "Down with the gear up",
+        "terrain": "The ground was too steep to land on",
+        "gear": "Landed with the gear up",
         "hard": "Touched down too hard",
         "attitude": "Touched down wing or tail first",
         "fast": "Touched down too fast",
-        "breakup": "Broke up: more load than the airframe bears",
-        "flutter": "Broke up: far past its speed limit",
+        "breakup": "The aircraft broke apart",
+        "flutter": "Too fast: the aircraft broke apart",
         "wing": "A wing struck the ground",
         "impact": "Flew into the ground"
       },
@@ -527,15 +527,15 @@
         "firm": "Firm",
         "hard": "Hard",
         "rolled": "Roll",
-        "again": "W: take off again · ⌫: back to the approach"
+        "again": "Press W to take off again · ⌫ to fly the approach again"
       },
       "leave_ask": {
         "title": "End the flight?",
-        "text": "The flight is held while you decide. Ending it goes back to Studio.",
+        "text": "The flight is paused while you decide. Ending it takes you back to Studio.",
         "stay": "Keep flying",
         "end": "End flight",
-        "text_plan": "The flight is held while you decide. Ending it goes back to the flight plan.",
-        "text_map": "The flight is held while you decide. Ending it goes back to the map."
+        "text_plan": "The flight is paused while you decide. Ending it takes you back to the flight plan.",
+        "text_map": "The flight is paused while you decide. Ending it takes you back to the map."
       }
     }
   },
