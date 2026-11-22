@@ -21,6 +21,7 @@ import {
 import type { ChartFrame, EfbButton, Rect } from "../../../lib/studio/flight/efb";
 import { tileBounds } from "../../../lib/volumeBox";
 import type { Telemetry } from "../../../lib/studio/flight/pilot";
+import logoUrl from "../../../assets/logo.svg";
 
 const NM = 1852;
 const RADIANS = Math.PI / 180;
@@ -34,6 +35,17 @@ const BASEMAP_STALE_PX = 72;
 const PANEL_INK = "#0d1116";
 const BUTTON = "rgba(18, 24, 31, 0.88)";
 const EDGE = "#3a4552";
+
+/** meteocool's logo, white, for the foot of the storm's page: loaded on first drawing, drawn once it is in. */
+let logo: HTMLImageElement | null = null;
+function logoImage(): HTMLImageElement | null {
+  if (typeof Image === "undefined") return null;
+  if (!logo) {
+    logo = new Image();
+    logo.src = logoUrl;
+  }
+  return logo.complete && logo.naturalWidth > 0 ? logo : null;
+}
 
 /** What of the flight the tablet shows besides the telemetry. */
 export interface EfbInputs {
@@ -200,7 +212,8 @@ export class EfbChart {
   draw(context: CanvasRenderingContext2D, telemetry: Telemetry, inputs: EfbInputs): void {
     const { state: aircraft } = telemetry;
     const { chart } = telemetry;
-    this.state.update(chart.storms, aircraft, chart.target);
+    // The storm looked into in the view is the one the tablet turns to.
+    this.state.update(chart.storms, aircraft, chart.target, telemetry.marks.find((seen) => seen.inspected)?.mark ?? null);
     const frame = this.state.frame();
     if (typeof document !== "undefined") {
       this.basemap ??= new Basemap();
@@ -429,6 +442,7 @@ export class EfbChart {
     label(context, "dBZ", left + 64, 142, { size: 17, colour: DIM, weight: 700 });
     // What sets it apart, as tags: the system flown at, hail, a cell the radar follows.
     const tags: Array<[string, string]> = [];
+    if (this.state.chosenLooked) tags.push(["IN VIEW", CYAN]);
     if (atTarget(storm, chart.target)) tags.push(["TARGET", MAGENTA]);
     if (storm.hail) tags.push(["HAIL", AMBER]);
     if (storm.heading !== null) tags.push(["TRACKED", GREEN]);
@@ -466,7 +480,24 @@ export class EfbChart {
       label(context, value, left + 62, y, { size: 21, weight: 700 });
       if (note) label(context, note, panel.x + panel.width - 12, y + 1, { size: 14, colour: DIM, align: "right", weight: 700 });
     });
-    label(context, "TAP A STORM · DRAG THE MAP", middle, panel.y + panel.height - 14, { size: 11, colour: DIM, align: "center", weight: 700 });
+    label(context, "TAP A STORM · DRAG THE MAP", middle, panel.y + panel.height - 40, { size: 11, colour: DIM, align: "center", weight: 700 });
+    this.drawBrand(context);
+  }
+
+  /** The foot of the storm's page: whose radar it is, meteocool's logo and its address. */
+  private drawBrand(context: CanvasRenderingContext2D): void {
+    const { panel } = EFB_LAYOUT;
+    const middle = panel.y + panel.height - 15;
+    context.fillStyle = EDGE;
+    context.fillRect(panel.x + 12, middle - 15, panel.width - 24, 1);
+    const text = "meteocool.com";
+    context.font = `800 15px ${FONT}`;
+    const size = 20;
+    const width = size + 7 + context.measureText(text).width;
+    const left = panel.x + (panel.width - width) / 2;
+    const image = logoImage();
+    if (image) context.drawImage(image, left, middle - size / 2, size, (size * image.naturalHeight) / image.naturalWidth || size);
+    label(context, text, left + size + 7, middle + 1, { size: 15, weight: 800 });
   }
 
   /** A tap on the tablet, across and down it 0 to 1. */

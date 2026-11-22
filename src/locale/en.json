@@ -261,6 +261,7 @@
         "hail": "hail",
         "tops": "tops"
       },
+      "horizon": "Artificial horizon: the aircraft's pitch and bank",
       "minimap": {
         "title": "Map around the aircraft",
         "range": "Radar map, {nm} NM to its edge",

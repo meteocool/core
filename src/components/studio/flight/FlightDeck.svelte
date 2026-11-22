@@ -27,6 +27,7 @@ import Icon from "../../Icon.svelte";
 import FlightKeys from "./FlightKeys.svelte";
 import TouchControls from "./TouchControls.svelte";
 import FlightMinimap from "./FlightMinimap.svelte";
+import FlightHorizon from "./FlightHorizon.svelte";
 import CloseDisc from "../../CloseDisc.svelte";
 import Segmented from "../../Segmented.svelte";
 import type { InspectMode } from "../../../lib/studio/director";
@@ -45,6 +46,8 @@ import { flightMuted } from "../../../lib/studio/flight/sound";
 import MusicIcon from "./MusicIcon.svelte";
 import { touchCapable, touchControls } from "../../../lib/studio/flight/touch";
 import { frameDelta, pointWithin } from "../../../lib/sideways";
+import { weatherOf } from "../../../lib/studio/flight/plan";
+import logo from "../../../assets/logo.svg";
 
 export let pilot: Pilot;
 /** The credits the map shows, which the deck shows in its place. */
@@ -61,6 +64,8 @@ pilot.setScreens(cockpit.screens);
 let fade: HTMLDivElement | null = null;
 /* The map of the flight, which only the view from outside has: there is no navigation display to look at there. */
 let minimap: FlightMinimap | null = null;
+/* Which way is up, from outside, beside the map: the seat has its own on the panel. */
+let horizon: FlightHorizon | null = null;
 let throttle: HTMLOutputElement | null = null;
 /* The storms marked in the view (lib/studio/flight/marks.ts): as many labels
    as the view ever carries, each put where its storm is every frame, and
@@ -100,7 +105,39 @@ function drawMarks(telemetry: Telemetry): void {
       parts.push(`${COMPASS[Math.round(mark.heading / 45) % 8]} ${Math.round(mark.speed * KNOTS)} kt`);
     }
     write(detail as HTMLElement, parts.join(" · "));
+    if (seen.inspected) drawPopup(element, seen, telemetry);
   });
+}
+
+/**
+ * The storm looked into, at more length, in a card under its mark: what its
+ * echo means for an aircraft, how far and how soon, how high, its lightning
+ * and its way, as the captain's tablet has them; and whose radar it is.
+ * Turned to the left near the right edge, and above the mark near the foot.
+ */
+function drawPopup(element: HTMLElement, seen: Telemetry["marks"][number], telemetry: Telemetry): void {
+  const pop = element.querySelector<HTMLElement>(".pop");
+  if (!pop) return;
+  element.classList.toggle("flip", seen.x > 0.62);
+  element.classList.toggle("above", seen.y > 0.58);
+  const { mark } = seen;
+  const weather = weatherOf(mark.peakDbz);
+  const title = pop.querySelector<HTMLElement>("b");
+  write(title, weather.text);
+  title?.classList.toggle("severe", weather.severe);
+  const { state } = telemetry;
+  const ground = state.tas * Math.cos((state.flightPath * Math.PI) / 180) * (status.warp ? 4 : 1);
+  const seconds = ground > 30 ? Math.round(seen.distance / ground) : null;
+  const eta = seconds === null ? "" : ` · ETA ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  const rows = [`DIST ${(seen.distance / 1852).toFixed(seen.distance < 20 * 1852 ? 1 : 0)} NM${eta}`];
+  // Only what is known of it: an untracked storm has no top, motion or lightning to give.
+  if (mark.top !== null) rows.push(`TOP FL${String(Math.round((mark.top * FEET) / 1000) * 10).padStart(3, "0")}`);
+  if (mark.hail) rows.push(hail.toUpperCase());
+  if (mark.strikes) rows.push(`LTNG ${mark.strikes} ⚡ · 5 MIN`);
+  if (mark.heading !== null && mark.speed !== null && mark.speed > 1) {
+    rows.push(`MOVES ${COMPASS[Math.round(mark.heading / 45) % 8]} ${Math.round(mark.speed * KNOTS)} kt`);
+  }
+  write(pop.querySelector<HTMLElement>(".rows"), rows.join("\n"));
 }
 
 /** Whether the browser puts a page over the whole screen: the disc beside the way out. */
@@ -152,6 +189,7 @@ function frame(telemetry: Telemetry): void {
   write(readouts.frames, `${Math.round(telemetry.fps)} fps${telemetry.quality < 0.99 ? ` · ${Math.round(telemetry.quality * 100)}%` : ""}`);
   drawMarks(telemetry);
   minimap?.draw(telemetry);
+  horizon?.draw(telemetry);
 }
 
 /* The mouse turns the eye: a drag anywhere on the view, the head in its
@@ -338,7 +376,8 @@ const WARNINGS = {
     <div class="marks">
       {#each MARKS as index (index)}
         <button type="button" class="mark" tabindex="-1" title={$_("studio.flight.inspect.mark_title")}
-          bind:this={marks[index]} on:click={() => pilot.inspect(index)}><i></i><span></span><span></span></button>
+          bind:this={marks[index]} on:click={() => pilot.inspect(index)}><i></i><span></span><span></span><span class="pop" aria-live="polite"
+          ><b></b><span class="rows"></span><span class="brand"><img src={logo} alt="" />meteocool.com</span></span></button>
       {/each}
     </div>
     <dl class="readouts">
@@ -410,6 +449,7 @@ const WARNINGS = {
   {:else if status.view === "outside"}
     <!-- Where the keys' card stands while that is up. -->
     <FlightMinimap {pilot} bind:this={minimap} />
+    <FlightHorizon bind:this={horizon} />
   {/if}
 
   {#if status.landing && status.view !== "clean"}
@@ -618,9 +658,16 @@ const WARNINGS = {
     left: 16px;
     bottom: 124px;
   }
+  /* The horizon beside it, its foot on the map's: the two read together, as a pilot's eye goes from one to the other. */
+  .flight-deck { --flight-minimap-size: 196px; --flight-horizon-size: 132px; }
+  .flight-deck > :global(.flight-horizon) {
+    position: absolute;
+    left: calc(16px + var(--flight-minimap-size) + 12px);
+    bottom: 124px;
+  }
   /* A low window has less room between its corners. */
   @container mc-frame (max-height: 560px) {
-    .flight-deck > :global(.flight-minimap) { --flight-minimap-size: 144px; }
+    .flight-deck { --flight-minimap-size: 144px; --flight-horizon-size: 104px; }
   }
 
   /* A storm's mark: a small diamond over it on a thin stem, and two lines of
@@ -667,13 +714,47 @@ const WARNINGS = {
     transform-origin: top left;
   }
   /* A faint plate behind each line: the label is white, and so is the cloud it floats over. */
-  .mark span {
+  .mark > span:not(.pop) {
     justify-self: start;
     padding: 0 4px;
     border-radius: 3px;
     background: rgba(8, 12, 18, 0.34);
   }
-  .mark span:last-child { font-weight: 500; opacity: 0.85; }
+  .mark > span:nth-of-type(2) { font-weight: 500; opacity: 0.85; }
+  /* The storm looked into: a card under its two lines, there only while it is. */
+  .mark .pop {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 15px;
+    min-width: 196px;
+    padding: 9px 11px 8px;
+    border-radius: 10px;
+    background: rgba(10, 14, 20, 0.78);
+    border: 1px solid color-mix(in srgb, var(--mark, #fff) 60%, transparent);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.45);
+    text-shadow: none;
+    pointer-events: none;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+  }
+  .mark.inspected .pop { display: grid; gap: 6px; }
+  .mark.flip .pop { left: auto; right: 0; }
+  .mark.above .pop { top: auto; bottom: calc(100% + 8px); }
+  .mark .pop b { font: 800 11px/1.3 var(--mc-font); letter-spacing: 0.04em; color: #fff; }
+  .mark .pop :global(b.severe) { color: #ffb020; }
+  .mark .pop .rows { font: 600 12px/1.55 var(--mc-font); font-variant-numeric: tabular-nums; white-space: pre-line; }
+  .mark .pop .brand {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.14);
+    font: 800 11px/1 var(--mc-font);
+    letter-spacing: 0.02em;
+    opacity: 0.9;
+  }
+  .mark .pop .brand img { width: 14px; height: 14px; }
   /* A button, to look into its storm; drawn as the note it is. */
   .mark {
     padding: 0;
@@ -880,6 +961,11 @@ const WARNINGS = {
     bottom: auto;
     left: var(--deck-left);
   }
+  .flight-deck.touch > :global(.flight-horizon) {
+    top: calc(var(--deck-top) + 112px);
+    bottom: auto;
+    left: calc(var(--deck-left) + var(--flight-minimap-size) + 8px);
+  }
   /* No keys to answer with. */
   .flight-deck.touch .ask kbd { display: none; }
   .flight-deck.touch .ask button { height: 44px; padding: 0 18px; }
@@ -894,7 +980,8 @@ const WARNINGS = {
     /* The heading stays; the air outside and the frames a second are a desk's to read. */
     .flight-deck.touch .corner-sw :is(dt, dd):nth-of-type(n + 2) { display: none; }
     .flight-deck.touch .corner-sw { left: calc(var(--deck-left) + 160px); }
-    .flight-deck.touch > :global(.flight-minimap) { --flight-minimap-size: 104px; top: calc(var(--deck-top) + 46px); }
+    .flight-deck.touch { --flight-minimap-size: 104px; --flight-horizon-size: 80px; }
+    .flight-deck.touch > :global(:is(.flight-minimap, .flight-horizon)) { top: calc(var(--deck-top) + 46px); }
   }
   /* On its side there is no room left between the top row's readouts. */
   @container mc-frame (max-height: 520px) {
@@ -911,7 +998,7 @@ const WARNINGS = {
     .flight-deck.touch .corner-sw { top: calc(var(--deck-top) + 46px); left: var(--deck-left); }
     .flight-deck.touch .corner-ne, .flight-deck.touch .corner-ne.beside-screen { top: calc(var(--deck-top) + 46px); right: var(--deck-right); }
     .flight-deck.touch .corner-se { top: calc(var(--deck-top) + 92px); }
-    .flight-deck.touch > :global(.flight-minimap) { top: calc(var(--deck-top) + 92px); }
+    .flight-deck.touch > :global(:is(.flight-minimap, .flight-horizon)) { top: calc(var(--deck-top) + 92px); }
     .flight-deck.touch .alerts { top: calc(var(--deck-top) + 150px); }
     .flight-deck.touch > .inspect { top: calc(var(--deck-top) + 100px); }
   }

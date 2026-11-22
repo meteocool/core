@@ -222,6 +222,8 @@ export class EfbState {
   version = 0;
   private aircraft: EfbAircraft = { lon: 0, lat: 0, heading: 0 };
   private dragging: { from: [number, number]; frame: ChartFrame } | null = null;
+  /** The storm last looked into in the view, which the tablet turns to as it is chosen. */
+  private looked: Pick<StormMark, "lon" | "lat"> | null = null;
 
   get rangeNm(): number {
     return EFB_RANGES_NM[this.range];
@@ -233,15 +235,35 @@ export class EfbState {
     return chartFrame(lon, lat, this.rangeNm, this.aircraft.lat);
   }
 
-  /** The storms of the moment, and the aircraft: the chosen storm is looked for again among them. */
-  update(storms: StormMark[], aircraft: EfbAircraft, target: EfbTarget | null): void {
+  /**
+   * The storms of the moment, and the aircraft: the chosen storm is looked
+   * for again among them. A storm looked into in the view (`looked`, its
+   * mark) is chosen here too as it is picked, and brought onto the map.
+   */
+  update(storms: StormMark[], aircraft: EfbAircraft, target: EfbTarget | null, looked: Pick<StormMark, "lon" | "lat"> | null = null): void {
     const was = this.storms[this.selected];
     this.storms = storms;
     this.aircraft = aircraft;
+    const picked = looked !== this.looked && looked ? stormNear(storms, looked.lon, looked.lat) : -1;
+    this.looked = looked;
+    if (picked >= 0) {
+      this.selected = picked;
+      this.chosen = true;
+      const [x, y] = onChart(this.frame(), storms[picked].lon, storms[picked].lat);
+      if (!within(EFB_LAYOUT.map, x, y)) this.centre = [storms[picked].lon, storms[picked].lat];
+      this.version += 1;
+      return;
+    }
     const again = was && this.chosen ? stormNear(storms, was.lon, was.lat) : -1;
     // A storm the reader chose stays chosen for as long as it is there; otherwise the tablet's own choice, now.
     this.chosen = again >= 0;
     this.selected = again >= 0 ? again : defaultStorm(storms, aircraft, target);
+  }
+
+  /** Whether the chosen storm is the one looked into in the view. */
+  get chosenLooked(): boolean {
+    const storm = this.storms[this.selected];
+    return Boolean(storm && this.looked && stormNear([storm], this.looked.lon, this.looked.lat) === 0);
   }
 
   /** A tap at a point of the tablet, pixels. Returns whether it did anything. */
