@@ -349,6 +349,22 @@ test.describe("on a desktop", () => {
 
   test.describe("with a touch screen", () => {
     test.use({ hasTouch: true });
+    // A laptop's touch screen beside its trackpad. Chromium's touch emulation
+    // makes the finger the only pointer, a tablet's coarse one that cannot
+    // hover, and a tablet is a handheld, offered no Studio; so the page is
+    // told what a touch laptop's primary pointer says: fine, and hovering.
+    test.beforeEach(async ({ page }) => {
+      await page.addInitScript(() => {
+        const matchMedia = window.matchMedia.bind(window);
+        const yes = "(min-width: 0px)";
+        const no = "(max-width: 0px)";
+        window.matchMedia = (query: string) => matchMedia(query
+          .replace(/\((any-)?pointer:\s*fine\)/g, yes)
+          .replace(/\((any-)?pointer:\s*coarse\)/g, no)
+          .replace(/\((any-)?hover:\s*hover\)/g, yes)
+          .replace(/\((any-)?hover:\s*none\)/g, no));
+      });
+    });
 
     test("the controls' card stays up until a finger is first on a flight control", async ({ page }) => {
       test.slow();
