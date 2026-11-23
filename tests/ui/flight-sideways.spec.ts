@@ -50,6 +50,8 @@ async function drag(page: Page, cdp: CDPSession, points: Array<[number, number]>
     await page.waitForTimeout(30);
     await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: nextX, y: nextY, id: 1 }] });
   }
+  // The browser hands a move to the page with the next frame: read on before that, it is the move before.
+  await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
   return async () => { await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] }); };
 }
 
