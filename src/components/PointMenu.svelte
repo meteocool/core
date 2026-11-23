@@ -32,10 +32,7 @@ import { share, shareAvailable, shareIcon } from "../lib/share";
 import {
   cells3dFailed, inspectLatLon, mapView, pointMenuAt, selectedStorm, sharedActiveCap, siteMode,
 } from "../stores";
-import { openStudio } from "../lib/studio/session";
-import { FEATURES } from "../features";
-import { flightRequest } from "../lib/studio/store";
-import type Cells3DCapability from "../caps/Cells3DCapability";
+import { canFlyFromMap, flyFromMap } from "../lib/studio/flyFromMap";
 import { readSiteAt } from "../lib/SiteSweepManager";
 import { describeReading } from "../lib/siteSweeps";
 import { openModelCompare } from "../lib/modelCompare";
@@ -52,10 +49,6 @@ const NEEDS_SIDE = 120;
 const SHARE_ENTRY = 56;
 const FLY_ENTRY = 56;
 
-/** The element every map is drawn into; see Map.svelte. */
-const MAP_TARGET = "map";
-/** The zoom the 3D map looks at a flight's start from while its storms come in. */
-const FLY_ZOOM = 8;
 /**
  * How far into the menu the notch sits when the menu leans to one side: clear
  * of the 20px corner, so the notch comes off a straight edge rather than out
@@ -97,15 +90,12 @@ let keys: EventsKey[] = [];
 const map = () => layerManager.getCapability("radar")?.getMap();
 
 /**
- * The 3D map, which a flight flies over; none in a build without it. The
- * flight is offered wherever that map can come up: not after it has failed
- * to, nor in a past window, which has none (lib/archive.ts). On a phone as
- * well: Studio's tools are a desktop's, but a flight has controls for a
- * touch screen (components/meteoair/Landing.svelte offers it alike). And
- * only where this build offers the flight at all (features.ts).
+ * The flight, wherever it can take off from this map now and this build
+ * offers it (lib/studio/flyFromMap.ts). On a phone as well: Studio's tools
+ * are a desktop's, but a flight has controls for a touch screen
+ * (components/meteoair/Landing.svelte offers it alike).
  */
-const cells3d = layerManager.getCapability("cells3d") as Cells3DCapability | undefined;
-$: flyable = FEATURES.meteoair && Boolean(cells3d) && !$cells3dFailed;
+$: flyable = canFlyFromMap(layerManager, $cells3dFailed);
 
 onMount(() => {
   const radar = map();
@@ -196,32 +186,14 @@ function sendPoint(event: MouseEvent) {
 }
 
 /**
- * Fly from the point: on the 3D map looking at it, into Studio, which takes
- * off from there at once without the flight's plan (`flightRequest`;
- * components/studio/Studio.svelte waits for the storms and chooses the rest).
- * The flight's code is Studio's and comes with it. When the flight ends, the
- * reader is back on this map, looking where they were.
+ * Fly from the point (lib/studio/flyFromMap.ts): towards the next storm,
+ * whichever way that is.
  */
 function flyFromHere() {
   const point = $pointMenuAt;
   close();
-  if (!point || !cells3d) return;
-  const from = layerManager.currentCap ?? "radar";
-  const was = get(mapView);
-  flightRequest.set({
-    start: { lat: point[0], lon: point[1], heading: null, altitude: null, speed: null, view: "cockpit" },
-    back: () => {
-      // Somewhere else by then (Back went there, say), which is where the reader is.
-      if (get(sharedActiveCap) !== "cells3d") return;
-      // The 3D map's camera first: the switch hands it to the flat map, and so
-      // does any move of it still to be reported, such as the landing's.
-      if (was) cells3d.setCamera({ lat: was.lat, lon: was.lon, zoom: was.zoom });
-      layerManager.setTarget(from, MAP_TARGET);
-    },
-  });
-  cells3d.setCamera({ lat: point[0], lon: point[1], zoom: FLY_ZOOM, pitch: 60, bearing: 0 });
-  layerManager.setTarget("cells3d", MAP_TARGET);
-  openStudio();
+  if (!point) return;
+  flyFromMap(layerManager, { lat: point[0], lon: point[1], heading: null, altitude: null, speed: null, view: "cockpit" });
 }
 
 /* A tap anywhere else puts it away, as a context menu does. Capture phase,

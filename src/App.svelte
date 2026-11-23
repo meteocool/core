@@ -160,6 +160,9 @@ import { releaseMap } from "./lib/hiddenMaps";
 import { isHandheld } from "./lib/gpuBudget";
 import LightningCapability from "./caps/LightningCapability";
 import makeStationLayer from "./layers/stations";
+import makeFlightTrackLayer from "./layers/flightTracks";
+import { selectedFlightTrack } from "./lib/studio/flightTracks";
+import FlightTrackCard from "./components/FlightTrackCard.svelte";
 import StationManager from "./lib/StationManager";
 import makeMotionArrowLayer from "./layers/motionArrows";
 import MotionArrowManager from "./lib/MotionArrowManager";
@@ -737,6 +740,17 @@ stationLayerVisible.subscribe((value) => {
   if (!screenshot) window.settings.set("layerStations", value);
 });
 stationChoice.subscribe((choice) => window.settings.set("stationParameter", choice));
+/* The reader's own meteoair flights, for two hours after they were flown
+   (layers/flightTracks.ts); tapped, a card to fly one again or delete it.
+   Not in a screenshot, nor on the flight's own page, nor over a past
+   window's radar, which they were never flown through. */
+const flightTrackLayer = makeFlightTrackLayer();
+onDestroy(() => flightTrackLayer.dispose());
+const flightTracksWanted = !screenshot && !flightOnly;
+archiveWindow.subscribe((past) => {
+  flightTrackLayer.layer.setVisible(flightTracksWanted && !past);
+  if (past) selectedFlightTrack.set(null);
+});
 /* The rain's motion arrows over the radar map, the newest; not in a
    screenshot, which is of the radar. */
 const motionArrows = makeMotionArrowLayer();
@@ -921,7 +935,7 @@ const lm = new LayerManager({
       name: "radar",
       capability: RadarCapability,
       additionalLayers: [
-        stormGroupLayer, pulseLayer, cellLayer, cloudHintLayer, mesocycloneLayer, lightningLayer, motionArrows.layer, stationLayer.layer,
+        stormGroupLayer, pulseLayer, cellLayer, cloudHintLayer, mesocycloneLayer, lightningLayer, motionArrows.layer, flightTrackLayer.layer, stationLayer.layer,
         labelsOnly(),
         radolanOverlay({ followsForecast: true }),
         siteSweep.layer, beamRings.layer, siteMarks.layer,
@@ -1231,6 +1245,20 @@ lm.forEachMap((map) => {
         { layerFilter: (layer) => layer === cellLayer, hitTolerance: 6 },
       ) ?? mesocycloneStorm(event.pixel)
       : undefined;
+    /* One of the reader's own flights, where no storm is: its card, at the
+       tap. Any other tap puts an open one away (FlightTrackCard.svelte). */
+    if (!code && flightTrackLayer.layer.getVisible()) {
+      const track = map.forEachFeatureAtPixel(
+        event.pixel,
+        (feature) => feature.get("flightTrack") as string | undefined,
+        { layerFilter: (layer) => layer === flightTrackLayer.layer, hitTolerance: 8 },
+      );
+      if (track) {
+        const [lon, lat] = toLonLat(event.coordinate);
+        selectedFlightTrack.set({ id: track, at: [lon, lat] });
+        return;
+      }
+    }
     if (!code && cloudHintLayer.getVisible()) {
       const cloud = map.forEachFeatureAtPixel(
         event.pixel,
@@ -1309,6 +1337,7 @@ lm.forEachMap((map) => {
         hitTolerance: 6,
       })
       || (stationLayer.layer.getVisible() && hits(event.pixel, stationLayer.layer, 10))
+      || (flightTrackLayer.layer.getVisible() && hits(event.pixel, flightTrackLayer.layer, 8))
       || (get(cellLayerVisible) && mesocycloneStorm(event.pixel) !== undefined);
     if (over === hovering) return;
     hovering = over;
@@ -1694,6 +1723,7 @@ if (postInitCb) postInitCb(lm);
 {/if}
 {#if !flightOnly}
   <PointMenu layerManager={lm} />
+  <FlightTrackCard layerManager={lm} />
 {/if}
 
 <!-- The open radar's own page goes with the radar: closing the radar closes it. -->

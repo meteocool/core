@@ -44,6 +44,8 @@ import type { FlightPlan } from "../../lib/studio/flight/plan";
 import { distanceM } from "../../lib/studio/flight/geo";
 import { stormSystems } from "../../lib/studio/flight/spawn";
 import { flightLoad, preloadFlight } from "../../lib/studio/flight/preload";
+import { recordTrack } from "../../lib/studio/flight/trackRecorder";
+import type { TrackAsked } from "../../lib/studio/flight/trackRecorder";
 import type { StormTile } from "../../lib/studio/flight/spawn";
 import { flightLinkOrigin, flightLinkUrl } from "../../lib/studio/flightLink";
 import { cropOf } from "../../lib/studio/record";
@@ -79,6 +81,10 @@ $: flightAlone = $studioFlightOnly || $flightPlanAsked;
 
 /** Where the reader goes when the flight under way ends, for one asked for with somewhere to go back to. */
 let back: (() => void) | null = null;
+
+/** The map's track the next take-off flies again (lib/studio/flightTracks.ts); and the recording of the flight under way's. */
+let trackAsked: TrackAsked | null = null;
+let stopRecording: (() => void) | null = null;
 
 /** How long the black is held at take-off while the flight's first frames come in, and at other changes of scene, ms. */
 const TAKEOFF_HOLD_MS = 450;
@@ -129,6 +135,7 @@ function retry(): void {
 /** Not flown after all: from the loading screen back where the flight was asked from, or to its plan. */
 function unload(): void {
   loading = null;
+  trackAsked = null;
   const going = back;
   back = null;
   if (going) going();
@@ -138,6 +145,8 @@ function unload(): void {
 function takeOff(flightPlan: FlightPlan): void {
   pilot = new Pilot(stage, { credits, modelCredit: $_("studio.flight.model_credit"), onLeave: () => cut(land) }, flightPlan);
   pilot.start();
+  stopRecording = recordTrack(pilot, trackAsked);
+  trackAsked = null;
 }
 
 /** Put the plan away: back to Studio's tools, or off the flight's own page's map altogether. */
@@ -165,6 +174,9 @@ function backToMap(): void {
 function land(): void {
   const flying = pilot;
   pilot = null;
+  // Written down before the flight lets go of what it ended as.
+  stopRecording?.();
+  stopRecording = null;
   flying?.stop();
   const going = back;
   back = null;
@@ -224,6 +236,7 @@ function board(request: FlightRequest): void {
     const flightPlan = request.start.snapshot ? resumedPlan(planned, request.start.snapshot, systems) : planned;
     boarding = null;
     back = request.back ?? null;
+    trackAsked = request.track ?? null;
     flightRequest.set(null);
     void throughBlack(() => fly(flightPlan), TAKEOFF_HOLD_MS);
   };

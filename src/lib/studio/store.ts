@@ -72,11 +72,15 @@ export const studioFlightOnly = writable<boolean>(false);
  * the start (lib/studio/flight/plan.ts, `planHere`) and takes off, and puts
  * the request away once it has. `back` is where the reader goes when that
  * flight ends: the map they asked from; without it, wherever a flight ends
- * on that page. Closing Studio drops a request it has not flown yet.
+ * on that page. `track` is a track on the map flown again (lib/studio/flightTracks.ts):
+ * from where it left off, or from its start, and recorded onto it; without
+ * it, the flight is a track of its own. Closing Studio drops a request it
+ * has not flown yet.
  */
 export interface FlightRequest {
   start: FlightStart;
   back?: () => void;
+  track?: { id: string; from: "last" | "start" };
 }
 export const flightRequest = writable<FlightRequest | null>(null);
 
