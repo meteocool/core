@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   AROUND_FRAME_S, NO_PAST, frameInWindow, STEP_S, STRIKE_CHUNK_S, acceptsWindow, chunksFor, coverageDays, inWindow, isWindow,
-  mapInWindow, nextWindowFrame, onGrid, pickWindow, sameWindow, shownIn, startMinutes, strikeAgeMinutes, strikeChunks,
+  nextWindowFrame, onGrid, pickWindow, sameWindow, shownIn, startMinutes, strikeAgeMinutes, strikeChunks,
   strikesAt, windowAround, windowEdgeClear, windowLabelEvery, windowSteps, windowTicks,
 } from "../../src/lib/archive.ts";
 
@@ -210,21 +210,13 @@ test("a strike's age is counted from the step on screen, not the clock", () => {
 test("a window hides what has no past and nothing else", () => {
   const window = { start: DAY, end: DAY + HOUR };
   for (const feature of NO_PAST) assert.equal(shownIn(window, feature), false, feature);
-  for (const feature of ["radar", "lightning", "storms", "stations", "snow", "precipTypes"]) {
+  for (const feature of ["radar", "lightning", "storms", "stations", "snow", "precipTypes", "sites", "cells3d", "cloudHints"]) {
     assert.equal(shownIn(window, feature), true, feature);
   }
 });
 
 test("live shows everything", () => {
   for (const feature of NO_PAST) assert.equal(shownIn(null, feature), true, feature);
-});
-
-test("the 3D map is the one map a window cannot switch to", () => {
-  const window = { start: DAY, end: DAY + HOUR };
-  assert.equal(mapInWindow("cells3d", window), false);
-  assert.equal(mapInWindow("radar", window), true);
-  assert.equal(mapInWindow("lightning", window), true);
-  assert.equal(mapInWindow("cells3d", null), true);
 });
 
 test("a window opens on the frame asked for when it has one", () => {

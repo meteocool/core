@@ -161,6 +161,15 @@ export class VolumeFeed<T extends Scanned> {
     this.wait(this.generation, run, VOLUME_RETRIES);
   }
 
+  /**
+   * Start over: stop waiting, and pass the next answer on whatever its scan.
+   * For a past window's step, whose answer is as likely earlier as later.
+   */
+  reset(): void {
+    this.stop();
+    this.newest = null;
+  }
+
   /** Stop waiting; an ask already in flight is dropped when it lands. */
   stop(): void {
     this.generation += 1;

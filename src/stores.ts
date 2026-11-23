@@ -503,6 +503,16 @@ export const live = writable<boolean>(false);
 export const archiveWindow = writable<ArchiveWindow | null>(null);
 
 /**
+ * The step on screen while a window is open, unix seconds, or null live:
+ * the time the routes that answer for one are asked for (`at`). Its end
+ * before the timeline has a step in it.
+ */
+export const archiveStep = derived(
+  [archiveWindow, capTimeIndicator],
+  ([past, shown]): number | null => (past ? (shown || past.end) : null),
+);
+
+/**
  * Whether the archive's picker (ArchivePicker) is open: from the Archive pill
  * in the player's tray, or from the frame's tab while a window is open.
  */

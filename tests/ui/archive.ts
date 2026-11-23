@@ -11,8 +11,9 @@ import { FIXTURES, readRecording, type RecordedResponse } from "./offline";
  * here, synthesised from what was recorded: the timeline's observed frames
  * moved onto the window's steps, a few strikes in each piece asked for, no
  * snowfields and no precipitation types (a 404, as the backend gives a step
- * with none), the recorded storms. Without `start`, `until` or `at`, a
- * request is the live map's and goes on to the recording.
+ * with none), the recorded storms, volumes, cells and sweeps. Without
+ * `start`, `until` or `at`, a request is the live map's and goes on to the
+ * recording.
  */
 
 const STEP_S = 300;
@@ -122,6 +123,13 @@ export async function serveArchive(page: Page, { empty = false }: { empty?: bool
       return json(route, { detail: "None measured then" }, 404);
     });
   }
+  // The storms' volumes, KONRAD3D's cells and the radars' sweeps: noted, and
+  // answered from the recording as the live ones are.
+  await page.route(/\/(cells\/volumes|cells\/current|sweeps)\?/, (route) => {
+    const url = new URL(route.request().url());
+    if (url.searchParams.has("at")) note(url);
+    return route.fallback();
+  });
   await page.route(/\/storms\?/, (route) => {
     const url = new URL(route.request().url());
     if (!url.searchParams.has("until")) return route.fallback();

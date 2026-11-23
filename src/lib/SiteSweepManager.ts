@@ -1,8 +1,8 @@
-import { derived, get } from "svelte/store";
+import { get } from "svelte/store";
 import { fetchSweeps, quietly } from "../api";
 import type { Progress } from "../api";
 import {
-  archiveWindow, capLatestObservation, capTimeIndicator, compositeDim, radarColormap, selectedStorm, siteMarksVisible, siteMode,
+  archiveStep, archiveWindow, capLatestObservation, capTimeIndicator, compositeDim, radarColormap, selectedStorm, siteMarksVisible, siteMode,
   siteSweepView, srvManualMotion, srvPrefersManual,
 } from "../stores";
 import { tileBaseUrl } from "../urls";
@@ -81,24 +81,25 @@ export default class SiteSweepManager {
     private readonly credit: (network: string) => string | null,
   ) {
     siteMode.subscribe((mode) => this.modeChanged(mode));
-    capTimeIndicator.subscribe(() => void this.redraw());
+    // In a window the open radar is listed again for each step, as it was
+    // then, and drawn from that; and once more on the way back to live.
+    capTimeIndicator.subscribe(() => { if (!get(archiveWindow)) void this.redraw(); });
+    archiveStep.subscribe(() => void this.relist());
     // The motion SRV takes out: the sweep on screen drawn again, nothing fetched.
     selectedStorm.subscribe(() => this.motionChanged());
     srvManualMotion.subscribe(() => this.motionChanged());
     srvPrefersManual.subscribe(() => this.motionChanged());
     radarColormap.subscribe((name) => layer.setPalette(name));
-    // A past window has no site mode (lib/archive.ts): its marks, the way in, go with it.
-    derived([siteMarksVisible, archiveWindow], ([visible, past]) => visible && past === null)
-      .subscribe((visible) => marks.layer.setVisible(visible));
-    archiveWindow.subscribe((past) => { if (past && get(siteMode)) siteMode.set(null); });
+    siteMarksVisible.subscribe((visible) => marks.layer.setVisible(visible));
   }
 
   /** The map settled on this viewport: list its radars, if the marks are shown. */
   async listViewport(bbox: [number, number, number, number], bar: Progress = quietly) {
     this.viewport = bbox;
-    if (!get(siteMarksVisible) || get(archiveWindow)) return;
-    const answer = await fetchSweeps({ bbox }, bar).catch(() => null);
-    if (!answer || this.viewport !== bbox) return;
+    if (!get(siteMarksVisible)) return;
+    const at = get(archiveStep);
+    const answer = await fetchSweeps({ bbox, at }, bar).catch(() => null);
+    if (!answer || this.viewport !== bbox || get(archiveStep) !== at) return;
     const sites = (answer.sites ?? []) as ListedSite[];
     // The open site stays listed while the reader pans away from it.
     if (this.openSite && !sites.some((site) => site.site === this.openSite!.site)) sites.push(this.openSite);
@@ -197,9 +198,18 @@ export default class SiteSweepManager {
   }
 
   private async refreshOpenSite(code: string) {
-    const answer = await fetchSweeps({ site: code }, quietly).catch(() => null);
+    const at = get(archiveStep);
+    const answer = await fetchSweeps({ site: code, at }, quietly).catch(() => null);
     const site = (answer?.sites ?? []).find((listed) => listed.site === code) as ListedSite | undefined;
-    if (site && get(siteMode)?.site === code) this.openSite = site;
+    if (site && get(siteMode)?.site === code && get(archiveStep) === at) this.openSite = site;
+  }
+
+  /** The open radar listed for the step a window shows, or for now, and drawn. */
+  private async relist() {
+    const mode = get(siteMode);
+    if (!mode) return;
+    await this.refreshOpenSite(mode.site);
+    await this.redraw();
   }
 
   /** Draw what the step on screen should show of the open site, fetching it if need be. */
@@ -212,7 +222,8 @@ export default class SiteSweepManager {
     const tilt = tiltNear(tilts, mode.elevation);
     const step = get(capTimeIndicator);
     const newest = get(capLatestObservation);
-    const live = step === 0 || step === newest;
+    // A window's last step is not live: its sweeps are those scanned by then.
+    const live = !get(archiveWindow) && (step === 0 || step === newest);
     const scan = tilt ? sweepAt(tilt.scans, step, live) : null;
     const view = {
       site,

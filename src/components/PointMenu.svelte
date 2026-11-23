@@ -30,9 +30,8 @@ import { faPlaneDeparture } from "@fortawesome/free-solid-svg-icons/faPlaneDepar
 import Icon from "./Icon.svelte";
 import { share, shareAvailable, shareIcon } from "../lib/share";
 import {
-  archiveWindow, cells3dFailed, inspectLatLon, mapView, pointMenuAt, selectedStorm, sharedActiveCap, siteMode,
+  cells3dFailed, inspectLatLon, mapView, pointMenuAt, selectedStorm, sharedActiveCap, siteMode,
 } from "../stores";
-import { mapInWindow } from "../lib/archive";
 import { openStudio } from "../lib/studio/session";
 import { FEATURES } from "../features";
 import { flightRequest } from "../lib/studio/store";
@@ -106,7 +105,7 @@ const map = () => layerManager.getCapability("radar")?.getMap();
  * only where this build offers the flight at all (features.ts).
  */
 const cells3d = layerManager.getCapability("cells3d") as Cells3DCapability | undefined;
-$: flyable = FEATURES.meteoair && Boolean(cells3d) && !$cells3dFailed && mapInWindow("cells3d", $archiveWindow);
+$: flyable = FEATURES.meteoair && Boolean(cells3d) && !$cells3dFailed;
 
 onMount(() => {
   const radar = map();

@@ -47,7 +47,7 @@ import { isSuccessor } from "../lib/cloudSuccession";
 import { dbzStops, RING_ALPHAS } from "../lib/cellVolume";
 import { fetchCellTrack, fetchCurrentCells, fetchCurrentVolumes, quietly } from "../api";
 import {
-  capDescription, cells3dFailed, cells3dLoading, cells3dVisible, cloudStyle, cloudsTime, colorSchemeDark, cutRotationDeg,
+  archiveStep, capDescription, cells3dFailed, cells3dLoading, cells3dVisible, cloudStyle, cloudsTime, colorSchemeDark, cutRotationDeg,
   cutSweepDeg, mapView, peelLevel, peelManual, peelTop, radarColormap, selectedCell, selectedStorm, sharedActiveCap,
   stormDetails, showForecastPlaybutton, smallScreen, terrain3dVisible, fullResolution3d, mapBaseLayer,
 } from "../stores";
@@ -693,6 +693,9 @@ export default class Cells3DCapability extends Capability {
 
   private unsubscribeCellsWanted: (() => void) | null = null;
 
+  /** The step a past window shows, which the cells and volumes are asked for; null live. */
+  private unsubscribeStep: (() => void) | null = null;
+
   /** Whether the map stands on the ground's relief; see `terrain3dVisible`. */
   private terrainWanted = get(terrain3dVisible);
 
@@ -763,10 +766,11 @@ export default class Cells3DCapability extends Capability {
    *
    * Asked for when a KONRAD3D run lands, which live is half a minute before
    * that scan's volumes exist; fetched only then, every storm stood a scan
-   * upwind of the radar under it until the next run. Waits only while shown.
+   * upwind of the radar under it until the next run. Waits only while shown,
+   * and never in a past window, whose scans are all built.
    */
   private readonly volumes = new VolumeFeed<CurrentVolumes>(
-    () => fetchCurrentVolumes(quietly, { coarse: true }).catch(() => null),
+    () => fetchCurrentVolumes(quietly, { coarse: true, at: get(archiveStep) }).catch(() => null),
     (answer) => this.takeClouds(answer),
   );
 
@@ -1126,6 +1130,15 @@ export default class Cells3DCapability extends Capability {
       if (!get(peelManual)) peelLevel.set(defaultPeel(style));
     });
     this.unsubscribeCellsWanted = cells3dVisible.subscribe((wanted) => this.applyCellsWanted(wanted));
+    // A past window's step, earlier or later, or the way back to live: its
+    // own cells and volumes, now if the map is showing, else on `attach`.
+    let step = get(archiveStep);
+    this.unsubscribeStep = archiveStep.subscribe((at) => {
+      if (at === step) return;
+      step = at;
+      this.volumes.reset();
+      if (this.shown) void this.refresh();
+    });
     this.unsubscribeTerrain = terrain3dVisible.subscribe((wanted) => {
       this.terrainWanted = wanted;
       // Before the style is up, `applyData` adds it once it is.
@@ -3567,8 +3580,9 @@ export default class Cells3DCapability extends Capability {
       this.volumesTimer = null;
       if (!this.shown) return;
       // Quietly, as the flat map's tags are (App.svelte): a refresh.
-      void fetchCurrentVolumes(quietly, { coarse: true }).catch(() => null).then((answer) => {
-        if (answer && this.shown) this.volumes.offer(answer);
+      const at = get(archiveStep);
+      void fetchCurrentVolumes(quietly, { coarse: true, at }).catch(() => null).then((answer) => {
+        if (answer && this.shown && get(archiveStep) === at) this.volumes.offer(answer);
       });
     }, VOLUMES_SETTLE_MS);
   }
@@ -3583,7 +3597,10 @@ export default class Cells3DCapability extends Capability {
     if (this.shown) void this.refresh();
   }
 
-  /** Re-read the latest run. One timestep only: this map does not scrub. */
+  /**
+   * Re-read the latest run, or a past window's step's. One timestep only:
+   * this map does not scrub.
+   */
   refresh(): Promise<void> {
     const run = this.load();
     this.firstRefresh ??= run;
@@ -3593,18 +3610,20 @@ export default class Cells3DCapability extends Capability {
   private async load(): Promise<void> {
     const token = Symbol("cells");
     this.cellsToken = token;
+    const at = get(archiveStep);
     const [current, clouds] = await Promise.all([
       // Not asked for while they are off: a severe afternoon's run is a
       // sizeable answer for a map that would draw none of it. A failure
       // (already reported by the API wrapper) keeps the cells already drawn,
       // and no longer takes a good answer for the volumes down with it.
-      this.cellsWanted ? fetchCurrentCells(this.nanobar).catch(() => undefined) : null,
+      this.cellsWanted ? fetchCurrentCells(this.nanobar, at).catch(() => undefined) : null,
       // Its own failure is not the cells' failure: a map with storms and no
       // cutaways is worth drawing. Nor does it take the storms already
       // drawn away; they stay until an answer replaces them.
-      fetchCurrentVolumes(undefined, { coarse: true }).catch(() => null),
+      fetchCurrentVolumes(undefined, { coarse: true, at }).catch(() => null),
     ]);
-    if (this.cellsToken !== token) return;
+    // A window's step moved on meanwhile: that step's load is the one to draw.
+    if (this.cellsToken !== token || get(archiveStep) !== at) return;
     if (current !== undefined) {
       // Turned off while the answer was on its way is off.
       const run = this.cellsWanted ? current : null;
@@ -3614,7 +3633,7 @@ export default class Cells3DCapability extends Capability {
     // The same scan as before still loads: a load cut short by switching
     // away left volumes to fetch, and this is the refresh `attach` relies on.
     if (!clouds || !this.volumes.offer(clouds)) void this.loadClouds();
-    if (this.shown) this.volumes.follow(this.newestScan());
+    if (this.shown && at === null) this.volumes.follow(this.newestScan());
     this.applyData();
   }
 
@@ -4592,6 +4611,8 @@ export default class Cells3DCapability extends Capability {
     this.unsubscribeStyle = null;
     this.unsubscribeCellsWanted?.();
     this.unsubscribeCellsWanted = null;
+    this.unsubscribeStep?.();
+    this.unsubscribeStep = null;
     this.unsubscribeTerrain?.();
     this.unsubscribeTerrain = null;
     this.unsubscribeResolution?.();

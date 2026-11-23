@@ -12,8 +12,7 @@
   import { capabilityEnabled } from "../caps/enabled";
   import { FEATURES } from "../features";
   import { toolbarTransitionEnd } from "../lib/toolbarTransition";
-  import { archiveWindow, selectedStorm } from "../stores";
-  import { mapInWindow } from "../lib/archive";
+  import { selectedStorm } from "../stores";
 
   export let layerManager;
 
@@ -250,10 +249,6 @@
     font: 600 14px/1.2 var(--mc-font);
     text-align: center;
   }
-  .cell.unavailable {
-    opacity: 0.45;
-    filter: grayscale(1);
-  }
 
   /* The hero is the primary layer, so its caption is scaled with the card
      rather than left at the secondary tiles' size. */
@@ -289,11 +284,8 @@
               <span class="label">{tile.label}</span>
             </button>
           {:else}
-          <!-- A map a past window has no past for is greyed, and says so; switching to it is refused (LayerManager). -->
           <div
             class="cell"
-            class:unavailable={!mapInWindow(tile.layer, $archiveWindow)}
-            title={mapInWindow(tile.layer, $archiveWindow) ? undefined : $_("chrome.archive.no_3d")}
             class:hero={index === 0}
             class:wide={index === 0 || (secondSpans && index === 1)}>
             <MiniMap

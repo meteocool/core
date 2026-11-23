@@ -295,20 +295,15 @@ export function strikeAgeMinutes(timeMs: number, shown: number): number {
 
 /**
  * What the map draws live that has no past, and hides in a window: the
- * forecast, the chart's point reading, site mode and the radars' marks that
- * open it, the 3D map, the "3D" tags beside storm cores, the
- * mesocyclones, and the rain's motion arrows, which are the newest motion
- * field alone. Everything else answers for the step on screen.
+ * forecast, the chart's point reading, the mesocyclones, and the rain's
+ * motion arrows, which are the newest motion field alone. Everything else
+ * answers for the step on screen, the 3D map, its "3D" tags beside storm
+ * cores and site mode included.
  */
-export const NO_PAST = ["forecast", "chart", "sites", "cells3d", "cloudHints", "mesocyclones", "motion"] as const;
+export const NO_PAST = ["forecast", "chart", "mesocyclones", "motion"] as const;
 export type NoPast = (typeof NO_PAST)[number];
 
 /** Whether `feature` is drawn: always live, and in a window only if it has a past. */
 export function shownIn(window: ArchiveWindow | null, feature: NoPast | string): boolean {
   return window === null || !(NO_PAST as readonly string[]).includes(feature);
-}
-
-/** Whether a map can be switched to in a window: every one but the 3D map. */
-export function mapInWindow(layer: string, window: ArchiveWindow | null): boolean {
-  return window === null || layer !== "cells3d";
 }

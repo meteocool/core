@@ -326,9 +326,11 @@ $: noForecast = anyForecastMissing === 1;
  * playback steps through those alone (playbackLoop), the strip hatches the
  * rest and the needle stays out of them. Null with none open, before its
  * listing is in (the view still holds the radar open before it), or with
- * none in the strip's hours, when there is nothing to keep it to.
+ * none in the strip's hours, when there is nothing to keep it to. Null in a
+ * past window too, whose radar is listed for each step as it was then: the
+ * sweeps up to the step on screen, which say nothing of the steps after it.
  */
-$: sweepSteps = $siteMode && $siteSweepView?.site.site === $siteMode.site
+$: sweepSteps = !past && $siteMode && $siteSweepView?.site.site === $siteMode.site
   ? nonEmpty(stepsWithSweep(
     tiltNear(listedFor($siteSweepView.site, $siteMode.quantity), $siteMode.elevation)?.scans ?? [],
     steps.map((step) => step.t),

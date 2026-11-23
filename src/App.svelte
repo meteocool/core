@@ -51,7 +51,7 @@ import {
   shareDialog,
   siteMarksVisible, siteMode, srvManualMotion, zoomlevel, stationChoice, stationLayerVisible, selectedStation,
   motionLayerVisible,
-  archiveWindow, socketDown,
+  archiveStep, archiveWindow, socketDown,
 } from "./stores";
 import { cleanupStatusFeed, initStatusFeed, refreshStatus } from "./lib/statusFeed";
 import { archiveStrikes } from "./lib/ArchiveStrikes";
@@ -690,18 +690,19 @@ capLatestObservation.subscribe((newest) => stormmgr.setNewestScan(newest > 0 ? n
 /* Trial: a "3D" tag beside every storm core the 3D map can cut open, and the
    way there (see layers/cloudHints.ts). Only where that map is offered, and,
    like the cells, only on the newest observation, which is the scan the cores
-   were found in. A core older than that radar is tagged grey. */
+   were found in; in a past window on every step, each with its own cores.
+   A core older than that radar is tagged grey. */
 const hintsWanted = capabilityEnabled("cells3d") && !screenshot && !flightOnly;
 const hints = makeCloudHints();
 const cloudHintLayer = hints.layer;
 derived(
   [capTimeIndicator, capLatestObservation, hiddenStormMarks, archiveWindow],
-  ([shown, newest, hidden, past]) => hintsWanted && showsLatestFrame(shown, newest) && !hidden.has("volume")
-    && shownIn(past, "cloudHints"),
+  ([shown, newest, hidden, past]) => hintsWanted && (past ? shown > 0 : showsLatestFrame(shown, newest))
+    && !hidden.has("volume"),
 ).subscribe((value) => cloudHintLayer.setVisible(value));
 
 const cloudHints = new VolumeFeed<CurrentVolumes>(
-  () => fetchCurrentVolumes(quietly).catch(() => null),
+  () => fetchCurrentVolumes(quietly, { at: get(archiveStep) }).catch(() => null),
   (answer) => {
     const volumes = (answer.volumes ?? []) as RadarVolume[];
     hints.setClouds(volumes);
@@ -759,8 +760,8 @@ srvManualMotion.subscribe((motion) => {
 });
 
 /* The marks for the radars in view, once the map settles where they are
-   drawn at all. */
-derived([mapExtent4326, zoomlevel, siteMarksVisible, archiveWindow], (values) => values).subscribe(([extent, zoom, shown]) => {
+   drawn at all; in a past window, as they were on the step on screen. */
+derived([mapExtent4326, zoomlevel, siteMarksVisible, archiveStep], (values) => values).subscribe(([extent, zoom, shown]) => {
   // Past the marks' least zoom, which OpenLayers takes as exclusive.
   if (extent && shown && zoom > SITE_MARKS_MIN_ZOOM) void siteSweeps.listViewport(extent);
 });
@@ -772,10 +773,23 @@ derived([mapExtent4326, zoomlevel, siteMarksVisible, archiveWindow], (values) =>
    whether DWD's cores are built yet. */
 async function reloadCloudHints(run?: number, bar: Progress = nb) {
   if (!hintsWanted) return;
-  const answer = await fetchCurrentVolumes(bar).catch(() => null);
+  const at = get(archiveStep);
+  const answer = await fetchCurrentVolumes(bar, { at }).catch(() => null);
+  // A window's step moved on while it was asked for: that step's are on their way.
+  if (get(archiveStep) !== at) return;
   if (answer) cloudHints.offer(answer);
   if (run !== undefined) cloudHints.follow(run);
 }
+
+/* In a past window the tags are the step's, asked for again with every step,
+   an earlier one as well as a later; the newest again once it is left. */
+let hintsAt: number | null = null;
+archiveStep.subscribe((at) => {
+  if (at === hintsAt) return;
+  hintsAt = at;
+  cloudHints.reset();
+  void reloadCloudHints(undefined, quietly);
+});
 
 /* The panel is a property of a selection and cannot outlive one. Anything that
    drops the selection (the map background, the layer switcher, the scrubber
@@ -960,7 +974,14 @@ const radarCap = lm.getCapability("radar") as RadarCapability | undefined;
 if (cells3d && radarCap) {
   // HX and the networks, whichever product the flat map draws: the storms on
   // the 3D map are the column already, and are judged against these scans.
+  // In a past window, the step on screen's: the scan its storms are from.
   const forwardRadarFrame = () => {
+    const at = get(archiveStep);
+    if (at !== null) {
+      const observed = radarCap.observedAt(at);
+      cells3d.setRadarFrame(observed?.url ?? null, at, observed?.tiles);
+      return;
+    }
     const step = radarCap.getMostRecentObservation();
     const frame = radarCap.clientGrid?.[step];
     cells3d.setRadarFrame(frame?.url ?? null, step, frame?.tiles);
@@ -968,23 +989,34 @@ if (cells3d && radarCap) {
   // The networks' own newest frames go the same way: the 3D map drapes them
   // over their countries, cut out of DWD's frame as the flat map does.
   const forwardNetworkFrames = () => {
-    cells3d.setNetworkFrames(radarCap.liveNetworkFrames());
+    const at = get(archiveStep);
+    cells3d.setNetworkFrames(at === null ? radarCap.liveNetworkFrames() : radarCap.observedAt(at)?.networks ?? {});
   };
   radarCap.addObserver((subject) => {
-    if (subject === "grid") forwardRadarFrame();
+    if (subject === "grid") {
+      forwardRadarFrame();
+      if (get(archiveWindow)) forwardNetworkFrames();
+    }
     if (subject === "networks") {
       forwardRadarFrame();
       forwardNetworkFrames();
     }
   });
-  forwardNetworkFrames();
+  archiveStep.subscribe(() => {
+    forwardRadarFrame();
+    forwardNetworkFrames();
+  });
   // A new run means new cells as well as a new frame. Not in a hidden tab,
   // where it was the cells and megabytes of volumes for nobody; the newest
-  // run is fetched on the way back.
-  radarSocketIO.on("cells", () => whenVisible("cells3d", () => cells3d.newRun()));
+  // run is fetched on the way back. Nor in a past window, which no run changes.
+  radarSocketIO.on("cells", () => {
+    if (!get(archiveWindow)) whenVisible("cells3d", () => cells3d.newRun());
+  });
   // And every network's runs, which have no KONRAD3D run to follow, as they
   // are built; in a hidden tab, once, on the way back.
-  radarSocketIO.on("volumes", () => whenVisible("cells3dVolumes", () => cells3d.newVolumes()));
+  radarSocketIO.on("volumes", () => {
+    if (!get(archiveWindow)) whenVisible("cells3dVolumes", () => cells3d.newVolumes());
+  });
   // The same strikes the flat map is drawing, read out of its ring buffer
   // rather than collected a second time off the socket.
   cells3d.setStrikeSource(lightningSource);
@@ -997,25 +1029,34 @@ if (cells3d && radarCap) {
    scan's cores takes their tags off, and the cores landing (the nudges
    below) put them back. */
 if (radarCap && hintsWanted) {
-  const forwardHintRadar = () => hints.setRadar(radarCap.liveRadarScans());
+  // In a past window, the step on screen's.
+  const forwardHintRadar = () => {
+    const at = get(archiveStep);
+    const observed = at === null ? null : radarCap.observedAt(at);
+    hints.setRadar(at === null ? radarCap.liveRadarScans() : { scan: observed ? at : null, networks: observed?.networks ?? {} });
+  };
   radarCap.addObserver((subject) => {
     if (subject === "grid" || subject === "networks") forwardHintRadar();
   });
-  forwardHintRadar();
+  archiveStep.subscribe(forwardHintRadar);
 }
 
 // The cores are rebuilt with each run, so the tags follow the same nudge.
 // Without the loading bar: a refresh of something already on screen.
+// None of the three in a past window: they are the live sky's.
 radarSocketIO.on("cells", (cells) => {
+  if (get(archiveWindow)) return;
   whenVisible("cloudHints", () => void reloadCloudHints(Math.floor(cells.reference_time / 1000), quietly));
 });
 // A radar published new sweeps: the open one's are refetched, in a visible tab.
 radarSocketIO.on("sweeps", (event) => {
+  if (get(archiveWindow)) return;
   whenVisible("siteSweeps", () => void siteSweeps.sitePublished(event.site));
 });
 
 // And with each network's runs as they are built, which no KONRAD3D run announces.
 radarSocketIO.on("volumes", () => {
+  if (get(archiveWindow)) return;
   whenVisible("cloudHints", () => void reloadCloudHints(undefined, quietly));
 });
 void reloadCloudHints();
@@ -1364,10 +1405,7 @@ derived([archiveWindow, capTimeIndicator], (values) => values).subscribe(([past,
 
 /* Storms: every one that overlapped the window, asked for once it opens; the live ones again once it is left. */
 archiveWindow.subscribe((past) => {
-  if (past) {
-    siteMode.set(null);
-    mesocyclonemgr.clearAll();
-  }
+  if (past) mesocyclonemgr.clearAll();
   if (stormmgr.setWindow(past)) stormmgr.reload(get(mapExtent4326), { force: true, nanobar: nb });
 });
 

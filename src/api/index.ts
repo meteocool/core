@@ -683,23 +683,42 @@ export function fetchCellTracks(
     }));
 }
 
-/** Every cell in the most recent KONRAD3D run, with its forecast centroids. */
-export function fetchCurrentCells(nanobar?: Progress) {
-  return request(nanobar, "/cells/current", () => dataClient.GET("/cells/current", {}));
+/**
+ * `at`, unix seconds, as the data routes that answer for a time take it:
+ * ISO 8601 in UTC. Nothing without one, which they answer for now.
+ */
+function atQuery(at: number | null | undefined): { at?: string } {
+  return at ? { at: new Date(at * 1000).toISOString().replace(".000Z", "Z") } : {};
 }
 
 /**
- * Every storm with a radar volume, from the newest composite scan.
+ * Every cell in the most recent KONRAD3D run, with its forecast centroids;
+ * with `at` (unix seconds), the newest run at or before it, within the half
+ * hour: a past window's step.
+ */
+export function fetchCurrentCells(nanobar?: Progress, at?: number | null) {
+  return request(nanobar, "/cells/current", () => dataClient.GET("/cells/current", {
+    params: { query: atQuery(at) },
+  }));
+}
+
+/**
+ * Every storm with a radar volume, from the newest composite scan; with
+ * `at` (unix seconds), each network's newest scan at or before it, within
+ * the half hour: a past window's step.
  *
  * Found in the radar composite rather than in KONRAD3D, so most of these are
  * showers `/cells/current` never mentions. They are the clouds a reader can
  * cut open that no warning product would list.
  */
-export function fetchCurrentVolumes(nanobar?: Progress, { coarse = false }: { coarse?: boolean } = {}) {
+export function fetchCurrentVolumes(
+  nanobar?: Progress,
+  { coarse = false, at }: { coarse?: boolean; at?: number | null } = {},
+) {
   // Coarse tiles only for the 3D map, which draws them in place of the tiles
   // under them when zoomed out; anything else would draw both.
   return request(nanobar, "/cells/volumes", () => dataClient.GET("/cells/volumes", {
-    params: { query: coarse ? { coarse: true } : {} },
+    params: { query: { ...(coarse ? { coarse: true } : {}), ...atQuery(at) } },
   }));
 }
 
@@ -708,14 +727,15 @@ export function fetchCurrentVolumes(nanobar?: Progress, { coarse = false }: { co
  * with each tilt's newest sweeps: what site mode draws (lib/siteSweeps.ts).
  *
  * One request for every site in view, as the volumes are; a sweep itself is
- * fetched from the bucket by its `path`. `optional`: a backend from before
+ * fetched from the bucket by its `path`. With `at` (unix seconds), as they
+ * were listed then: a past window's step. `optional`: a backend from before
  * site sweeps answers 404, which is a map with no radar marks on it.
  */
 export function fetchSweeps(
-  where: { bbox?: [number, number, number, number]; site?: string },
+  where: { bbox?: [number, number, number, number]; site?: string; at?: number | null },
   nanobar?: Progress,
 ) {
-  const query: { bbox?: string; site?: string } = {};
+  const query: { bbox?: string; site?: string; at?: string } = atQuery(where.at);
   if (where.bbox) query.bbox = where.bbox.map((value) => value.toFixed(3)).join(",");
   if (where.site) query.site = where.site;
   return request(nanobar, "/sweeps", () => dataClient.GET("/sweeps", { params: { query } }), { optional: true });

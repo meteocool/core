@@ -1,5 +1,5 @@
 import { get, writable } from "svelte/store";
-import { siteMode, smallScreen, stormDetails } from "../stores";
+import { archiveStep, siteMode, smallScreen, stormDetails } from "../stores";
 import { fetchSweeps } from "../api";
 import { RADAR_SITES, siteCode } from "./radarSites";
 
@@ -26,7 +26,8 @@ export function registerOpenRadar(toFlat: () => void): void {
 /**
  * Which of these radars have sweeps to open, by one listing of the box they
  * stand in. Not every network publishes its sweeps; a row for one that does
- * not is not offered as a way in. Empty when the listing fails.
+ * not is not offered as a way in. In a past window, as listed on the step on
+ * screen. Empty when the listing fails.
  */
 export async function radarsWithSweeps(codes: readonly string[]): Promise<Set<string>> {
   const sites = codes.map((code) => RADAR_SITES[siteCode(code)]).filter(Boolean);
@@ -36,7 +37,7 @@ export async function radarsWithSweeps(codes: readonly string[]): Promise<Set<st
     Math.min(...sites.map((s) => s.lon)) - pad, Math.min(...sites.map((s) => s.lat)) - pad,
     Math.max(...sites.map((s) => s.lon)) + pad, Math.max(...sites.map((s) => s.lat)) + pad,
   ];
-  const answer = await fetchSweeps({ bbox }).catch(() => null);
+  const answer = await fetchSweeps({ bbox, at: get(archiveStep) }).catch(() => null);
   return new Set((answer?.sites ?? []).map((site) => site.site));
 }
 

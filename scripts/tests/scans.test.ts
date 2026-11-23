@@ -112,6 +112,23 @@ test("stopping drops an ask already in flight", async (t) => {
   assert.equal(seen.length, 1);
 });
 
+test("after a reset an earlier scan is passed on, and a wait in flight is dropped", async (t) => {
+  // A past window's step moved back: its answer is older than the last.
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+  let release: (value: ReturnType<typeof volumes>) => void = () => {};
+  const fetch = mock.fn(() => new Promise<ReturnType<typeof volumes>>((resolve) => { release = resolve; }));
+  const seen: Array<string | null | undefined> = [];
+  const feed = new VolumeFeed(fetch, (answer) => seen.push(answer.reference_time));
+  feed.offer(volumes("00:05"));
+  feed.follow(at("00:10"));
+  t.mock.timers.tick(VOLUME_RETRY_MS);
+  feed.reset();
+  release(volumes("00:10"));
+  await settle();
+  assert.ok(feed.offer(volumes("00:00")));
+  assert.deepEqual(seen, ["2026-10-01T00:05:00Z", "2026-10-01T00:00:00Z"]);
+});
+
 test("nothing is waited for without a run or without any volumes", async (t) => {
   t.mock.timers.enable({ apis: ["setTimeout"] });
   const fetch = mock.fn(async () => null);

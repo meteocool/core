@@ -286,16 +286,35 @@ test("in a window the overlays with no past are greyed in Settings, and back wit
   await page.goto(WINDOW_LINK);
   await settled(timeline(page));
   await page.getByRole("button", { name: "Settings" }).click();
-  for (const name of [/^Radar Sites/, /^Rain Motion/]) {
-    await expect(page.getByRole("switch", { name })).toBeDisabled();
+  await expect(page.getByRole("switch", { name: /^Rain Motion/ })).toBeDisabled();
+  for (const name of [/^Storm Cells/, /^Radar Sites/]) {
+    await expect(page.getByRole("switch", { name })).toBeEnabled();
   }
-  await expect(page.getByRole("switch", { name: /^Storm Cells/ })).toBeEnabled();
   await expect(page.getByText("Not kept in the archive").first()).toBeVisible();
   await page.keyboard.press("Escape");
 
   await windowPill(page).click();
   await expect(page.locator(".live-wrapper")).toHaveText("Latest");
   await page.getByRole("button", { name: "Settings" }).click();
-  await expect(page.getByRole("switch", { name: /^Radar Sites/ })).toBeEnabled();
+  await expect(page.getByRole("switch", { name: /^Rain Motion/ })).toBeEnabled();
   await expect(page.getByText("Not kept in the archive")).toHaveCount(0);
+});
+
+test("in a window the storms' volumes and the radars are asked for the step on screen", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("layerSites", "true"));
+  const asked = await serveArchive(page);
+  await page.goto(`/?layer=radar&latLonZ=50.20000,9.20000,7.20&from=${linkTime(START)}&to=${linkTime(END)}`);
+  const strip = timeline(page);
+  await settled(strip);
+  await expect(strip).toHaveAttribute("aria-valuenow", "12");
+  const askedAt = (path: string) => asked.filter((request) => request.path === path).map((request) => request.query.get("at"));
+  const iso = (t: number) => new Date(t * 1000).toISOString().replace(".000Z", "Z");
+  await expect.poll(() => askedAt("/cells/volumes")).toContain(iso(END));
+  await expect.poll(() => askedAt("/sweeps")).toContain(iso(END));
+
+  await strip.focus();
+  await page.keyboard.press("ArrowLeft");
+  await expect(strip).toHaveAttribute("aria-valuenow", "11");
+  await expect.poll(() => askedAt("/cells/volumes")).toContain(iso(END - 300));
+  await expect.poll(() => askedAt("/sweeps")).toContain(iso(END - 300));
 });
