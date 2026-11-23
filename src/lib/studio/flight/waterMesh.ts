@@ -141,8 +141,81 @@ export interface Piece {
   lake: string | null;
 }
 
+/**
+ * Triangles cut along a grid `size` across, each square's share of each
+ * triangle a fan of its own: corners that far apart at most, for the surface
+ * to follow the ground between them (water.ts). Cut from the polygon's own
+ * triangles, a lake's long thin ones from shore to shore, a surface had no
+ * corner but on the shore, and where the ground drawn under its middle lay
+ * higher than the shore it was under the ground there.
+ *
+ * Where two triangles share an edge, or two squares a side, both are cut at
+ * the same points: no crack between them.
+ */
+export function gridded(points: readonly number[], triangles: readonly number[], size: number): { points: number[]; triangles: number[] } {
+  const out: number[] = [];
+  const fans: number[] = [];
+  for (let t = 0; t < triangles.length; t += 3) {
+    const corners = [triangles[t], triangles[t + 1], triangles[t + 2]].map((index) => [points[index * 2], points[index * 2 + 1]] as [number, number]);
+    const xs = corners.map(([x]) => x);
+    const ys = corners.map(([, y]) => y);
+    const [x0, x1] = [Math.floor(Math.min(...xs) / size), Math.ceil(Math.max(...xs) / size)];
+    const [y0, y1] = [Math.floor(Math.min(...ys) / size), Math.ceil(Math.max(...ys) / size)];
+    for (let cy = y0; cy < y1; cy += 1) {
+      for (let cx = x0; cx < x1; cx += 1) {
+        const cut = clipToBox(corners, cx * size, cy * size, (cx + 1) * size, (cy + 1) * size);
+        if (cut.length < 3) continue;
+        const first = out.length / 2;
+        for (const [x, y] of cut) out.push(x, y);
+        for (let k = 1; k + 1 < cut.length; k += 1) fans.push(first, first + k, first + k + 1);
+      }
+    }
+  }
+  return { points: out, triangles: fans };
+}
+
+/**
+ * A convex polygon cut to a box. Where an edge crosses a side, the crossing
+ * is worked out from the edge's ends in one order whichever way the edge
+ * runs, and lies on the side exactly: the polygon on the other side of that
+ * edge or side gets the same point.
+ */
+function clipToBox(polygon: Array<[number, number]>, x0: number, y0: number, x1: number, y1: number): Array<[number, number]> {
+  let points = polygon;
+  const sides: Array<[0 | 1, number, 1 | -1]> = [[0, x0, 1], [0, x1, -1], [1, y0, 1], [1, y1, -1]];
+  for (const [axis, at, keep] of sides) {
+    if (!points.length) break;
+    const kept: Array<[number, number]> = [];
+    for (let i = 0; i < points.length; i += 1) {
+      const current = points[i];
+      const previous = points[(i + points.length - 1) % points.length];
+      const inNow = (current[axis] - at) * keep >= 0;
+      const inBefore = (previous[axis] - at) * keep >= 0;
+      if (inNow !== inBefore) {
+        const [a, b] = previous[0] < current[0] || (previous[0] === current[0] && previous[1] < current[1]) ? [previous, current] : [current, previous];
+        const share = (at - a[axis]) / (b[axis] - a[axis]);
+        const other = 1 - axis;
+        const crossing: [number, number] = [0, 0];
+        crossing[axis] = at;
+        crossing[other] = a[other] + (b[other] - a[other]) * share;
+        kept.push(crossing);
+      }
+      if (inNow) kept.push(current);
+    }
+    points = kept;
+  }
+  return points;
+}
+
+/**
+ * How many squares across a tile the water is cut into (`gridded`): from a
+ * near tile's 150 m to a far one's few kilometres, as fine as the ground
+ * drawn under it is near and as coarse as it is far.
+ */
+export const GRID_CELLS = 16;
+
 /** A tile's water as pieces, each polygon cut to the tile and cut into triangles. */
-export function piecesOf(features: Iterable<WaterFeature>, extent: number, withSea: boolean, margin = 0): Piece[] {
+export function piecesOf(features: Iterable<WaterFeature>, extent: number, withSea: boolean, margin = 0, cells = GRID_CELLS): Piece[] {
   const pieces: Piece[] = [];
   for (const feature of features) {
     const surface = surfaceOf(feature, withSea);
@@ -161,7 +234,7 @@ export function piecesOf(features: Iterable<WaterFeature>, extent: number, withS
       const triangles = earcut(points, holes.length ? holes : undefined, 2);
       if (!triangles.length) continue;
       const lake = surface !== "sloped" && feature.id !== undefined ? `${surface}:${feature.id}` : null;
-      pieces.push({ points, triangles, surface, lake });
+      pieces.push({ ...gridded(points, triangles, extent / cells), surface, lake });
     }
   }
   return pieces;
@@ -180,14 +253,16 @@ function spread(total: number, count: number): number[] {
 }
 
 /**
- * The heights a piece's surface is drawn at, each corner's, from `ground`
- * (the ground's height at a point of the tile, as drawn, or null where it is
- * not known yet). A level piece is one height, the lowest measured: where
- * the ground round still water is higher than the water, it is the shore,
- * and the water is no higher than the lowest of it. The sea is at 0.
+ * The ground under each of a piece's corners, from `ground` (the ground's
+ * height at a point of the tile, as drawn, or null where it is not known
+ * yet), and for still water its level: the lowest measured, since where the
+ * ground round still water is higher than the water it is the shore. The
+ * sea is at 0, level.
  *
- * Returns the heights and, for a level piece, the one height, so that the
- * pieces of one lake can be put at the lowest of theirs.
+ * Still water is drawn at its level, or where the ground drawn under a corner
+ * is higher, at that: far off the map draws the ground from coarser heights,
+ * a lake's own averaged with its shores, and there a lake at its true level
+ * was under the ground, a tile at a time (see `surfaceHeights`).
  */
 export function heightsOf(piece: Piece, ground: (x: number, y: number) => number | null): {
   heights: Float32Array;
@@ -195,8 +270,11 @@ export function heightsOf(piece: Piece, ground: (x: number, y: number) => number
 } {
   const corners = piece.points.length / 2;
   const heights = new Float32Array(corners);
-  if (piece.surface === "sea") return { heights, level: 0 };
   const at = (index: number) => ground(piece.points[index * 2], piece.points[index * 2 + 1]);
+  if (piece.surface === "sea") {
+    for (let index = 0; index < corners; index += 1) heights[index] = at(index) ?? 0;
+    return { heights, level: 0 };
+  }
   if (piece.surface === "sloped") {
     for (let index = 0; index < corners; index += 1) heights[index] = at(index) ?? 0;
     return { heights, level: null };
@@ -221,6 +299,17 @@ export function heightsOf(piece: Piece, ground: (x: number, y: number) => number
     for (let index = 0; index < corners; index += 1) heights[index] = at(index) ?? low;
     return { heights, level: null };
   }
-  heights.fill(low);
+  for (let index = 0; index < corners; index += 1) heights[index] = at(index) ?? low;
   return { heights, level: low };
+}
+
+/**
+ * The heights a piece is drawn at, from its corners' ground and its level
+ * (`heightsOf`), or the level its whole lake is put at: never under the
+ * ground drawn there.
+ */
+export function surfaceHeights(heights: Float32Array, level: number | null, lakeLevel?: number): Float32Array {
+  if (level === null) return heights;
+  const flat = lakeLevel ?? level;
+  return heights.map((ground) => Math.max(flat, ground));
 }

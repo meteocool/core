@@ -39,12 +39,13 @@
  */
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap, OverscaledTileID } from "maplibre-gl";
 import { invert, multiply } from "../../../layers/cellVolumeLayer";
+import { fogNear } from "../../../layers/flightGround";
 import { BASEMAP_SOURCE } from "../../../layers/maplibreStyle";
 import { SUN_DIRECTION } from "../../../layers/scenicPass";
 import { VERTICAL_SCALE } from "../../../layers/terrain";
 import { cameraOf } from "../../drawOrder";
 import { drapeAnchor, isHandheld } from "../../gpuBudget";
-import { heightsOf, piecesOf, type Piece, type WaterFeature } from "./waterMesh";
+import { heightsOf, piecesOf, surfaceHeights, type Piece, type WaterFeature } from "./waterMesh";
 
 export const FLIGHT_WATER = "flight-water";
 
@@ -54,8 +55,7 @@ const SOURCE_LAYER = "water";
 /**
  * The sea as well as the lakes. It is the most water there is under a
  * flight, and its glitter and its sky are as much of what a coast looks like
- * from the air as a lake's; at a steep angle it lets the sea's depths
- * (seabed.ts) show through, which is how water shows what is under it.
+ * from the air as a lake's.
  */
 const WITH_SEA = true;
 
@@ -268,10 +268,13 @@ function skyOf(gl: GlMap): Sky {
 
 /**
  * The water's own colour, and how much of what is under it it hides seen
- * from straight above. Over the imagery a lake's bed is in the picture
- * already, and the water darkens it a little; over the drawn map's flat
- * water a little more, which is the depth the drawing does not have; over
- * the dark map its water is nearly black, and is left as it is.
+ * from straight above. Over the imagery nearly all: the imagery's lakes are
+ * a patchwork, each tile's photo taken on another day by another country
+ * or satellite, green in one square and black in the next, and seen through
+ * the water the squares were what a lake looked like. A little of it still
+ * shows, the shallows paler than the deep. Over the drawn map's flat water
+ * a little, which is the depth the drawing does not have; over the dark map
+ * its water is nearly black, and is left as it is.
  */
 export interface WaterLook {
   satellite: boolean;
@@ -279,7 +282,7 @@ export interface WaterLook {
 }
 
 function bodyOf(look: WaterLook): [number, number, number, number] {
-  if (look.satellite) return [0.03, 0.075, 0.09, 0.3];
+  if (look.satellite) return [0.035, 0.08, 0.095, 0.85];
   return look.dark ? [0.02, 0.04, 0.06, 0.1] : [0.1, 0.17, 0.22, 0.14];
 }
 
@@ -322,6 +325,38 @@ export interface WaterLayer extends CustomLayerInterface {
   setQuality(share: number): void;
 }
 
+type CoverageIndex = NonNullable<ReturnType<NonNullable<GlMap["terrain"]>["getCoverageIndex"]>>;
+
+/** The terrain tile the map draws the ground at a point from, Mercator's units: its key and where in it the point is. */
+function drawnTile(index: CoverageIndex, wrap: number, x: number, y: number) {
+  for (const z of index.zooms) {
+    const scale = 2 ** z;
+    const tileX = Math.floor(x * scale);
+    const tileY = Math.floor(y * scale);
+    const key = `${wrap}/${z}/${tileX}/${tileY}`;
+    if (index.samplerPerTile.has(key)) return { z, sampler: index.samplerPerTile.get(key) ?? null, x: x * scale - tileX, y: y * scale - tileY };
+  }
+  return null;
+}
+
+/**
+ * The ground's height at a point as the map draws it, metres as drawn, or
+ * null where it draws none yet. Not the finest heights it holds there: far
+ * off it draws the ground from coarser tiles of them, and water measured on
+ * finer ones than were drawn lay under the ground drawn, a tile at a time.
+ */
+function drawnGround(index: CoverageIndex, exaggeration: number, wrap: number, x: number, y: number): number | null {
+  const found = drawnTile(index, wrap, x, y);
+  if (!found?.sampler) return null;
+  // 1 as the extent: the point's place in its tile, 0 to 1.
+  return found.sampler(Math.min(found.x, 0.99999), Math.min(found.y, 0.99999), 1) * exaggeration;
+}
+
+/** The zoom of the terrain tile the ground at a point is drawn from, or null where none is. */
+function drawnZoom(index: CoverageIndex, wrap: number, x: number, y: number): number | null {
+  return drawnTile(index, wrap, x, y)?.z ?? null;
+}
+
 function makeWaterLayer(look: WaterLook, quality: number): WaterLayer {
   let map: GlMap | null = null;
   let context: WebGL2RenderingContext | null = null;
@@ -331,15 +366,11 @@ function makeWaterLayer(look: WaterLook, quality: number): WaterLayer {
   let queue: Array<{ key: string; id: OverscaledTileID; source: FeatureSource }> = [];
   let scannedAt = -Infinity;
   let measuredAt = -Infinity;
-  let terrainChanged = true;
+  /** The map's index of the ground it draws, as last measured against: a new one is new ground. */
+  let measuredOn: unknown = null;
   let waves = wavesFor(quality, isHandheld());
   const body = bodyOf(look);
   const started = performance.now();
-
-  /** New terrain is new ground to measure the water against. */
-  const onData = (event: { sourceId?: string; tile?: unknown; source?: { type?: string } }) => {
-    if (event.tile && event.source?.type === "raster-dem") terrainChanged = true;
-  };
 
   function programFor(count: number) {
     const gl = context!;
@@ -465,12 +496,15 @@ function makeWaterLayer(look: WaterLook, quality: number): WaterLayer {
   /**
    * Measure the ground under each tile's water and put its surfaces at their
    * heights (waterMesh.ts), the pieces of one lake at the lowest any of them
-   * found. A tile whose ground has no terrain loaded under it yet is left
-   * unmeasured, and undrawn: drawn at sea level it would be under the ground.
-   * Only `fresh` tiles are measured; every tile is put at the heights found.
+   * found. The ground as the map draws it, which is not always the finest it
+   * has: far off it draws it from coarser heights (see `drawnGround`). A tile
+   * with no terrain loaded under it yet is left unmeasured, and undrawn:
+   * drawn at sea level it would be under the ground. Only `fresh` tiles are
+   * measured; every tile is put at the heights found.
    */
   function measure(gl: GlMap, fresh: TileWater[]) {
     const terrain = gl.terrain;
+    const index = terrain?.getCoverageIndex() ?? null;
     for (const tile of fresh) {
       if (!tile.pieces.length) continue;
       const under = terrain?.tileManager.getSourceTile(tile.id, true);
@@ -478,18 +512,27 @@ function makeWaterLayer(look: WaterLook, quality: number): WaterLayer {
         tile.measured = null;
         continue;
       }
-      tile.terrainZoom = under?.tileID.overscaledZ ?? 0;
+      const { z, x, y } = tile.id.canonical;
+      const span = 1 / 2 ** z;
+      const originX = x * span;
+      const originY = y * span;
+      const unit = span / tile.extent;
+      tile.terrainZoom = (index && drawnZoom(index, tile.id.wrap, originX + span / 2, originY + span / 2)) ?? under?.tileID.overscaledZ ?? 0;
       const top = tile.extent - 1;
-      const ground = (x: number, y: number) => (
-        terrain ? terrain.getElevation(tile.id, Math.min(Math.max(x, 0), top), Math.min(Math.max(y, 0), top), tile.extent) : 0
-      );
+      const ground = (px: number, py: number) => {
+        if (!terrain) return 0;
+        const drawn = index && drawnGround(index, terrain.exaggeration, tile.id.wrap, originX + px * unit, originY + py * unit);
+        if (drawn !== null && drawn !== undefined) return drawn;
+        return terrain.getElevation(tile.id, Math.min(Math.max(px, 0), top), Math.min(Math.max(py, 0), top), tile.extent);
+      };
       tile.measured = tile.pieces.map((piece) => heightsOf(piece, ground));
     }
-    // A lake's height from its pieces measured on the finest terrain, and of
-    // those the lowest. Coarse terrain is the fine one averaged, and where
-    // it has the lake's bed in it, a lake measured on it came out tens of
-    // metres under its own surface, and under the ground where that is drawn
-    // from finer tiles: Lake Geneva was not to be seen.
+    // A lake's level from its pieces measured on the finest ground, and of
+    // those the lowest. Coarse ground is the fine one averaged, a lake's own
+    // with its shores, and a lake put at a height measured on it was tens of
+    // metres over its own surface where the ground is drawn from finer
+    // heights. Where the ground drawn is higher than that level, the water is
+    // drawn at the ground (`surfaceHeights`).
     const lakes = new Map<string, { zoom: number; level: number }>();
     for (const tile of tiles.values()) {
       tile.pieces.forEach((piece, index) => {
@@ -508,8 +551,8 @@ function makeWaterLayer(look: WaterLook, quality: number): WaterLayer {
       tile.pieces.forEach((piece, index) => {
         const { heights, level } = tile.measured![index];
         const lake = piece.lake !== null && level !== null ? lakes.get(piece.lake)?.level : undefined;
-        for (let point = 0; point < heights.length; point += 1) {
-          const height = (lake ?? heights[point]) + LIFT_M;
+        for (const surface of surfaceHeights(heights, level, lake)) {
+          const height = surface + LIFT_M;
           if (Math.abs(tile.corners[corner * 3 + 2] - height) > 0.25) changed = true;
           tile.corners[corner * 3 + 2] = height;
           corner += 1;
@@ -533,11 +576,9 @@ function makeWaterLayer(look: WaterLook, quality: number): WaterLayer {
     onAdd(added: GlMap, gl: WebGL2RenderingContext) {
       map = added;
       context = gl;
-      added.on("sourcedata", onData);
     },
 
-    onRemove(removed: GlMap, gl: WebGL2RenderingContext) {
-      removed.off("sourcedata", onData);
+    onRemove(_removed: GlMap, gl: WebGL2RenderingContext) {
       for (const tile of tiles.values()) drop(tile);
       tiles.clear();
       drawn = [];
@@ -556,8 +597,9 @@ function makeWaterLayer(look: WaterLook, quality: number): WaterLayer {
         scan(map, now);
       }
       const built = build(now);
-      if (terrainChanged && now - measuredAt > MEASURE_MS) {
-        terrainChanged = false;
+      const ground = map.terrain?.getCoverageIndex() ?? null;
+      if (ground !== measuredOn && now - measuredAt > MEASURE_MS) {
+        measuredOn = ground;
         measuredAt = now;
         measure(map, [...tiles.values()]);
       } else if (built.length) {
@@ -577,13 +619,9 @@ function makeWaterLayer(look: WaterLook, quality: number): WaterLayer {
       const eyeLat = Math.atan(Math.sinh(Math.PI * (1 - 2 * eyeY))) * 180 / Math.PI;
       const metre = 1 / (EARTH_M * Math.cos((Math.round(eyeLat / 5) * 5 * Math.PI) / 180));
       const sky = skyOf(map);
-      // The haze's near end as the map works it out for its ground (MapLibre's fog matrix), and its far one.
+      // The haze's near end as the flight works it out for its ground (flightFog, from the eye's height), and its far one.
       const transform = map._camera.transform;
-      const pitch = (Math.min(transform.pitch, 89.25) * Math.PI) / 180;
-      const near = Math.max(
-        transform.cameraToCenterDistance / 2,
-        transform.cameraToCenterDistance + (transform.elevation * transform.pixelsPerMeter) / Math.cos(pitch),
-      );
+      const near = fogNear(transform.getCameraAltitude() * transform.pixelsPerMeter, transform.pitch, transform.nearZ, options.farZ);
       const fogShare = transform.pitch < 60 ? 0 : transform.pitch < 70 ? (transform.pitch - 60) / 10 : 1;
       const [east, north, up] = SUN_DIRECTION;
       const sunLength = Math.hypot(east, north, up);
@@ -660,9 +698,9 @@ function makeWaterLayer(look: WaterLook, quality: number): WaterLayer {
  * a custom layer survives a style the map could diff against the old one,
  * and adding it a second time would fail, so what is there goes first.
  *
- * Over the ground and everything draped on it, the imagery and the sea's
- * depths among them; under the buildings, the storms and the names (see
- * `drapeAnchor`: added after the buildings, it goes in just under them).
+ * Over the ground and everything draped on it, the imagery among them;
+ * under the storms and the names (see `drapeAnchor`: it goes in just under
+ * the first layer that stands up).
  */
 function add(gl: GlMap, look: WaterLook, quality: number): void {
   remove(gl);

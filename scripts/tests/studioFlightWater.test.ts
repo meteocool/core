@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { clipRing, heightsOf, piecesOf, polygonsOf, ringArea, surfaceOf, type WaterFeature } from "../../src/lib/studio/flight/waterMesh.ts";
+import { clipRing, gridded, heightsOf, piecesOf, polygonsOf, ringArea, surfaceHeights, surfaceOf, type WaterFeature } from "../../src/lib/studio/flight/waterMesh.ts";
 
 const ring = (...points: Array<[number, number]>) => points.map(([x, y]) => ({ x, y }));
 /** A square ring, closed as a tile's are; clockwise as the tile's y runs down. */
@@ -53,20 +53,48 @@ test("a tile's lake is cut into triangles that cover it, its hole left out", () 
   assert.equal(area, 100 * 100 - 50 * 50);
 });
 
-test("still water is put at the lowest ground round it, a river at the ground under each corner, the sea at 0", () => {
+test("still water is level at the lowest ground round it, a river follows the ground under each corner, the sea is at 0", () => {
   const ground = (x: number) => 400 + x / 10;
   const [lake] = piecesOf([feature({ kind: "water", kind_detail: "lake" }, [square(0, 0, 100, 100)])], 4096, false);
   const level = heightsOf(lake, ground);
   assert.equal(level.level, 400);
-  assert.ok(level.heights.every((height) => height === 400));
+  assert.deepEqual(new Set(surfaceHeights(level.heights, level.level, 400)), new Set([400, 410]));
 
   const [river] = piecesOf([feature({ kind: "water", kind_detail: "river" }, [square(0, 0, 100, 10)])], 4096, false);
   const sloped = heightsOf(river, ground);
   assert.equal(sloped.level, null);
-  assert.deepEqual([...sloped.heights].sort((a, b) => a - b), [400, 400, 410, 410]);
+  assert.deepEqual(new Set(sloped.heights), new Set([400, 410]));
 
   const [sea] = piecesOf([feature({ kind: "ocean" }, [square(0, 0, 100, 100)])], 4096, true);
-  assert.equal(heightsOf(sea, ground).level, 0);
+  const atSea = heightsOf(sea, () => -3);
+  assert.equal(atSea.level, 0);
+  assert.ok(surfaceHeights(atSea.heights, atSea.level).every((height) => height === 0));
+});
+
+test("still water is drawn at its level, or at the ground where that is drawn higher", () => {
+  const drawn = surfaceHeights(new Float32Array([395, 420, 390]), 400, 395);
+  assert.deepEqual([...drawn], [395, 420, 395]);
+  // A river has no level: its ground is its surface.
+  assert.deepEqual([...surfaceHeights(new Float32Array([395, 420]), null, 395)], [395, 420]);
+});
+
+test("a lake's triangles are cut along the grid, covering it all, no corner further apart than a square", () => {
+  // One long thin triangle from shore to shore, as earcut leaves a lake.
+  const points = [0, 0, 1000, 10, 0, 20];
+  const cut = gridded(points, [0, 1, 2], 256);
+  let area = 0;
+  for (let i = 0; i < cut.triangles.length; i += 3) {
+    const [a, b, c] = cut.triangles.slice(i, i + 3);
+    const [ax, ay, bx, by, cx, cy] = [a, b, c].flatMap((index) => [cut.points[index * 2], cut.points[index * 2 + 1]]);
+    area += Math.abs((bx - ax) * (cy - ay) - (cx - ax) * (by - ay)) / 2;
+    assert.ok(Math.max(ax, bx, cx) - Math.min(ax, bx, cx) <= 256 + 1e-9);
+  }
+  assert.ok(Math.abs(area - 1000 * 20 / 2) < 1e-6);
+  // Squares meet at points both cut the same: x = 256 exactly, on both sides.
+  const onLine = [];
+  for (let i = 0; i < cut.points.length; i += 2) if (cut.points[i] === 256) onLine.push(cut.points[i + 1]);
+  assert.ok(onLine.length >= 4);
+  assert.equal(new Set(onLine).size, 2);
 });
 
 test("water the tiles say nothing more of is level on flat ground and follows a valley down", () => {
