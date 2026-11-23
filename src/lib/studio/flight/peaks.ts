@@ -7,8 +7,10 @@
  * peak comes with a name, its translations, a kind (peak, volcano, saddle)
  * and its height in metres, from zoom 10.
  *
- * They stand on the ground and are added under the storms, so a storm in
- * front of a peak veils its name as it would the mountain. The 3D map adds
+ * They stand on the ground and are drawn over the storms, as the place names
+ * are: a label writes no depth, so under the storms a cloud behind the
+ * mountain covered its name too, cut along the ridge. MapLibre still hides a
+ * name whose summit the terrain hides. The 3D map adds
  * them as it takes off (`Stage.setFlying`), again with every new style, and
  * takes them away on landing; it hands over its palette and the reader's
  * language each time, the letters being drawn from local fonts as its place
@@ -127,8 +129,8 @@ function remove(gl: GlMap): void {
 }
 
 /**
- * Put the peaks on the map, under `before` (the first of what the
- * map draws over the ground), in `look`'s palette. Anything left of an
+ * Put the peaks on the map, under `before` (the place names, over the
+ * storms), in `look`'s palette. Anything left of an
  * earlier call goes first, so a new style or palette is simply added again.
  */
 function add(gl: GlMap, look: ChartLook, before?: string): void {

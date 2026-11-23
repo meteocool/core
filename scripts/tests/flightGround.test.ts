@@ -72,3 +72,9 @@ test("the plane looked at stays under the eye, skimming the ground or below it",
   assert.equal(lookedAtHeight(2400, 2444), 2444 - LEAST_LOOK_DOWN_M);
   assert.equal(lookedAtHeight(3000, 2444), 2444 - LEAST_LOOK_DOWN_M);
 });
+
+test("a low flight's hundred tiles keep 1024-pixel drapes within a desktop's flight budget", async () => {
+  const { flightDrapeBytes } = await import("../../src/lib/gpuBudget.ts");
+  assert.equal(drapeSizeWithin(100, flightDrapeBytes(false), 1024, 2048), 1024);
+  assert.equal(drapeSizeWithin(100, flightDrapeBytes(false), 512, 2048), 1024, "and grow back to it from 512");
+});

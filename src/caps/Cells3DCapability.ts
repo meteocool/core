@@ -1410,7 +1410,7 @@ export default class Cells3DCapability extends Capability {
         if (this.flight) {
           gl.setSky(FLIGHT_SKY);
           this.ensureAircraft(gl);
-          this.flightSupport?.peaks.add(gl, { dark: this.dark, satellite: this.satellite, nameKeys: this.nameKeys }, this.rasterAnchor(gl));
+          this.flightSupport?.peaks.add(gl, { dark: this.dark, satellite: this.satellite, nameKeys: this.nameKeys }, this.peaksAnchor(gl));
           this.flightSupport?.water.add(gl, { satellite: this.satellite, dark: this.dark }, this.flightQuality);
         }
       });
@@ -3159,7 +3159,7 @@ export default class Cells3DCapability extends Capability {
       if (this.styleReady) {
         gl.setSky(FLIGHT_SKY);
         this.ensureAircraft(gl);
-        this.flightSupport?.peaks.add(gl, { dark: this.dark, satellite: this.satellite, nameKeys: this.nameKeys }, this.rasterAnchor(gl));
+        this.flightSupport?.peaks.add(gl, { dark: this.dark, satellite: this.satellite, nameKeys: this.nameKeys }, this.peaksAnchor(gl));
         if (!this.terrainWanted) applyTerrain(gl, true, this.dark, this.drapeSize());
         this.applyFlightLod(gl);
         support.water.add(gl, { satellite: this.satellite, dark: this.dark }, this.flightQuality);
@@ -4365,6 +4365,21 @@ export default class Cells3DCapability extends Capability {
    */
   private rasterAnchor(gl: GlMap): string | undefined {
     return gl.getStyle().layers.find((layer) => /^(cell|cloud|strike|place|location)-/.test(layer.id))?.id;
+  }
+
+  /**
+   * Where the flight's peaks go: over the storms, under the place names and
+   * the reader's own dot, as the place names are.
+   *
+   * Under the storms, a storm behind a mountain covered its name as well as
+   * one in front: a label writes no depth, so the clouds were drawn over it
+   * wherever the summit did not stand in front of them, and the name was cut
+   * along the ridge (November 2026). Among the ground's layers, as they were
+   * first, a symbol split them into two drapes a tile and halved them all
+   * (`budgetDrapes`).
+   */
+  private peaksAnchor(gl: GlMap): string | undefined {
+    return [PLACE_LABELS, LOCATION_DOT].find((id) => gl.getLayer(id));
   }
 
   /**

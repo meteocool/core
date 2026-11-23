@@ -209,11 +209,16 @@ export function decodeWorkers(cores: number | undefined, handheld = isHandheld()
  * What the terrain's drapes may hold between them while flying, in bytes
  * (layers/flightGround.ts): a desktop's dozen or two tiles seen from above
  * at MapLibre's full 2048 pixels, and from a cockpit looking at the horizon,
- * eighty at 1024; on a phone, a little more than its own 1024-pixel drapes
- * need from above (`HANDHELD_DRAPE_SIZE`).
+ * up to 180 at 1024, which at a 2x screen is a pixel of drape for a pixel of
+ * screen; on a phone, a little more than its own 1024-pixel drapes need from
+ * above (`HANDHELD_DRAPE_SIZE`).
+ *
+ * At 512 MB a low flight over the Alps, a hundred tiles in view, was held to
+ * 512-pixel drapes: imagery and relief at half the screen's resolution, sharp
+ * only once the aircraft was nearly over them (November 2026).
  */
 export function flightDrapeBytes(handheld = isHandheld()): number {
-  return handheld ? 160 * MB : 512 * MB;
+  return handheld ? 160 * MB : 1024 * MB;
 }
 
 /** A phone or a tablet: an app's webview, or a browser that is touched and cannot hover. */
