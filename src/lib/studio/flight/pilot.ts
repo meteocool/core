@@ -52,6 +52,7 @@ import type { Damage, DamageEvent } from "./damage";
 import { boltPaths, FLASH_S, flicker, glare, THUNDER_M, thunderDelay } from "./lightning";
 import { chargeOf, daylightOf, wetted } from "./glass";
 import { bestScore, FEATS, keepBest, landedScore, NO_SCORE, scored } from "./score";
+import { Sharpness } from "./sharpness";
 import type { Feat, FlightScore } from "./score";
 import type { Bolt } from "../../../layers/weatherPass";
 import { FlightSound } from "./sound";
@@ -75,12 +76,6 @@ const STRIKES_LATELY_MS = 5 * 60_000;
 /** How far round the aircraft lightning is looked for, km. */
 const LIGHTNING_KM = 110;
 
-/** The fewest frames a second a flight should have, how many are plenty, and the least sharpness it is drawn at to get them. */
-const FPS_LEAST = 30;
-const FPS_PLENTY = 47;
-/** How long into a flight its frames begin to count, seconds flown. */
-const SETTLE_S = 6;
-const QUALITY_LEAST = 0.1;
 /**
  * The sharpness a phone's or a tablet's first flight starts at: the clouds
  * coarser, the map at all of its pixels still. Its GPU and its memory are a
@@ -91,8 +86,6 @@ const QUALITY_LEAST = 0.1;
 const HANDHELD_QUALITY = 0.45;
 /** From this sharpness up, the water on the windshield is drawn in full; below it, more cheaply (aircraftRenderer.ts). */
 const GLASS_FINE_QUALITY = 0.7;
-/** The longest a frame is taken to have been, seconds. */
-const LONGEST_FRAME_S = 8;
 
 /** The sharpness the last flight settled at: the next one on this machine starts there, not at the top again. */
 let settledQuality = isHandheld() ? HANDHELD_QUALITY : 1;
@@ -404,14 +397,8 @@ export class Pilot {
   /** The strikes already seen, by when each struck: a strike flashes once. Null before the first look. */
   private struck: Set<number> | null = null;
   private thunder: Array<ReturnType<typeof setTimeout>> = [];
-  /** Frames a second, smoothed, and for how long they have been too few, or plenty; see `keepUp`. */
-  private fps = 60;
-  private tooSlow = 0;
-  private plenty = 0;
-  private sinceLowered = Infinity;
-  /** How long the flight has been drawn, seconds by the clock: a slow machine's flight has flown less than that. */
-  private flown = 0;
-  private quality = 1;
+  /** How sharply the flight is drawn, kept to what the machine can draw fast enough (sharpness.ts). */
+  private sharpness = new Sharpness(1);
   /** When the cloud base was last asked for, seconds flown; see `findBase`. */
   private baseAt = 0;
   private terrain = false;
@@ -487,9 +474,9 @@ export class Pilot {
     this.radarOnGround = this.flightPlan.radarOnGround;
     this.stage.setRadarOnGround(this.radarOnGround);
     this.status({ radarOnGround: this.radarOnGround });
-    this.quality = settledQuality;
-    this.telemetry.quality = this.quality;
-    this.stage.setFlightQuality(this.quality);
+    this.sharpness = new Sharpness(settledQuality);
+    this.telemetry.quality = settledQuality;
+    this.stage.setFlightQuality(settledQuality);
     this.findBase();
     // The newest scan's storms, whichever Studio had on the map: an earlier
     // one's are looked for where the map's camera has stood, and a camera in
@@ -1697,41 +1684,14 @@ export class Pilot {
     return { bolts, glow, glare: onGlass };
   }
 
-  /**
-   * Keep the flight moving: count the frames, and where there have been too
-   * few of them for a moment, have the map draw less (`Stage.setFlightQuality`),
-   * a step at a time; and more again, slowly, once there have been plenty
-   * for a while. Thirty a second is the least a flight should have.
-   */
+  /** Keep the flight moving: as sharp as the machine draws fast enough (`Sharpness`, `Stage.setFlightQuality`). */
   private keepUp(elapsed: number): void {
-    // A frame after a pause, or a tab that was away, says nothing of how fast frames come.
-    // A gap as long as that is a tab that was away, not a frame.
-    if (elapsed <= 0 || elapsed > LONGEST_FRAME_S) return;
-    // Averaged over half a second, however many frames that is: a flight drawn once a second is told so within two of them.
-    this.fps += (1 / elapsed - this.fps) * (1 - Math.exp(-elapsed / 0.5));
-    this.telemetry.fps = this.fps;
-    // The first seconds of a flight are the map fetching what it is about to draw, not how fast it draws it.
-    this.flown += elapsed;
-    if (this.flown < SETTLE_S) return;
-    // One long frame is a hitch, not a slow flight: it counts for no more than half a second of one.
-    this.tooSlow = this.fps < FPS_LEAST + 2 ? this.tooSlow + Math.min(elapsed, 0.5) : 0;
-    this.plenty = this.fps > FPS_PLENTY ? this.plenty + elapsed : 0;
-    this.sinceLowered += elapsed;
-    if (this.tooSlow > 1.5 && this.quality > QUALITY_LEAST) {
-      // A long way short of enough is made up in one step, not in six.
-      this.quality = Math.max(QUALITY_LEAST, this.quality - (this.fps < 20 ? 0.3 : 0.15));
-      this.sinceLowered = 0;
-    } else if (this.plenty > 6 && this.quality < 1 && this.sinceLowered > 25) {
-      // Not straight back to where it was just too much: that only goes round again.
-      this.quality = Math.min(1, this.quality + 0.15);
-    } else {
-      return;
-    }
-    this.tooSlow = 0;
-    this.plenty = 0;
-    settledQuality = this.quality;
-    this.telemetry.quality = this.quality;
-    this.stage.setFlightQuality(this.quality);
+    const quality = this.sharpness.frame(elapsed);
+    this.telemetry.fps = this.sharpness.fps;
+    if (quality === null) return;
+    settledQuality = quality;
+    this.telemetry.quality = quality;
+    this.stage.setFlightQuality(quality);
   }
 
   /**
@@ -1789,7 +1749,7 @@ export class Pilot {
         time, speed: state.tas, wet: this.telemetry.wet, hail: this.telemetry.hail, charge: this.reducedMotion ? 0 : this.telemetry.charge,
         frost: this.telemetry.frost,
         // A device the flight has had to draw coarser gets coarser water too: a phone starts there, and earns the rest.
-        fine: this.quality >= GLASS_FINE_QUALITY,
+        fine: this.sharpness.quality >= GLASS_FINE_QUALITY,
       },
       // From outside, the cloud it is in between it and the eye: going from sight the further off, and a little in heavy rain.
       fog: outside ? cloud / CLOUD_SEEN_M + this.telemetry.rain / RAIN_SEEN_M : 0,
