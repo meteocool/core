@@ -220,6 +220,7 @@ export interface paths {
          * @description Every group two or more of the storms `/storms` lists for the same viewport and window are in.
          *
          *     Draw each group as one outline, its notable storms marked inside it as `/storms` gives them.
+         *     A group down to one storm has an empty outline, and nothing to draw.
          */
         get: operations["list_groups_storms_groups_get"];
         put?: never;
@@ -779,7 +780,9 @@ export interface components {
         };
         /**
          * GroupFeature
-         * @description A group of storms as a GeoJSON feature: its outline, the area of moderate echo its storms share.
+         * @description A group of storms as a GeoJSON feature: its outline, the area of moderate echo between and around its storms.
+         *
+         *     The outline is empty while fewer than two of its storms are there to draw it round.
          */
         GroupFeature: {
             geometry: components["schemas"]["MultiPolygonGeometry"];
@@ -2023,6 +2026,11 @@ export interface components {
             /** Area Km2 */
             area_km2: number;
             centroid: components["schemas"]["PointGeometry"];
+            /**
+             * Envelope
+             * @description For a core, the id of the envelope it sits in: the area of moderate echo around it, which the storms of its group share. Null for a patch, and for a core in none
+             */
+            envelope?: string | null;
             /** Id */
             id: string;
             /**
@@ -2033,7 +2041,7 @@ export interface components {
             outline: components["schemas"]["PolygonGeometry"];
             /**
              * Parent
-             * @description For a core, the id of the envelope it sits in: the area of moderate echo around it, which the storms of its group share. Null for a patch
+             * @description For a core, the id of the patch it sits in: the radar volumes of `/cells/volumes` cut from it name it as their `feature`. Null for a patch
              */
             parent?: string | null;
             peak: components["schemas"]["PointGeometry"];
@@ -2141,7 +2149,10 @@ export type $defs = Record<string, never>;
 export interface operations {
     current_cells_cells_current_get: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description The time to answer for, UTC: the newest run at or before it, if one was made in the half hour before, and each cell's volume as it was then. Defaults to the newest run. An answer for a time over an hour ago never changes, and is cached for good */
+                at?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -2155,6 +2166,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CurrentCells"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2233,6 +2253,8 @@ export interface operations {
             query?: {
                 /** @description Include the coarse zoom-9 tiles, which a client zoomed out draws in place of the tiles under them. Off by default, for clients that would draw both. */
                 coarse?: boolean;
+                /** @description The time to answer for, UTC: each network's newest scan at or before it, if it was in the half hour before. Defaults to now. An answer for a time over an hour ago never changes, and is cached for good */
+                at?: string | null;
             };
             header?: never;
             path?: never;
@@ -2554,6 +2576,8 @@ export interface operations {
                 bbox?: string | null;
                 /** @description One site alone, by its ODIM node code */
                 site?: string | null;
+                /** @description The time to answer for, UTC: the sites and tilts as they were listed then, each tilt's newest sweeps scanned at or before it. Defaults to now. An answer for a time over an hour ago never changes, and is cached for good */
+                at?: string | null;
             };
             header?: never;
             path?: never;

@@ -949,7 +949,7 @@
         "type": "object"
       },
       "GroupFeature": {
-        "description": "A group of storms as a GeoJSON feature: its outline, the area of moderate echo its storms share.",
+        "description": "A group of storms as a GeoJSON feature: its outline, the area of moderate echo between and around its storms.\n\nThe outline is empty while fewer than two of its storms are there to draw it round.",
         "properties": {
           "geometry": {
             "$ref": "#/components/schemas/MultiPolygonGeometry"
@@ -3211,6 +3211,18 @@
           "centroid": {
             "$ref": "#/components/schemas/PointGeometry"
           },
+          "envelope": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "For a core, the id of the envelope it sits in: the area of moderate echo around it, which the storms of its group share. Null for a patch, and for a core in none",
+            "title": "Envelope"
+          },
           "id": {
             "title": "Id",
             "type": "string"
@@ -3235,7 +3247,7 @@
                 "type": "null"
               }
             ],
-            "description": "For a core, the id of the envelope it sits in: the area of moderate echo around it, which the storms of its group share. Null for a patch",
+            "description": "For a core, the id of the patch it sits in: the radar volumes of `/cells/volumes` cut from it name it as their `feature`. Null for a patch",
             "title": "Parent"
           },
           "peak": {
@@ -3435,6 +3447,27 @@
     "/cells/current": {
       "get": {
         "operationId": "current_cells_cells_current_get",
+        "parameters": [
+          {
+            "description": "The time to answer for, UTC: the newest run at or before it, if one was made in the half hour before, and each cell's volume as it was then. Defaults to the newest run. An answer for a time over an hour ago never changes, and is cached for good",
+            "in": "query",
+            "name": "at",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The time to answer for, UTC: the newest run at or before it, if one was made in the half hour before, and each cell's volume as it was then. Defaults to the newest run. An answer for a time over an hour ago never changes, and is cached for good",
+              "title": "At"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -3445,6 +3478,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "Convective cells in the most recent KONRAD3D run.",
@@ -3610,6 +3653,25 @@
               "description": "Include the coarse zoom-9 tiles, which a client zoomed out draws in place of the tiles under them. Off by default, for clients that would draw both.",
               "title": "Coarse",
               "type": "boolean"
+            }
+          },
+          {
+            "description": "The time to answer for, UTC: each network's newest scan at or before it, if it was in the half hour before. Defaults to now. An answer for a time over an hour ago never changes, and is cached for good",
+            "in": "query",
+            "name": "at",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The time to answer for, UTC: each network's newest scan at or before it, if it was in the half hour before. Defaults to now. An answer for a time over an hour ago never changes, and is cached for good",
+              "title": "At"
             }
           }
         ],
@@ -4100,7 +4162,7 @@
     },
     "/storms/groups": {
       "get": {
-        "description": "Every group two or more of the storms `/storms` lists for the same viewport and window are in.\n\nDraw each group as one outline, its notable storms marked inside it as `/storms` gives them.",
+        "description": "Every group two or more of the storms `/storms` lists for the same viewport and window are in.\n\nDraw each group as one outline, its notable storms marked inside it as `/storms` gives them.\nA group down to one storm has an empty outline, and nothing to draw.",
         "operationId": "list_groups_storms_groups_get",
         "parameters": [
           {
@@ -4277,6 +4339,25 @@
               ],
               "description": "One site alone, by its ODIM node code",
               "title": "Site"
+            }
+          },
+          {
+            "description": "The time to answer for, UTC: the sites and tilts as they were listed then, each tilt's newest sweeps scanned at or before it. Defaults to now. An answer for a time over an hour ago never changes, and is cached for good",
+            "in": "query",
+            "name": "at",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "The time to answer for, UTC: the sites and tilts as they were listed then, each tilt's newest sweeps scanned at or before it. Defaults to now. An answer for a time over an hour ago never changes, and is cached for good",
+              "title": "At"
             }
           }
         ],
