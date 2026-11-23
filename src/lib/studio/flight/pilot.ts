@@ -1741,9 +1741,10 @@ export class Pilot {
       sunlight: this.telemetry.sun,
       daylight: this.telemetry.sky,
       lightning: this.telemetry.flash,
-      // And on the windows, water, hail and St Elmo's fire; the last flickers, and is none for a reader who asked for less motion.
+      // And on the windows, water, hail, St Elmo's fire and ice; the fire flickers, and is none for a reader who asked for less motion.
       glass: outside ? undefined : {
         time, speed: state.tas, wet: this.telemetry.wet, hail: this.telemetry.hail, charge: this.reducedMotion ? 0 : this.telemetry.charge,
+        frost: this.telemetry.frost,
         // A device the flight has had to draw coarser gets coarser water too: a phone starts there, and earns the rest.
         fine: this.quality >= GLASS_FINE_QUALITY,
       },
@@ -1767,7 +1768,7 @@ export class Pilot {
     this.travel = [this.travel[0] + air[0] * this.dt, this.travel[1] + air[1] * this.dt, this.travel[2] + air[2] * this.dt];
     const lightning = this.lightning(pose);
     this.telemetry.flash = this.reducedMotion ? 0 : lightning.glare;
-    const { rain, hail, ice, frost } = this.telemetry;
+    const { rain, hail, ice } = this.telemetry;
     this.stage.setFlightWeather({
       modelView: eye.modelView, fov: this.fov, eye: eye.at, travel: this.travel, air,
       rain, hail, ice,
@@ -1776,7 +1777,6 @@ export class Pilot {
       // And from outside, in it, cloud streaming past between the eye and the aircraft.
       outside,
       shreds: outside ? Math.min(1, cloud * 1.6) : 0,
-      frost: outside ? 0 : frost,
       bolts: this.reducedMotion ? [] : lightning.bolts,
       veil: cloud,
       flash: this.telemetry.flash,

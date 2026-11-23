@@ -31,6 +31,8 @@ import type { AircraftModel, CockpitPose } from "../lib/studio/flight/model";
 import { blastGlare, makeEffectsPass } from "./aircraftEffects";
 import type { EffectsPass } from "./aircraftEffects";
 import { perspective } from "../lib/studio/flight/view";
+import { windowPanes } from "../lib/studio/flight/glass";
+import type { WindowPane } from "../lib/studio/flight/glass";
 import type { Vec3 } from "../lib/studio/flight/view";
 import { AIRCRAFT_BYTES, AIRCRAFT_MODEL, fetchAsset, forgetAsset } from "../lib/studio/flight/assets";
 
@@ -114,10 +116,11 @@ export interface CockpitGlass {
   time: number;
   /** The true airspeed, m/s: standing, water runs down the glass; at speed the air drives it up and off. */
   speed: number;
-  /** How wet the glass is, hail striking it, and St Elmo's fire on it, 0 to 1 each. */
+  /** How wet the glass is, hail striking it, St Elmo's fire on it, and ice built up on it, 0 to 1 each. */
   wet: number;
   hail: number;
   charge: number;
+  frost?: number;
   /** Water drawn in full, or more cheaply for a device that is short of frames; in full where not said. */
   fine?: boolean;
 }
@@ -247,6 +250,43 @@ uniform vec2 uViewport;
 uniform bool uRefract;
 // The water drawn in full: three sizes of bead, running out of their cells, out of round. Without, two sizes, each in its own cell, round.
 uniform bool uFine;
+// Ice on the glass, 0 to 1; and the windows it grows on (lib/studio/flight/glass.ts's windowPanes): each one's plane, its middle,
+// where its edges start in uEdge, how many it has and how deep it is, and every edge.
+uniform float uFrost;
+uniform int uPanes;
+uniform vec4 uPlane[MAX_PANES];
+uniform vec3 uMiddle[MAX_PANES];
+uniform vec3 uSpan[MAX_PANES];
+uniform vec4 uEdge[MAX_EDGES];
+// The window a point of the glass is on: the one whose plane it is nearest.
+int paneOf(vec3 p) {
+  int pane = 0;
+  float nearest = 1e9;
+  for (int i = 0; i < uPanes; i += 1) {
+    float off = abs(dot(uPlane[i].xyz, p) - uPlane[i].w);
+    if (off < nearest) {
+      nearest = off;
+      pane = i;
+    }
+  }
+  return pane;
+}
+// Noise folded into ridges: 1 along the lines where it crosses its middle, falling away either side.
+float ridged(vec2 p) {
+  return 1.0 - abs(noise(p) * 2.0 - 1.0);
+}
+// Frost's crystals at a point an edge's own way: along the edge and in from it, metres. Needles growing in from the edge, with
+// branches off them at sixty degrees where a needle is near to grow them; 'detail' fades them to their average where a pixel is
+// wider than they are, so they never shimmer.
+float crystals(vec2 q, float detail) {
+  float needles = pow(ridged(q * vec2(240.0, 30.0) + vec2(0.8 * noise(q * vec2(20.0, 6.0)), 0.0)), 7.0);
+  const float SIXTY = 1.0472;
+  vec2 left = mat2(cos(SIXTY), sin(SIXTY), -sin(SIXTY), cos(SIXTY)) * q;
+  vec2 right = mat2(cos(SIXTY), -sin(SIXTY), sin(SIXTY), cos(SIXTY)) * q;
+  float branches = max(pow(ridged(left * vec2(480.0, 70.0) + 7.0), 9.0), pow(ridged(right * vec2(480.0, 70.0) + 13.0), 9.0));
+  branches *= smoothstep(0.05, 0.4, pow(ridged(q * vec2(120.0, 15.0) + vec2(0.4 * noise(q * vec2(10.0, 3.0)), 0.0)), 3.0));
+  return mix(0.22, max(needles, 0.85 * branches) + 0.12 * noise(q * 900.0), detail);
+}
 float fbm(vec2 p) {
   float sum = 0.0;
   float amplitude = 0.5;
@@ -464,14 +504,120 @@ void main() {
     light += (vec3(0.5, 0.38, 1.0) * pow(ridge, 18.0) * 1.8 + vec3(0.32, 0.18, 0.9) * pow(ridge, 5.0) * 0.3) * patches * flicker * uCharge;
   }
 
-  // The water over the glass, and the light on both added to what is seen through them.
-  colour = vec4(water.rgb + colour.rgb * (1.0 - water.a) + light, water.a + colour.a * (1.0 - water.a));
+  // The water over the glass.
+  colour = vec4(water.rgb + colour.rgb * (1.0 - water.a), water.a + colour.a * (1.0 - water.a));
+
+  // Ice: grown in from the edges of each window, further in the more of it there is; on the pane, so it stays where it is on its
+  // window however the head turns. Thick and white at the frame, and beyond that crystals: needles growing in from the edge with
+  // branches off them at sixty degrees, as frost grows, thinning to a few reaching out ahead of the rest.
+  if (uFrost > 0.01 && uPanes > 0) {
+    // How far in from its window's edges the point is: 0 at an edge, 1 in the middle, a corner (edged twice) further from it.
+    // And the two edges nearest it, and how far in from each.
+    int pane = paneOf(vPlace);
+    vec3 span = uSpan[pane];
+    float sum = 0.0;
+    float d1 = 1e9;
+    float d2 = 1e9;
+    vec4 e1 = vec4(0.0);
+    vec4 e2 = vec4(0.0);
+    for (int e = 0; e < int(span.y); e += 1) {
+      vec4 edge = uEdge[int(span.x) + e];
+      float d = edge.w - dot(edge.xyz, vPlace);
+      sum += exp(-max(d, 0.0) / span.z / 0.08);
+      if (d < d1) {
+        d2 = d1;
+        e2 = e1;
+        d1 = d;
+        e1 = edge;
+      } else if (d < d2) {
+        d2 = d;
+        e2 = edge;
+      }
+    }
+    float edge = 1.0 - clamp(-0.08 * log(max(sum, 1e-30)), 0.0, 1.0);
+    float patchy = 0.55 * noise(onGlass * 24.0) + 0.45 * noise(onGlass * 70.0 + 3.1);
+    float reach = 1.0 - uFrost * (0.5 + 0.35 * patchy);
+    float grown = smoothstep(reach - 0.1, reach + 0.08, edge);
+    float thick = smoothstep(reach + 0.03, reach + 0.3, edge);
+    // Each edge grows its own crystals, straight in from it; where two meet, theirs run into each other.
+    // (From the window's middle: millimetres are lost in metres from the model's origin.)
+    float detail = 1.0 - smoothstep(0.35, 1.1, length(fwidth(vPlace)) * 480.0);
+    vec3 facing = uPlane[pane].xyz;
+    vec3 local = vPlace - uMiddle[pane];
+    vec2 onPane = side ? local.xz : local.yz;
+    float first = crystals(vec2(dot(local, cross(facing, e1.xyz)), d1), detail);
+    float second = crystals(vec2(dot(local, cross(facing, e2.xyz)), d2) + 17.3, detail);
+    float crystal = mix(first, second, 1.0 / (1.0 + exp((d2 - d1) / 0.012)));
+    float ice = grown * clamp(0.12 + 0.8 * crystal + 0.7 * thick, 0.0, 0.94) * min(1.0, uFrost * 2.5);
+
+    // White as the light it scatters: the sky's, the sun's where the ice is looked at towards it, and lightning's.
+    vec3 white = vec3(0.88, 0.93, 0.98) * (0.45 + 0.55 * uDay) + vec3(1.0, 0.97, 0.9) * pow(toward, 4.0) * 0.5 * uSun
+      + vec3(0.85, 0.9, 1.0) * uBolt * 0.4;
+    // Thin ice is seen through, the world behind it scattered: drawn from round the point, and lightened.
+    if (uRefract && uFine) {
+      vec2 per = vec2(1.0) / uViewport;
+      float spin = hash(floor(gl_FragCoord.xy)) * 6.283;
+      vec3 scattered = vec3(0.0);
+      for (int tap = 0; tap < 4; tap += 1) {
+        float turn = spin + float(tap) * 1.5708;
+        scattered += texture(uScene, (gl_FragCoord.xy + vec2(cos(turn), sin(turn)) * (5.0 + 9.0 * float(tap & 1))) * per).rgb;
+      }
+      white = mix(scattered * 0.25 * 1.15 + 0.12 * white, white, clamp(crystal * 0.9 + thick, 0.0, 1.0));
+    }
+    // Each crystal a tiny prism, turned its own way: it flashes where it bends the sun behind it into the eye, so looking sunwards
+    // the ice glitters, and the glints move over it as the head does; split a little into colours, as ice splits light.
+    vec3 sparkle = vec3(0.0);
+    if (uSun > 0.01 && detail > 0.01) {
+      vec2 facet = floor(onPane / 0.0016) + float(pane) * 101.0;
+      vec3 tilt = vec3(hash(facet + 0.7), hash(facet + 1.9), hash(facet + 4.3)) - 0.5;
+      vec3 bent = normalize(eyeWay + mat3(uModelView) * tilt * 1.2);
+      float glint = pow(max(dot(bent, sunWay), 0.0), 300.0);
+      vec3 hue = 0.5 + 0.5 * cos(6.2832 * (hash(facet + 8.1) + vec3(0.0, 0.33, 0.67)));
+      sparkle = mix(vec3(1.0), hue, 0.55) * glint * 2.5 * uSun * detail * step(0.55, hash(facet + 2.2)) * grown * (0.3 + crystal);
+    }
+    colour = vec4(white * ice + colour.rgb * (1.0 - ice), ice + colour.a * (1.0 - ice));
+    light += sparkle;
+  }
+
+  // And the light on it all, added to what is seen through it.
+  colour.rgb += light;
 #endif
 }`;
 
 const WHOLE = "#version 300 es\n";
 const BROKEN = "#version 300 es\n#define BROKEN\n";
-const GLASS = "#version 300 es\n#define GLASS\n";
+/** The most windows ice is drawn on, and the most edges of them all. */
+const MAX_PANES = 8;
+const MAX_EDGES = 64;
+const GLASS = `#version 300 es\n#define GLASS\n#define MAX_PANES ${MAX_PANES}\n#define MAX_EDGES ${MAX_EDGES}\n`;
+
+/** The cockpit's windows as the glass's shader takes them: as many as fit. */
+interface PackedWindows {
+  count: number;
+  planes: Float32Array;
+  middles: Float32Array;
+  spans: Float32Array;
+  edges: Float32Array;
+}
+
+function packWindows(panes: readonly WindowPane[]): PackedWindows {
+  const planes = new Float32Array(MAX_PANES * 4);
+  const middles = new Float32Array(MAX_PANES * 3);
+  const spans = new Float32Array(MAX_PANES * 3);
+  const edges = new Float32Array(MAX_EDGES * 4);
+  let count = 0;
+  let first = 0;
+  for (const pane of panes) {
+    if (count === MAX_PANES || first + pane.edges.length > MAX_EDGES) break;
+    planes.set(pane.plane, count * 4);
+    middles.set(pane.middle, count * 3);
+    spans.set([first, pane.edges.length, pane.depth], count * 3);
+    pane.edges.forEach((edge, i) => edges.set(edge, (first + i) * 4));
+    first += pane.edges.length;
+    count += 1;
+  }
+  return { count, planes, middles, spans, edges };
+}
 /** Every piece's bit: what a mesh that needs no cutting is drawn with. */
 const EVERY_PIECE = (1 << PIECES.length) - 1;
 /** What every mesh of an aircraft in one piece is drawn as part of: the hull, which is the first of `PIECES`. */
@@ -739,6 +885,7 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
   const screenTextures = new Map<HTMLCanvasElement, { texture: WebGLTexture; version: number | undefined; width: number; height: number }>();
   let materials: AircraftModel["materials"] = [];
   let parts: AircraftModel["parts"] = {};
+  let windows = packWindows([]);
   const locations = new Map<WebGLProgram, Map<string, WebGLUniformLocation | null>>();
 
   const uniform = (of: WebGLProgram, name: string) => {
@@ -772,6 +919,7 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
     const gl = context;
     materials = model.materials;
     parts = model.parts;
+    windows = packWindows(windowPanes(model));
     const anisotropy = gl.getExtension("EXT_texture_filter_anisotropic");
     textures = images.map((image) => {
       if (!image) return null;
@@ -890,7 +1038,8 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       }
       if (!drawn.length) return false;
       // From the seat, with water on the glass, the world behind it as it is now, for the water to show bent.
-      const wet = view.inside && (view.glass?.wet ?? 0) > 0.01;
+      // And with ice on it, for the ice to scatter.
+      const wet = view.inside && ((view.glass?.wet ?? 0) > 0.01 || (view.glass?.frost ?? 0) > 0.01);
       if (wet) copyBehind(width, height);
       // Dry again: its memory back.
       else forgetBehind();
@@ -1013,6 +1162,14 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
         webgl.uniform2f(uniform(glass, "uViewport"), width, height);
         webgl.uniform1i(uniform(glass, "uRefract"), behind ? 1 : 0);
         webgl.uniform1i(uniform(glass, "uFine"), onGlass.fine === false ? 0 : 1);
+        webgl.uniform1f(uniform(glass, "uFrost"), Math.min(Math.max(onGlass.frost ?? 0, 0), 1));
+        webgl.uniform1i(uniform(glass, "uPanes"), windows.count);
+        if (windows.count) {
+          webgl.uniform4fv(uniform(glass, "uPlane"), windows.planes);
+          webgl.uniform3fv(uniform(glass, "uMiddle"), windows.middles);
+          webgl.uniform3fv(uniform(glass, "uSpan"), windows.spans);
+          webgl.uniform4fv(uniform(glass, "uEdge"), windows.edges);
+        }
         if (behind) {
           webgl.activeTexture(webgl.TEXTURE1);
           webgl.bindTexture(webgl.TEXTURE_2D, behind.texture);

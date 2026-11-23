@@ -1,7 +1,8 @@
 /**
  * The weather a flight is in, as it goes past the eye: rain and hail in
- * streaks, ice crystals, shreds of cloud, a lightning bolt, frost creeping in
- * from the edge of the glass.
+ * streaks, ice crystals, shreds of cloud, a lightning bolt. (What is on the
+ * glass, ice built up there too, is the aircraft's renderer's: on the
+ * windows themselves.)
  *
  * And behind the engines, where the air is cold enough to freeze their
  * exhaust, a condensation trail each.
@@ -76,7 +77,6 @@ export interface WeatherView {
   hail: number;
   ice: number;
   wisps: number;
-  frost: number;
   bolts: Bolt[];
   /** Seen from outside: what goes past nearer than the aircraft is drawn over it, by `drawNear`. */
   outside: boolean;
@@ -248,7 +248,7 @@ void main() {
   colour = vec4(vec3(0.97, 0.98, 1.0) * alpha, alpha);
 }`;
 
-/** One triangle over the whole picture; see the frost. */
+/** One triangle over the whole picture. */
 const FULL_VERTEX = `#version 300 es
 out vec2 vAt;
 void main() {
@@ -266,33 +266,6 @@ void main() { colour = uColour; }`;
 
 /** The cloud's colour round the eye. */
 const VEIL_COLOUR: Vec3 = [0.86, 0.89, 0.92];
-
-/* Frost: ice growing in from the edges of the glass, feathered, further in
-   the more of it there is. */
-const FROST_FRAGMENT = `#version 300 es
-precision highp float;
-in vec2 vAt;
-uniform float uFrost;
-uniform float uAspect;
-out vec4 colour;
-float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
-float noise(vec2 p) {
-  vec2 i = floor(p);
-  vec2 f = fract(p);
-  f = f * f * (3.0 - 2.0 * f);
-  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
-}
-void main() {
-  vec2 at = vec2(vAt.x * uAspect, vAt.y);
-  // Feathers: noise drawn out along the way in from the edge.
-  float angle = atan(at.y, at.x);
-  float feathers = 0.55 * noise(vec2(angle * 14.0, length(at) * 3.0)) + 0.45 * noise(at * 9.0);
-  float edge = max(abs(vAt.x), abs(vAt.y));
-  float reach = 1.0 - uFrost * (0.5 + 0.35 * feathers);
-  float ice = smoothstep(reach - 0.06, reach + 0.12, edge);
-  float alpha = ice * (0.5 + 0.4 * feathers) * min(1.0, uFrost * 2.5);
-  colour = vec4(vec3(0.9, 0.94, 0.98) * alpha, alpha);
-}`;
 
 function compile(gl: WebGL2RenderingContext, vertex: string, fragment: string): WebGLProgram {
   const program = gl.createProgram()!;
@@ -344,7 +317,6 @@ export function makeWeatherPass(gl: WebGL2RenderingContext): WeatherPass {
   const streak = compile(gl, STREAK_VERTEX, STREAK_FRAGMENT);
   const wisp = compile(gl, WISP_VERTEX, WISP_FRAGMENT);
   const bolt = compile(gl, BOLT_VERTEX, BOLT_FRAGMENT);
-  const frost = compile(gl, FULL_VERTEX, FROST_FRAGMENT);
   const wash = compile(gl, FULL_VERTEX, WASH_FRAGMENT);
   const trail = compile(gl, TRAIL_VERTEX, TRAIL_FRAGMENT);
   // Nothing in it: the streaks and the wisps are made from their numbers alone.
@@ -429,11 +401,11 @@ export function makeWeatherPass(gl: WebGL2RenderingContext): WeatherPass {
 
   return {
     draw(view) {
-      const { rain, hail, ice, wisps, frost: frosted, bolts } = view;
+      const { rain, hail, ice, wisps, bolts } = view;
       const lit = bolts.filter((each) => each.brightness > 0.01 && each.points.length > 1);
       const trailing = view.trails.strength > 0.01 && view.trails.from.length > 0;
       const past = !view.outside && (rain > 0.01 || hail > 0.01 || ice > 0.01 || wisps > 0.01);
-      if (!past && frosted <= 0.01 && !lit.length && view.veil <= 0.003 && view.flash <= 0.003 && !trailing) return;
+      if (!past && !lit.length && view.veil <= 0.003 && view.flash <= 0.003 && !trailing) return;
       const aspect = begin();
       const modelView = new Float32Array(view.modelView);
       const projection = new Float32Array(perspective(view.fov, aspect, 0.3, 60_000));
@@ -482,13 +454,6 @@ export function makeWeatherPass(gl: WebGL2RenderingContext): WeatherPass {
       }
       if (past) goingPast(view, modelView, projection);
 
-      if (frosted > 0.01) {
-        gl.bindVertexArray(empty);
-        gl.useProgram(frost);
-        gl.uniform1f(uniform(frost, "uFrost"), Math.min(frosted, 1));
-        gl.uniform1f(uniform(frost, "uAspect"), aspect);
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
-      }
       gl.bindVertexArray(null);
       gl.depthMask(true);
     },
@@ -508,7 +473,7 @@ export function makeWeatherPass(gl: WebGL2RenderingContext): WeatherPass {
     },
 
     dispose() {
-      for (const program of [streak, wisp, bolt, frost, wash, trail]) gl.deleteProgram(program);
+      for (const program of [streak, wisp, bolt, wash, trail]) gl.deleteProgram(program);
       gl.deleteVertexArray(empty);
       gl.deleteVertexArray(boltArray);
       gl.deleteBuffer(boltBuffer);
