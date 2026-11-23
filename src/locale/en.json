@@ -310,11 +310,14 @@
       "share": {
         "plan": "Share",
         "plan_title": "Copy a link to this flight plan. It flies through whatever weather is live when someone opens it.",
+        "plan_title_past": "Copy a link to this flight plan. It flies through the same past radar clouds, for as long as the archive keeps them.",
         "title": "A flight through live clouds on meteoair",
         "note": "It starts from the same place, heading, level and speed, in the newest radar clouds whenever someone opens it.",
+        "note_past": "It starts from the same place, heading, level and speed, in these past radar clouds, for as long as the archive keeps them.",
         "moment": "Share this moment",
         "moment_title": "Copy a link that starts from this exact moment: same place, attitude, speed and aircraft state",
-        "moment_note": "It starts from this exact moment, in the newest radar clouds whenever someone opens it."
+        "moment_note": "It starts from this exact moment, in the same radar clouds, for as long as the archive keeps them.",
+        "past_gone": "The archive no longer keeps the radar clouds this flight was in. You are flying through the live weather instead."
       },
       "fullscreen": "Full screen (F)",
       "fullscreen_exit": "Leave full screen (F)",

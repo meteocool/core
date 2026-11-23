@@ -34,7 +34,7 @@ import {
   sharedActiveCap, siteMarksVisible, siteMode, srvManualMotion, srvPrefersManual, stationChoice,
   stationLayerVisible, stormDetails, archiveWindow,
 } from "../stores";
-import { acceptsWindow, onGrid, sameWindow, windowAround } from "./archive";
+import { acceptsWindow, LIVE_REACH_S, onGrid, sameWindow, windowAround } from "./archive";
 import { loadCoverage } from "./archiveCoverage";
 import type StormManager from "./StormManager";
 import type StationManager from "./StationManager";
@@ -106,9 +106,6 @@ const STORM_ZOOM = 8;
 
 /** The zoom a link to a radar opens at when it does not say where to look: its whole reach in view. */
 const RADAR_ZOOM = 7;
-
-/** How far back the live timeline reaches: a frame older than this is the archive's. */
-const LIVE_HOURS_S = 2 * 60 * 60;
 
 /** The link the page was opened with. Read once: the URL is ours to rewrite from here on. */
 export const openingLink: LinkState = parseLink(window.location.search);
@@ -554,7 +551,7 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
    */
   /** Open a window ending on `time`, when the live timeline is past it and the archive is not. */
   async function openAround(time: number, token: number) {
-    if (time >= onGrid(Date.now() / 1000) - LIVE_HOURS_S) return;
+    if (time >= onGrid(Date.now() / 1000) - LIVE_REACH_S) return;
     const coverage = await loadCoverage();
     if (!coverage || token !== generation || get(archiveWindow)) return;
     const around = windowAround(time, coverage);

@@ -17,7 +17,7 @@ import { format, isSameDay } from "date-fns";
 import { faCalendarDays } from "@fortawesome/free-solid-svg-icons/faCalendarDays";
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import Icon from "./Icon.svelte";
-import { archivePickerOpen, archiveWindow, capTimeIndicator } from "../stores";
+import { archivePickerOpen, archiveStep, archiveWindow } from "../stores";
 import getDfnLocale from "../locale/locale";
 
 $: open = $archiveWindow !== null;
@@ -43,8 +43,8 @@ $: if ($archiveWindow) {
   span = isSameDay(start, end)
     ? `${format(start, "EEE d MMM, HH:mm", dfn)}–${format(end, "HH:mm", dfn)}`
     : `${format(start, "EEE d MMM, HH:mm", dfn)} – ${format(end, "EEE d MMM, HH:mm", dfn)}`;
-  if ($capTimeIndicator) {
-    const shown = $capTimeIndicator * 1000;
+  if ($archiveStep !== null) {
+    const shown = $archiveStep * 1000;
     step = format(shown, "EEE d MMM, HH:mm", dfn);
     stepShort = format(shown, "d MMM, HH:mm", dfn);
     stepClock = format(shown, isSameDay(start, shown) ? "HH:mm" : "EEE HH:mm", dfn);

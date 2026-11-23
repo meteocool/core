@@ -29,6 +29,9 @@ export const MAX_WINDOW_STEPS = 1000;
 /** How long a window opened from a link naming one frame is: two hours, ending on it. */
 export const AROUND_FRAME_S = 2 * 60 * 60;
 
+/** How far back the live timeline reaches, in seconds: a frame older than this is the archive's. */
+export const LIVE_REACH_S = 2 * 60 * 60;
+
 /** The longest span `/v3/lightning/strikes` answers for. */
 export const STRIKE_CHUNK_S = 3 * 60 * 60;
 
@@ -80,6 +83,17 @@ export function windowSteps(window: ArchiveWindow): number[] {
 /** Whether `t` is a step the window holds. */
 export function inWindow(window: ArchiveWindow, t: number): boolean {
   return t >= window.start && t <= window.end && onGrid(t) === t;
+}
+
+/**
+ * The step a window answers for, with `shown` the frame the player is on:
+ * that frame where the window holds it, else the window's end. A window just
+ * opened is still on the live frame until the player moves into it, and on
+ * the flight's page there is no player to move at all; neither is a time to
+ * ask the archive for.
+ */
+export function windowStep(window: ArchiveWindow, shown: number | null | undefined): number {
+  return shown && shown >= window.start && shown <= window.end ? shown : window.end;
 }
 
 /**

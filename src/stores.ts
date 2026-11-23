@@ -15,6 +15,7 @@ import { derived, readable, writable } from "svelte/store";
 import type { CellTrackProperties, Storm, StormGroup } from "./api";
 import type { CountryNetwork } from "./api/events";
 import { withCell, type StormSelection } from "./lib/stormSelection";
+import { windowStep } from "./lib/archive";
 import type { ArchiveWindow } from "./lib/archive";
 import type { ServiceStatus } from "./lib/status";
 
@@ -505,11 +506,12 @@ export const archiveWindow = writable<ArchiveWindow | null>(null);
 /**
  * The step on screen while a window is open, unix seconds, or null live:
  * the time the routes that answer for one are asked for (`at`). Its end
- * before the timeline has a step in it.
+ * while the frame on screen is not one of its steps: before the timeline
+ * has one, and on the flight's page, which has no player.
  */
 export const archiveStep = derived(
   [archiveWindow, capTimeIndicator],
-  ([past, shown]): number | null => (past ? (shown || past.end) : null),
+  ([past, shown]): number | null => (past ? windowStep(past, shown) : null),
 );
 
 /**

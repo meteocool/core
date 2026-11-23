@@ -661,11 +661,11 @@ hiddenStormMarks.subscribe((hidden) => window.settings.set("hiddenStormMarks", [
 /** The frame the cells were last drawn for, so a move to another one is seen. */
 let cellsAt: "hidden" | "now" | number = "hidden";
 derived(
-  [cellLayerVisible, capTimeIndicator, capLatestObservation, archiveWindow],
-  ([wanted, shown, newest, past]): "hidden" | "now" | number => {
+  [cellLayerVisible, capTimeIndicator, capLatestObservation, archiveStep],
+  ([wanted, shown, newest, step]): "hidden" | "now" | number => {
     if (!wanted) return "hidden";
     // In a past window every step is a moment the storms are rewound to, its end included.
-    if (past) return shown > 0 ? shown : "hidden";
+    if (step !== null) return step;
     if (showsLatestFrame(shown, newest)) return "now";
     return shown < newest ? shown : "hidden";
   },
@@ -1384,8 +1384,9 @@ window.settings.setCb("latLonZ", (value) => {
 // Both of these used to finish a nanobar task keyed on the global `URL`
 // constructor rather than on a URL string, and neither had a matching start.
 async function reloadLightning() {
-  if (get(archiveWindow)) {
-    void showArchivedStrikes(get(capTimeIndicator));
+  const step = get(archiveStep);
+  if (step !== null) {
+    void showArchivedStrikes(step);
     return;
   }
   const strikes = await fetchLightningCache(nb).catch(() => null);
@@ -1403,22 +1404,22 @@ async function reloadCyclones() {
 }
 
 /**
- * A past window's strikes (lib/archive.ts): the half hour up to the step on
- * screen, from the archive in three-hour pieces, aged against that step. No
- * socket strikes and no cache of the newest while one is open.
+ * A past window's strikes (lib/archive.ts): the half hour up to its step
+ * (`archiveStep`), from the archive in three-hour pieces, aged against that
+ * step. No socket strikes and no cache of the newest while one is open.
  */
-async function showArchivedStrikes(shown: number) {
-  const strikes = await archiveStrikes.at(shown);
-  if (!strikes || get(capTimeIndicator) !== shown || !get(archiveWindow)) return;
+async function showArchivedStrikes(step: number) {
+  const strikes = await archiveStrikes.at(step);
+  if (!strikes || get(archiveStep) !== step) return;
   strikemgr.clearAll();
   strikemgr.addStrikes(strikes.map((strike) => ({ lon: strike.lon, lat: strike.lat, time: strike.time_wall })));
 }
 
 /* Into a window, out of one, and every step in one. */
 let strikesWindow: import("./lib/archive").ArchiveWindow | null = null;
-derived([archiveWindow, capTimeIndicator], (values) => values).subscribe(([past, shown]) => {
+derived([archiveWindow, archiveStep], (values) => values).subscribe(([past, step]) => {
   archiveStrikes.setWindow(past);
-  setStrikeClock(past ? () => (get(capTimeIndicator) || past.end) * 1000 : null);
+  setStrikeClock(past ? () => (get(archiveStep) ?? past.end) * 1000 : null);
   if (past !== strikesWindow) {
     const left = strikesWindow !== null && past === null;
     strikesWindow = past;
@@ -1429,7 +1430,7 @@ derived([archiveWindow, capTimeIndicator], (values) => values).subscribe(([past,
       void reloadCyclones();
     }
   }
-  if (past) void showArchivedStrikes(shown);
+  if (step !== null) void showArchivedStrikes(step);
 });
 
 /* Storms: every one that overlapped the window, asked for once it opens; the live ones again once it is left. */

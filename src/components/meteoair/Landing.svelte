@@ -12,8 +12,13 @@
  * A flight's link (`?fly=`, lib/studio/flightLink.ts) skips both: the page
  * goes straight onto the 3D map at the link's start, and Studio takes off
  * from there as soon as the storms are in, with nothing of these words or of
- * the plan on the way. Once that flight is over, its part of the address
- * goes, so a reload is this page again rather than the same flight.
+ * the plan on the way. A link with a past moment in it (`pastSkyAt`) first
+ * opens the map in a past window ending on that moment (lib/archive.ts), so
+ * the storms that come in, the radar under them and the strikes are its;
+ * where the archive no longer keeps it, the flight is in the radar's now,
+ * and the page says so. Once that flight is over, its part of the address
+ * goes, so a reload is this page again rather than the same flight; the
+ * window stays for the plan it ends on, and goes with Studio.
  *
  * The page is the flight's menu: the menus' music streams and plays on it
  * from the reader's first click or key (lib/studio/flight/soundtrack.ts),
@@ -50,10 +55,13 @@ import { fullscreen, fullscreenSupported, toggleFullscreen } from "../../lib/ful
 import { closeStudio, openStudio } from "../../lib/studio/session";
 import { touchFirst } from "../../lib/studio/flight/touch";
 import { flightRequest, studioFlying, studioOpen } from "../../lib/studio/store";
-import { withoutFlightLink } from "../../lib/studio/flightLink";
+import { pastSkyAt, withoutFlightLink } from "../../lib/studio/flightLink";
 import type { FlightStart } from "../../lib/studio/flightLink";
 import type Cells3DCapability from "../../caps/Cells3DCapability";
-import { cells3dFailed, sharedActiveCap } from "../../stores";
+import { archiveWindow, cells3dFailed, sharedActiveCap } from "../../stores";
+import { loadCoverage } from "../../lib/archiveCoverage";
+import { windowAround } from "../../lib/archive";
+import { reportNotice } from "../../lib/Toast";
 import { DeviceDetect } from "../../lib/DeviceDetect";
 import SoundSwitch from "../studio/flight/SoundSwitch.svelte";
 import { FLIGHT_BYTES } from "../../lib/studio/flight/preload";
@@ -173,6 +181,9 @@ if (demoWeather && offered && new URLSearchParams(window.location.search).has(BO
 /** Whether the page is on its link's flight: from opening until that flight is over, or never got off. */
 let linked = Boolean(link && offered);
 
+/** Whether the page opened a past window for its link's flight: kept through the plan that flight ends on, closed with Studio. */
+let pastOpened = false;
+
 /** The link's part of the address taken off, now that its flight is over. */
 function unlink(): void {
   if (!linked) return;
@@ -183,12 +194,39 @@ function unlink(): void {
   }
 }
 
-if (link && linked) {
-  // The 3D map comes up looking at the start, and Studio flies from it.
-  flightRequest.set({ start: link });
+/**
+ * Open the past window a link's flight is flown in: two hours ending on
+ * `at`, kept as the archive keeps it. Before the 3D map comes up, so it
+ * never asks for the radar's now. Whether it opened.
+ */
+async function openPast(at: number): Promise<boolean> {
+  const coverage = await loadCoverage();
+  const past = coverage ? windowAround(at, coverage) : null;
+  if (!past) return false;
+  archiveWindow.set(past);
+  pastOpened = true;
+  return true;
+}
+
+/** The link's flight: the 3D map comes up looking at its start, and Studio flies from it. */
+function takeOff(start: FlightStart): void {
+  flightRequest.set({ start });
   (layerManager.getCapability("cells3d") as Cells3DCapability | undefined)
-    ?.setCamera({ lat: link.lat, lon: link.lon, zoom: 8, pitch: 60, bearing: 0 });
+    ?.setCamera({ lat: start.lat, lon: start.lon, zoom: 8, pitch: 60, bearing: 0 });
   board();
+}
+
+if (link && linked) {
+  const start = link;
+  const at = pastSkyAt(start, Date.now() / 1000);
+  if (at === null) takeOff(start);
+  else {
+    void openPast(at).then((opened) => {
+      if (!opened) reportNotice(get(_)("studio.flight.share.past_gone"));
+      // Gone before the archive answered: the reader left the page's flight.
+      if (linked) takeOff(start);
+    });
+  }
 }
 
 /* On this page the 3D map is the flight's and nothing else: it comes up in
@@ -196,9 +234,17 @@ if (link && linked) {
 onDestroy(sharedActiveCap.subscribe((cap) => {
   if (cap === "cells3d") openStudio();
 }));
+/** Whether Studio has been open: not before it first is, which a link's flight from a past window waits for the archive to reach. */
+let studioWasOpen = false;
 onDestroy(studioOpen.subscribe((open) => {
-  if (open) return;
+  if (open) studioWasOpen = true;
+  if (open || !studioWasOpen) return;
   unlink();
+  // Back on this page, which is the radar's now.
+  if (pastOpened) {
+    pastOpened = false;
+    archiveWindow.set(null);
+  }
   if (get(sharedActiveCap) === "cells3d") layerManager.setTarget("radar", MAP_TARGET);
 }));
 let flew = false;

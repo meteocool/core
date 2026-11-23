@@ -12,20 +12,27 @@
  * aircraft. Whatever is left out is chosen for the storm the flight finds
  * (lib/studio/flight/plan.ts, `planHere`).
  *
- * A link fixes only the start. The weather is always the radar's now: the
- * storm the sender flew at may have moved or gone, and the one ahead of the
- * receiver is the one they get. Only a flight over the demo's recorded
- * storm, in place of a live radar with none (src/weatherSource.ts), says so
- * in its link, which then opens on that storm too.
+ * Without a time, the weather is the radar's now: the storm the sender
+ * flew at may have moved or gone, and the one ahead of the receiver is the
+ * one they get. Only a flight over the demo's recorded storm, in place of a
+ * live radar with none (src/weatherSource.ts), says so in its link, which
+ * then opens on that storm too.
+ *
+ * `at` puts the flight in the past instead: the radar scan of that moment,
+ * from the archive (lib/archive.ts), as long as it keeps it. In UTC, to the
+ * minute, `at=2026-10-08T17:30Z` (a time with no zone is UTC too), and onto
+ * the five-minute step at or before it. A flight flown in a past window
+ * writes the step it was flown through.
  *
  * A link shared in flight carries more: the whole moment it was shared,
  * as `s`, a JSON object in base64url (`FlightSnapshot`). The aircraft's
  * state as it was (attitude, speed, the levers, the gear, what has come
  * off it), where the reader was looking, the storm they had looked into
  * and how (cut open where the cut stood, or peeled so far;
- * flight/inspection.ts), and the real time and the radar
- * scan it was flown through, so a page that can replay that scan one day
- * can put the receiver in the same sky. The keys above are still written
+ * flight/inspection.ts), and the real time and the radar scan it was flown
+ * through. Once the live radar has moved past that scan, the link is flown
+ * in it, from the archive, as an `at` would be: the receiver is in the same
+ * sky. The keys above are still written
  * beside it, for whatever reads only those. Nothing in `s` is promised to
  * a later version: what a page does not know, it leaves out.
  *
@@ -33,6 +40,7 @@
  * any of that is fetched.
  */
 import { demoWeather, WEATHER_KEY } from "../../weatherSource";
+import { LIVE_REACH_S, onGrid } from "../archive";
 import { readSnapshot, SNAPSHOT_KEY, writeSnapshot } from "./snapshot";
 import type { FlightSnapshot } from "./snapshot";
 
@@ -50,6 +58,8 @@ export interface FlightStart {
   /** The speed as it is set: indicated knots, or a Mach number; null for one chosen for the level. */
   speed: { knots: number } | { mach: number } | null;
   view: "cockpit" | "outside";
+  /** The past radar scan it is flown in, unix seconds on the five-minute step (`at`); none for the radar's now. */
+  at?: number;
   /** The moment a link shared in flight was taken at (`s`); none for a start alone. */
   snapshot?: FlightSnapshot;
 }
@@ -59,7 +69,7 @@ export interface FlightStart {
 export const FLIGHT_LINK_PAGE = "meteoair.html";
 
 /** The query's keys, all of them: what a page reading the link takes out of its address once the flight is over. */
-export const FLIGHT_LINK_KEYS = ["fly", "hdg", "alt", "spd", "view", SNAPSHOT_KEY] as const;
+export const FLIGHT_LINK_KEYS = ["fly", "hdg", "alt", "spd", "at", "view", SNAPSHOT_KEY] as const;
 
 const FEET = 3.28084;
 
@@ -86,6 +96,19 @@ function readSpeed(text: string): FlightStart["speed"] {
   return null;
 }
 
+/** A moment, `2026-10-08T17:30Z`: to the minute or the second, UTC where it names no zone. Null for anything else. */
+function readMoment(text: string): number | null {
+  const moment = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)(Z|[+-]\d{2}:?\d{2})?$/i.exec(text);
+  if (!moment) return null;
+  const ms = Date.parse(`${moment[1]}${moment[2] ?? "Z"}`);
+  return Number.isFinite(ms) ? onGrid(Math.floor(ms / 1000)) : null;
+}
+
+/** A step as a link writes it: `2026-10-08T17:30Z`. */
+function writeMoment(t: number): string {
+  return new Date(t * 1000).toISOString().slice(0, 16) + "Z";
+}
+
 /** The start a page's query asks for; null where it asks for none, or for nowhere a flight can start. */
 export function readFlightLink(search: string): FlightStart | null {
   const query = new URLSearchParams(search);
@@ -99,11 +122,13 @@ export function readFlightLink(search: string): FlightStart | null {
   const alt = (query.get("alt") ?? "").trim();
   const spd = (query.get("spd") ?? "").trim();
   const snapshot = readSnapshot(query.get(SNAPSHOT_KEY));
+  const moment = readMoment((query.get("at") ?? "").trim());
   return {
     lat, lon, heading,
     altitude: alt ? readLevel(alt) : null,
     speed: spd ? readSpeed(spd) : null,
     view: query.get("view")?.trim().toLowerCase() === "outside" ? "outside" : "cockpit",
+    ...(moment !== null ? { at: moment } : {}),
     ...(snapshot ? { snapshot } : {}),
   };
 }
@@ -116,6 +141,7 @@ export function flightLinkQuery(start: FlightStart): string {
   if (start.speed) {
     parts.push(`spd=${"mach" in start.speed ? `M${start.speed.mach.toFixed(2)}` : `${Math.round(start.speed.knots)}kt`}`);
   }
+  if (start.at !== undefined) parts.push(`at=${writeMoment(start.at)}`);
   if (start.view === "outside") parts.push("view=outside");
   if (start.snapshot) parts.push(`${SNAPSHOT_KEY}=${writeSnapshot(start.snapshot)}`);
   return parts.join("&");
@@ -147,4 +173,19 @@ export function withoutFlightLink(search: string): string {
     return part !== "" && !(FLIGHT_LINK_KEYS as readonly string[]).includes(key);
   });
   return rest.length ? `?${rest.join("&")}` : "";
+}
+
+/**
+ * The past scan a link's flight is flown in, unix seconds on the step, at
+ * `nowS`; null for the radar's now. Its `at`, whenever that is over; else the
+ * scan of a moment shared in flight (`scan` in its snapshot), once the live
+ * timeline no longer reaches it: until then the live radar is that sky.
+ */
+export function pastSkyAt(start: Pick<FlightStart, "at" | "snapshot">, nowS: number): number | null {
+  const now = onGrid(Math.floor(nowS));
+  if (start.at !== undefined) return start.at <= now ? start.at : null;
+  const scan = typeof start.snapshot?.scan === "string" ? Date.parse(start.snapshot.scan) : NaN;
+  if (!Number.isFinite(scan)) return null;
+  const step = onGrid(Math.floor(scan / 1000));
+  return step < now - LIVE_REACH_S ? step : null;
 }

@@ -13,7 +13,7 @@
  * leaving hands them back; the map's own changes are `Stage.setFlying`'s.
  */
 import { get } from "svelte/store";
-import { cloudStyle, cloudsTime, peelLevel, peelManual } from "../../../stores";
+import { archiveStep, cloudStyle, cloudsTime, peelLevel, peelManual } from "../../../stores";
 import { isMapStyle, mapStyleOf } from "../../cloudStyle";
 import { isHandheld } from "../../gpuBudget";
 import type { CloudStyle } from "../../cloudStyle";
@@ -591,14 +591,20 @@ export class Pilot {
     }) as FlightSnapshot;
   }
 
-  /** This moment as a flight's link has it: its start where the aircraft is now, as it points, and the whole snapshot with it. */
+  /**
+   * This moment as a flight's link has it: its start where the aircraft is
+   * now, as it points, and the whole snapshot with it; in a past window, the
+   * step it is flown through, which the link is flown in again.
+   */
   shareable(): FlightStart {
     const { state, ias } = this.telemetry;
     const view = get(flightStatus).view;
+    const past = get(archiveStep);
     return {
       lat: state.lat, lon: state.lon, heading: state.heading, altitude: state.altitude,
       speed: ias > 0 ? { knots: ias * 1.943844 } : null,
       view: view === "cockpit" ? "cockpit" : "outside",
+      ...(past !== null ? { at: past } : {}),
       snapshot: this.snapshot(),
     };
   }

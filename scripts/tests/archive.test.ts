@@ -3,7 +3,7 @@ import test from "node:test";
 import {
   AROUND_FRAME_S, NO_PAST, frameInWindow, STEP_S, STRIKE_CHUNK_S, acceptsWindow, chunksFor, coverageDays, inWindow, isWindow,
   nextWindowFrame, onGrid, pickWindow, sameWindow, shownIn, startMinutes, strikeAgeMinutes, strikeChunks,
-  strikesAt, windowAround, windowEdgeClear, windowLabelEvery, windowSteps, windowTicks,
+  strikesAt, windowAround, windowEdgeClear, windowLabelEvery, windowStep, windowSteps, windowTicks,
 } from "../../src/lib/archive.ts";
 
 /**
@@ -78,6 +78,16 @@ test("a picked window starting before the archive's oldest step starts there", (
 
 test("a picked window with nothing of it kept is none", () => {
   assert.equal(pickWindow(COVERAGE.until + HOUR, 1, COVERAGE), null);
+});
+
+test("a window answers for the frame on screen where it holds it, else for its end", () => {
+  const window = { start: DAY - 2 * HOUR, end: DAY };
+  assert.equal(windowStep(window, DAY - HOUR), DAY - HOUR);
+  assert.equal(windowStep(window, DAY - 2 * HOUR), DAY - 2 * HOUR);
+  // Still on the live frame, just opened, or with no player to move it (the flight's page).
+  assert.equal(windowStep(window, DAY + 21 * 24 * HOUR), DAY);
+  assert.equal(windowStep(window, 0), DAY);
+  assert.equal(windowStep(window, null), DAY);
 });
 
 test("a frame older than the live timeline opens two hours ending on it", () => {

@@ -66,7 +66,7 @@ import { claimMenuMusic } from "../../../lib/studio/flight/soundtrack";
 import { shareAvailable, shareIcon } from "../../../lib/shareSupport";
 import { followSideways } from "../../../lib/sideways";
 import { lift } from "../../../lib/curtain";
-import { cloudsTime, shareDialog } from "../../../stores";
+import { archiveStep, cloudsTime, shareDialog } from "../../../stores";
 import { demoBackend } from "../../../weatherSource";
 
 /** The 3D map: where the reader was looking, and the storms on the radar. */
@@ -468,11 +468,17 @@ function keydown(event: KeyboardEvent): void {
 
   <footer>
     {#if $shareAvailable}
-      <!-- A link that takes off from this plan, over the weather of whenever it is opened. -->
-      <button type="button" class="chip glass glass-pill" title={$_("studio.flight.share.plan_title")}
+      <!-- A link that takes off from this plan, over the weather of whenever it is opened; in a past window, over that window's step. -->
+      <button type="button" class="chip glass glass-pill"
+        title={$_($archiveStep === null ? "studio.flight.share.plan_title" : "studio.flight.share.plan_title_past")}
         on:click={(event) => sendLink(
-          { url: flightLinkUrl(flightLinkOrigin(window.location.origin), startOf(plan, systems)), title: $_("studio.flight.share.title") },
-          event.currentTarget, { card: false, note: $_("studio.flight.share.note") },
+          {
+            url: flightLinkUrl(flightLinkOrigin(window.location.origin), {
+              ...startOf(plan, systems), ...($archiveStep === null ? {} : { at: $archiveStep }),
+            }),
+            title: $_("studio.flight.share.title"),
+          },
+          event.currentTarget, { card: false, note: $_($archiveStep === null ? "studio.flight.share.note" : "studio.flight.share.note_past") },
         )}>
         <Icon icon={shareIcon()} /> {$_("studio.flight.share.plan")}
       </button>
