@@ -29,12 +29,13 @@ import type { NetworkCode } from "../layers/networkHoles";
 import { forgetMaskedTiles, installMaskedProtocol, registerMaskedTiles } from "../layers/maskedTiles";
 import { maskPath } from "../layers/tileMask";
 import { applyTerrain, VERTICAL_SCALE } from "../layers/terrain";
+import { budgetDrapes, flightFog } from "../layers/flightGround";
 import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
 import { loadCutaway, VolumeGone } from "../lib/cellCutaway";
 import {
-  drapeAnchor, HANDHELD_DRAPE_SIZE, HANDHELD_TILE_CACHE_ZOOM_LEVELS, isHandheld, mapPixelRatio,
+  drapeAnchor, flightDrapeBytes, HANDHELD_DRAPE_SIZE, HANDHELD_TILE_CACHE_ZOOM_LEVELS, isHandheld, mapPixelRatio,
 } from "../lib/gpuBudget";
 import { drawnExtentM, tileBounds, tileCentre, tileCode } from "../lib/volumeBox";
 import { atLevel, COARSE_ZOOM, fineAt, fineWithin, footprintOnScreen } from "../lib/volumeLevels";
@@ -3182,6 +3183,8 @@ export default class Cells3DCapability extends Capability {
       if (this.styleReady) gl.setSky(undefined as unknown as SkySpecification);
       if (this.styleReady && !this.terrainWanted) applyTerrain(gl, false, this.dark, this.drapeSize());
       if (this.styleReady) this.applyFlightLod(gl);
+      budgetDrapes(gl, null);
+      flightFog(gl, false);
       gl._camera?.transform?.clearNearFarZOverride?.();
       gl.setCenterClampedToGround(before.clamped);
       if (pose && had) {
@@ -3235,6 +3238,9 @@ export default class Cells3DCapability extends Capability {
     gl.jumpTo(gl.calculateCameraOptionsFromCameraLngLatAltRotation(
       [lon, lat], height, looking.heading, 90 + pitch, ROLL_SIGN * looking.roll,
     ));
+    // The ground's drapes within a budget, and its haze right looking up: layers/flightGround.ts.
+    budgetDrapes(gl, flightDrapeBytes());
+    flightFog(gl, true);
     // The map draws nothing nearer than a fiftieth of the way to what it
     // looks at, and a camera at the horizon looks kilometres off: low down
     // the ground under the aircraft would be cut away. Near the ground it

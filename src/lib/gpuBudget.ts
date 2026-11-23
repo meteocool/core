@@ -205,6 +205,17 @@ export function decodeWorkers(cores: number | undefined, handheld = isHandheld()
   return Math.max(2, Math.min(4, cores - 1));
 }
 
+/**
+ * What the terrain's drapes may hold between them while flying, in bytes
+ * (layers/flightGround.ts): a desktop's dozen or two tiles seen from above
+ * at MapLibre's full 2048 pixels, and from a cockpit looking at the horizon,
+ * eighty at 1024; on a phone, a little more than its own 1024-pixel drapes
+ * need from above (`HANDHELD_DRAPE_SIZE`).
+ */
+export function flightDrapeBytes(handheld = isHandheld()): number {
+  return handheld ? 160 * MB : 512 * MB;
+}
+
 /** A phone or a tablet: an app's webview, or a browser that is touched and cannot hover. */
 export function isHandheld(): boolean {
   if (dd.isApp()) return true;
