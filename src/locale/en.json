@@ -215,7 +215,7 @@
         "imprint": "Imprint",
         "privacy": "Privacy",
         "demo_tag": "Tech demo",
-        "demo": "Runs best on a recent computer or phone.",
+        "demo": "Runs best on a recent computer or phone. Needs internet the whole time: the world and its weather are far too big to download, so they stream in as you fly.",
         "data": "A flight downloads about {mb} MB. Use Wi-Fi if you can.",
         "replay_tag": "Recorded storm",
         "replay": "The sky is quiet right now, so you will fly through a recorded storm: real radar and lightning, replayed.",
