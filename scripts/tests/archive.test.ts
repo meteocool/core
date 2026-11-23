@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  AROUND_FRAME_S, NO_PAST, frameInWindow, STEP_S, STRIKE_CHUNK_S, acceptsWindow, chunksFor, coverageDays, inWindow, isWindow,
+  AROUND_FRAME_S, MAX_WINDOW_STEPS, NO_PAST, frameInWindow, STEP_S, STRIKE_CHUNK_S, acceptsWindow, chunksFor, coverageDays, inWindow, isWindow,
   nextWindowFrame, onGrid, pickWindow, sameWindow, shownIn, startMinutes, strikeAgeMinutes, strikeChunks,
-  strikesAt, windowAround, windowEdgeClear, windowLabelEvery, windowStep, windowSteps, windowTicks,
+  strikesAt, wholeWindow, windowAround, windowEdgeClear, windowLabelEvery, windowStep, windowSteps, windowTicks,
 } from "../../src/lib/archive.ts";
 
 /**
@@ -242,4 +242,13 @@ test("a window asked for a missed scan opens on the frame before it", () => {
 test("a window with no frame up to the one asked for opens on its newest", () => {
   const steps = windowSteps({ start: DAY, end: DAY + HOUR });
   assert.equal(frameInWindow(steps, (t) => t > DAY + 900, DAY + 600, DAY + HOUR - STEP_S), DAY + HOUR - STEP_S);
+});
+
+test("a backend that keeps one recorded storm opens it whole, as long as one window can be", () => {
+  const storm = { since: DAY, until: DAY + 4 * HOUR };
+  assert.deepEqual(wholeWindow(storm), { start: DAY, end: DAY + 4 * HOUR });
+  const month = wholeWindow(COVERAGE);
+  assert.equal(month?.start, COVERAGE.since);
+  assert.equal(windowSteps(month!).length, MAX_WINDOW_STEPS);
+  assert.equal(wholeWindow({ since: DAY, until: DAY }), null);
 });

@@ -120,6 +120,17 @@ export function windowAround(t: number, coverage: ArchiveCoverage): ArchiveWindo
   return isWindow(window) ? window : null;
 }
 
+/**
+ * Everything the archive keeps, as one window: from its oldest step, as far
+ * as the timeline serves in one. For a backend whose archive is a single
+ * recorded storm rather than a month of sky. Null when it keeps no window.
+ */
+export function wholeWindow(coverage: ArchiveCoverage): ArchiveWindow | null {
+  const start = coverage.since;
+  const window = { start, end: Math.min(coverage.until, start + (MAX_WINDOW_STEPS - 1) * STEP_S) };
+  return isWindow(window) ? window : null;
+}
+
 /** Whether a link's window can be opened at `nowS`: a window, and over by then. */
 export function acceptsWindow(window: ArchiveWindow | null | undefined, nowS: number): window is ArchiveWindow {
   return isWindow(window) && window.end <= onGrid(nowS);

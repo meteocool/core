@@ -19,6 +19,7 @@ import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import Icon from "./Icon.svelte";
 import { archivePickerOpen, archiveStep, archiveWindow } from "../stores";
 import getDfnLocale from "../locale/locale";
+import { showcase } from "../lib/showcase";
 
 $: open = $archiveWindow !== null;
 
@@ -119,14 +120,17 @@ onDestroy(() => {
         <span class="time wide step">{stepClock}</span>
       {/if}
     </button>
-    <button
-      type="button"
-      class="close"
-      title={$_("chrome.archive.back_to_live")}
-      aria-label={$_("chrome.archive.pill_live", { values: { time: step } })}
-      on:click={() => archiveWindow.set(null)}>
-      <Icon icon={faXmark} />
-    </button>
+    <!-- The demo's storm has no live to go back to (lib/showcase.ts). -->
+    {#if !showcase}
+      <button
+        type="button"
+        class="close"
+        title={$_("chrome.archive.back_to_live")}
+        aria-label={$_("chrome.archive.pill_live", { values: { time: step } })}
+        on:click={() => archiveWindow.set(null)}>
+        <Icon icon={faXmark} />
+      </button>
+    {/if}
   </div>
 </div>
 

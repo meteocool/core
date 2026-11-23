@@ -61,6 +61,7 @@ import type Cells3DCapability from "../../caps/Cells3DCapability";
 import { archiveWindow, cells3dFailed, sharedActiveCap } from "../../stores";
 import { loadCoverage } from "../../lib/archiveCoverage";
 import { windowAround } from "../../lib/archive";
+import { openShowcase, showcase } from "../../lib/showcase";
 import { reportNotice } from "../../lib/Toast";
 import { DeviceDetect } from "../../lib/DeviceDetect";
 import SoundSwitch from "../studio/flight/SoundSwitch.svelte";
@@ -219,7 +220,11 @@ function takeOff(start: FlightStart): void {
 if (link && linked) {
   const start = link;
   const at = pastSkyAt(start, Date.now() / 1000);
-  if (at === null) takeOff(start);
+  if (at === null && showcase) {
+    // The demo's storm has no now: a flight in it without a moment of its
+    // own is flown in the whole of it (lib/showcase.ts).
+    void openShowcase().then(() => { if (linked) takeOff(start); });
+  } else if (at === null) takeOff(start);
   else {
     void openPast(at).then((opened) => {
       if (!opened) reportNotice(get(_)("studio.flight.share.past_gone"));
@@ -228,6 +233,9 @@ if (link && linked) {
     });
   }
 }
+
+// On the demo's storm the plan is made in it, from the page's first moment (lib/showcase.ts).
+if (showcase && !link) void openShowcase();
 
 /* On this page the 3D map is the flight's and nothing else: it comes up in
    Studio, whichever way the page got onto it, and goes when Studio does. */

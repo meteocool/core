@@ -36,6 +36,7 @@ import {
 } from "../stores";
 import { acceptsWindow, LIVE_REACH_S, onGrid, sameWindow, windowAround } from "./archive";
 import { loadCoverage } from "./archiveCoverage";
+import { openShowcase, showcase } from "./showcase";
 import type StormManager from "./StormManager";
 import type StationManager from "./StationManager";
 import {
@@ -620,6 +621,9 @@ export function startUrlState({ lm, settings, stormmgr, stationmgr, cells3d, nan
       const wanted = acceptsWindow(link.window, Date.now() / 1000) ? link.window : null;
       if (!sameWindow(wanted, get(archiveWindow)) && (wanted || !opening)) archiveWindow.set(wanted);
     }
+    // The demo's storm is only ever a past window (lib/showcase.ts): a page
+    // opened on it without one of its own opens it whole.
+    if (opening && showcase && !link.window && link.time === undefined) void openShowcase();
 
     if (layer === "radar") {
       // Only when it moves. The strip shows its loading state on every write
