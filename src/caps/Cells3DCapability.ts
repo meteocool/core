@@ -29,7 +29,7 @@ import type { NetworkCode } from "../layers/networkHoles";
 import { forgetMaskedTiles, installMaskedProtocol, registerMaskedTiles } from "../layers/maskedTiles";
 import { maskPath } from "../layers/tileMask";
 import { applyTerrain, VERTICAL_SCALE } from "../layers/terrain";
-import { budgetDrapes, flightFog } from "../layers/flightGround";
+import { budgetDrapes, flightFog, lookedAtHeight } from "../layers/flightGround";
 import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
@@ -3237,10 +3237,13 @@ export default class Cells3DCapability extends Capability {
     // Straight up or down has no heading for the map to turn to: a degree short of both.
     const pitch = Math.min(Math.max(looking.pitch, -89), 89);
     const height = pose.altitude * VERTICAL_SCALE + (eye?.up ?? 0);
-    this.sizeFlightLabels(pose.altitude - (gl.queryTerrainElevation([pose.lon, pose.lat]) ?? 0) / VERTICAL_SCALE);
+    const ground = gl.queryTerrainElevation([pose.lon, pose.lat]) ?? 0;
+    this.sizeFlightLabels(pose.altitude - ground / VERTICAL_SCALE);
     const transform = gl._camera?.transform;
     // The map works out how near it draws from afresh, for the far end of what it draws.
     transform?.clearNearFarZOverride?.();
+    // What the eye looks at is found on the ground under it, not where the last look left it: layers/flightGround.ts.
+    transform?.setElevation?.(lookedAtHeight(ground, height));
     gl.jumpTo(gl.calculateCameraOptionsFromCameraLngLatAltRotation(
       [lon, lat], height, looking.heading, 90 + pitch, ROLL_SIGN * looking.roll,
     ));

@@ -23,6 +23,14 @@
  *   the nearer plane is worked out from the eye's height instead, the same as
  *   MapLibre's looking down, held where it is looking a degree short of
  *   level for every look above that.
+ * - What the eye looks at. MapLibre places the camera by the point it looks
+ *   at, found on the plane at the height the last one was: looking within a
+ *   few degrees of level, a point 10 km off at nearly the eye's own height.
+ *   The next look down found the ground tens of metres under the eye, the
+ *   map's zoom went to 20 and past, and the tiles kept within a few levels of
+ *   it ran to nearly two thousand: 3.7 GB of textures (November 2026). While
+ *   flying that plane is the ground under the aircraft every frame, never
+ *   less than `LEAST_LOOK_DOWN_M` under the eye.
  */
 import type { Map as GlMap } from "maplibre-gl";
 
@@ -75,6 +83,14 @@ const FOG_PITCH_LIMIT = 89;
 export function fogNear(height: number, pitch: number, nearZ: number, farZ: number): number {
   const along = Math.max(height, 1) / Math.cos((Math.min(pitch, FOG_PITCH_LIMIT) * Math.PI) / 180);
   return Math.min(Math.max(along, nearZ), farZ * 0.9);
+}
+
+/** The least the plane of what the eye looks at is under the eye, metres as drawn. */
+export const LEAST_LOOK_DOWN_M = 100;
+
+/** The height of the plane the eye looks at: the ground under it, at least `LEAST_LOOK_DOWN_M` below the eye. */
+export function lookedAtHeight(ground: number, eye: number): number {
+  return Math.min(ground, eye - LEAST_LOOK_DOWN_M);
 }
 
 interface Tile {

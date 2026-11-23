@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { LEAST_DRAPE_SIZE, drapeBytes, drapeSizeWithin, fogDepthRow, fogNear } from "../../src/layers/flightGround.ts";
+import { LEAST_DRAPE_SIZE, LEAST_LOOK_DOWN_M, drapeBytes, drapeSizeWithin, fogDepthRow, fogNear, lookedAtHeight } from "../../src/layers/flightGround.ts";
 
 const MB = 1024 * 1024;
 
@@ -60,4 +60,15 @@ test("the fog's nearer plane is where the line of sight meets the sea, held look
 test("the fog's nearer plane stays between the map's own planes", () => {
   assert.equal(fogNear(1000, 89, 1, 10_000), 9_000);
   assert.equal(fogNear(0, 0, 18, 10_000), 18);
+});
+
+test("the eye looks at the ground under the aircraft, whatever the last look left", () => {
+  assert.equal(lookedAtHeight(0, 2444), 0);
+  assert.equal(lookedAtHeight(1200, 2444), 1200);
+  assert.equal(lookedAtHeight(-400, 2444), -400);
+});
+
+test("the plane looked at stays under the eye, skimming the ground or below it", () => {
+  assert.equal(lookedAtHeight(2400, 2444), 2444 - LEAST_LOOK_DOWN_M);
+  assert.equal(lookedAtHeight(3000, 2444), 2444 - LEAST_LOOK_DOWN_M);
 });
