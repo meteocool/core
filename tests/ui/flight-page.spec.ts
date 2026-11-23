@@ -131,6 +131,42 @@ test("a moment shared with a storm cut open opens on that storm cut open, the cu
   expect(received.cut.pushKm).toBe(3);
 });
 
+test("a storm looked into has beams from the radars that saw it, which go when it is let go", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
+  test.setTimeout(300_000);
+  await noGeocoder(page);
+  await emptyAircraft(page);
+  const deck = page.getByRole("region", { name: "Flight deck" });
+  const beams = () => page.evaluate(() => {
+    const rays = (window as any).flightPilot.telemetry.rays;
+    return rays ? rays.beams.map((beam: any) => beam.radar.name) : null;
+  });
+  // The radars' names at the beams' far ends: shown, as the deck shows them, for those on the screen.
+  const shownRadars = () => page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".flight-deck .radar")]
+    .filter((label) => Number(getComputedStyle(label).opacity) > 0)
+    .map((label) => label.querySelector("span")?.textContent ?? ""));
+
+  // West towards the recorded storms over the Gulf of Lion, which France's radars saw from all round.
+  await page.goto("/meteoair.html?latLonZ=43.30000,4.40000,7.00&fly=43.3000,4.7000&hdg=265&alt=FL120&spd=280kt&view=outside");
+  await expect(deck).toBeVisible({ timeout: 150_000 });
+  await curtainUp(page);
+  await expect.poll(() => page.evaluate(() => (window as any).flightPilot.telemetry.marks.length), { timeout: 60_000 }).toBeGreaterThan(0);
+  expect(await beams()).toBeNull();
+
+  await page.keyboard.press("KeyI");
+  await expect.poll(async () => (await beams())?.length ?? 0, { timeout: 30_000 }).toBeGreaterThan(1);
+  const names = (await beams())!;
+  // The nearest first, by the names the radars' own operators give them.
+  expect(names.every((name: string) => name.length > 0 && name === name.trim())).toBe(true);
+  await expect.poll(async () => (await shownRadars()).length, { timeout: 30_000 }).toBeGreaterThan(0);
+  expect((await shownRadars()).every((name) => names.includes(name))).toBe(true);
+
+  // Through X-ray, cut open and peeled, and let go of: the beams go with it.
+  for (let press = 0; press < 3; press += 1) await page.keyboard.press("KeyI");
+  await expect.poll(beams).toBeNull();
+  await expect.poll(async () => (await shownRadars()).length).toBe(0);
+});
+
 test("the page loads nothing of the flight but its menu music, the plan only the aircraft it shows: the rest comes at take-off, with the loading card",
   async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");

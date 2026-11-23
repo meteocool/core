@@ -110,6 +110,8 @@ export interface StormTileInfo {
   areaKm2: number | null;
   coarse: boolean;
   tile: readonly number[] | null;
+  /** The radars it was built from, by their codes; none where the list does not say. */
+  sites?: readonly string[];
 }
 
 /** What of the 3D map a scene is played onto, and flown over; Cells3DCapability is one. */

@@ -3392,7 +3392,7 @@ export default class Cells3DCapability extends Capability {
   stormTiles(): StormTileInfo[] {
     return this.clouds.map((cloud) => ({
       lon: cloud.lon, lat: cloud.lat, peakDbz: cloud.peak_dbz ?? null, areaKm2: cloud.area_km2 ?? null,
-      coarse: cloud.coarse, tile: cloud.tile ?? null,
+      coarse: cloud.coarse, tile: cloud.tile ?? null, sites: cloud.sites ?? [],
     }));
   }
 

@@ -41,6 +41,8 @@ import { FEET, KNOTS, radarColour } from "./instruments";
 import { CockpitScreens } from "./cockpitScreens";
 import { cloudsTime } from "../../../stores";
 import { MARKS_SHOWN } from "../../../lib/studio/flight/marks";
+import { RAYS_MOST } from "../../../lib/studio/flight/radarRays";
+import { drawRays } from "./rays";
 import type { Pilot, Telemetry } from "../../../lib/studio/flight/pilot";
 import { COCKPIT_CONTROLS } from "../../../lib/studio/flight/cockpit";
 import { kindOf, masterLights } from "../../../lib/studio/flight/alarms";
@@ -76,6 +78,11 @@ let throttle: HTMLOutputElement | null = null;
    out of sight where there is none for it. */
 const MARKS = Array.from({ length: MARKS_SHOWN }, (_unused, index) => index);
 let marks: Array<HTMLElement | null> = MARKS.map(() => null);
+/* The beams from the radars that saw the storm looked into (./rays.ts), and a label at each radar's end. */
+let rays: HTMLCanvasElement | null = null;
+const RADARS = Array.from({ length: RAYS_MOST }, (_unused, index) => index);
+let radars: Array<HTMLElement | null> = RADARS.map(() => null);
+let beamsDrawn = false;
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 /** The ways of looking into a marked storm, as the chooser offers them. */
 const INSPECT: InspectMode[] = ["cut", "peel", "xray"];
@@ -122,6 +129,40 @@ function drawMarks(telemetry: Telemetry): void {
   });
 }
 
+/**
+ * The beams to the storm looked into, and the radars' names at their far
+ * ends. The beams end on the storm's diamond, which is measured off its
+ * label rather than worked out, since the label's layout puts it there.
+ */
+function drawBeams(telemetry: Telemetry): void {
+  // Nothing to do while no storm is looked into, once the last beams have been cleared away.
+  if (!rays || (!telemetry.rays && !beamsDrawn)) return;
+  beamsDrawn = telemetry.rays !== null;
+  const box = rays.getBoundingClientRect();
+  const index = telemetry.marks.findIndex((seen) => seen.inspected);
+  const seen = telemetry.marks[index];
+  const shape = index >= 0 ? marks[index]?.querySelector("i")?.getBoundingClientRect() : null;
+  const diamond = shape ? { x: shape.left + shape.width / 2 - box.left, y: shape.top + shape.height / 2 - box.top } : null;
+  const anchor = seen ? { x: seen.x * box.width, y: seen.y * box.height } : null;
+  drawRays(rays, telemetry.rays, telemetry.time, diamond, anchor);
+  const beams = telemetry.rays?.beams ?? [];
+  const grown = telemetry.rays ? telemetry.rays.still || telemetry.time - telemetry.rays.since > 0.9 : false;
+  radars.forEach((element, slot) => {
+    if (!element) return;
+    const beam = beams[slot];
+    if (!beam?.dish || !grown) {
+      if (element.style.opacity !== "0") element.style.opacity = "0";
+      return;
+    }
+    element.style.opacity = (0.55 + 0.45 * beam.radar.strength).toFixed(2);
+    element.style.transform = `translate(${(beam.dish.x * box.width).toFixed(1)}px, ${(beam.dish.y * box.height).toFixed(1)}px)`;
+    const [name, detail] = element.querySelectorAll("span");
+    write(name as HTMLElement, beam.radar.name);
+    const level = String(Math.round((beam.radar.beamKm * 1000 * FEET) / 1000) * 10).padStart(3, "0");
+    write(detail as HTMLElement, rayDetail(Math.round((beam.radar.distanceKm * 1000) / 1852), `FL${level}`));
+  });
+}
+
 /** Whether the browser puts a page over the whole screen: the disc beside the way out. */
 const canFullscreen = fullscreenSupported();
 
@@ -140,6 +181,10 @@ const creditsTimer = setInterval(() => { attribution = credits(); }, 3000);
 $: status = $flightStatus;
 $: hail = $_("studio.flight.mark.hail");
 $: tops = $_("studio.flight.mark.tops");
+/* How a radar saw the storm: how far from it, and how high its lowest beam is over it. */
+function rayDetail(distance: number, level: string): string {
+  return $_("studio.flight.ray.detail", { values: { distance, level } });
+}
 
 /** Write a text only when it changed: most frames it has not. */
 function write(element: HTMLElement | null, value: string): void {
@@ -175,6 +220,7 @@ function frame(telemetry: Telemetry): void {
   // How fast the flight is drawn, and at what share of its sharpness where it has had to give some up.
   write(readouts.frames, `${Math.round(telemetry.fps)} fps${telemetry.quality < 0.99 ? ` · ${Math.round(telemetry.quality * 100)}%` : ""}`);
   drawMarks(telemetry);
+  drawBeams(telemetry);
   minimap?.draw(telemetry);
   horizon?.draw(telemetry);
 }
@@ -361,6 +407,11 @@ const WARNINGS = {
 
   {#if status.view !== "clean"}
     <div class="marks">
+      <!-- Drawn every frame, and nothing to point at: what is under it is the storms' marks and the map. -->
+      <canvas class="rays" bind:this={rays} aria-hidden="true"></canvas>
+      {#each RADARS as index (index)}
+        <div class="radar" bind:this={radars[index]} aria-hidden="true"><i></i><span></span><span></span></div>
+      {/each}
       {#each MARKS as index (index)}
         <button type="button" class="mark" tabindex="-1" title={$_("studio.flight.inspect.mark_title")}
           bind:this={marks[index]} on:click={() => pilot.inspect(index)}><i></i><span></span><span></span></button>
@@ -701,6 +752,31 @@ const WARNINGS = {
   /* A storm's mark: a small diamond over it on a thin stem, and two lines of
      small print beside it. Quiet: it is a note on the view, not part of it. */
   .marks { position: absolute; inset: 0; overflow: hidden; }
+  .rays { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  /* A radar a beam comes from: its name and how it saw the storm, beside where it stands, smaller than a storm's mark. */
+  .radar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: grid;
+    grid-template-columns: auto auto;
+    column-gap: 6px;
+    align-items: center;
+    width: max-content;
+    margin: -6px 0 0 -4px;
+    opacity: 0;
+    color: #e2faff;
+    font: 600 10px/1.25 var(--mc-font);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.02em;
+    text-shadow: 0 0 3px rgba(0, 0, 0, 0.85);
+    pointer-events: none;
+    transition: opacity 0.4s;
+    will-change: transform;
+  }
+  .radar i { grid-row: 1 / span 2; width: 8px; }
+  .radar span { justify-self: start; padding: 0 4px; border-radius: 3px; background: rgba(6, 22, 30, 0.4); }
+  .radar span:last-child { font-weight: 500; opacity: 0.8; }
   .mark {
     position: absolute;
     top: 0;

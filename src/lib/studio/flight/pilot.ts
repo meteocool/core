@@ -44,8 +44,10 @@ import type { CutSetting } from "./cut";
 import { INSPECTION_KEY, markFor, readInspection } from "./inspection";
 import type { SharedInspection } from "./inspection";
 import type { StormMark } from "./marks";
+import { radarsOf, rayRuns } from "./radarRays";
+import type { RayPoint, RayRadar } from "./radarRays";
 import { cockpitEye, inAircraft, outsideEye, seenFrom } from "./view";
-import type { Attitude as FlightAttitude, Eye, Look } from "./view";
+import type { Attitude as FlightAttitude, Eye, Look, Vec3 } from "./view";
 import { VERTICAL_SCALE } from "../../../layers/terrain";
 import { toggleFullscreen } from "../../fullscreen";
 import { airAt, noise, roughAir } from "./weather";
@@ -286,6 +288,18 @@ export interface Telemetry {
    */
   marks: Array<{ mark: StormMark; x: number; y: number; distance: number; target: boolean; inspected: boolean }>;
   /**
+   * The radars that saw the storm being looked into, each as a beam to its
+   * mark (radarRays.ts): the beam's runs on the screen, and where the radar
+   * itself is on it, if it is. Since when the storm has been looked into,
+   * seconds of the flight's clock, for the beams to grow out from it; and
+   * whether they should hold still. Null while no storm is looked into.
+   */
+  rays: {
+    beams: Array<{ radar: RayRadar; runs: RayPoint[][]; dish: { x: number; y: number } | null }>;
+    since: number;
+    still: boolean;
+  } | null;
+  /**
    * What the captain's tablet charts (efb.ts): the storms round the
    * aircraft, the marked ones with what was measured of them; and the
    * system flown at, its middle and how far it reaches, km.
@@ -436,6 +450,9 @@ export class Pilot {
   private marked: StormMark[] = [];
   /** The storm being looked into, and how; see `inspect`. */
   private inspected: { mark: StormMark; mode: InspectMode } | null = null;
+  /** The radars the storm looked into was built from, and when it was first looked into, for its beams. */
+  private rayRadars: RayRadar[] = [];
+  private raysSince = 0;
   /** Where the cut through it stands, once it has been cut open; see cut.ts. */
   private cutSetting: CutSetting = UNSET_CUT;
   /** How far a storm looked into is peeled, 0 to 1: the reader's for the rest of the flight once they have moved it. */
@@ -469,8 +486,8 @@ export class Pilot {
     this.telemetry = {
       state: this.startState(), ias: 0, mach: 0, ground: null, radarAltitude: null, target: null, dbz: null,
       cloud: 0, rain: 0, turbulence: 0, severity: 0, hail: 0, ice: 0, frost: 0, wet: 0, charge: 0, sun: 1, sky: 1, draft: 0, temperature: 0, fps: 60, quality: 1,
-      storms: stage.stormTiles(), marks: [], cut: null, chart: { storms: [], target: null }, fade: 0, flash: 0, brake: false, time: 0, gear: 0, flapLever: 0, rolled: 0,
-      score: NO_SCORE, best: bestScore(),
+      storms: stage.stormTiles(), marks: [], rays: null, cut: null, chart: { storms: [], target: null }, fade: 0, flash: 0, brake: false, time: 0,
+      gear: 0, flapLever: 0, rolled: 0, score: NO_SCORE, best: bestScore(),
     };
   }
 
@@ -841,7 +858,11 @@ export class Pilot {
 
   private lookInto(next: { mark: StormMark; mode: InspectMode } | null, cut: CutSetting = UNSET_CUT): void {
     // Another storm, or none, is cut afresh: facing the aircraft, through its middle; or where a link had it.
-    if (next?.mark !== this.inspected?.mark) this.cutSetting = cut;
+    if (next?.mark !== this.inspected?.mark) {
+      this.cutSetting = cut;
+      this.raysSince = this.telemetry.time;
+      this.rayRadars = next ? radarsOf(next.mark, this.telemetry.storms) : [];
+    }
     // A storm the reader picks, or lets go of, is theirs over the one a link had.
     this.wanted = null;
     this.inspected = next;
@@ -1626,6 +1647,7 @@ export class Pilot {
       const again = this.marked.find((mark) => distanceM(mark.lon, mark.lat, looked.mark.lon, looked.mark.lat) < MARK_APART_KM * 1000);
       if (again) looked.mark = again;
       else this.marked = [looked.mark, ...this.marked.slice(0, MARKS_SHOWN - 1)];
+      this.rayRadars = radarsOf(looked.mark, telemetry.storms);
       this.applyInspection();
     }
     this.lookForLightning();
@@ -1793,6 +1815,7 @@ export class Pilot {
       ...wrecked,
     }, outside ? [] : this.screens);
     this.telemetry.marks = view === "clean" ? [] : this.seen(eye, view === "cockpit");
+    this.telemetry.rays = view === "clean" ? null : this.beams(eye, view === "cockpit");
 
     // The weather going past: carried by the air, which goes the other way to the aircraft.
     const path = (state.flightPath * Math.PI) / 180;
@@ -1892,5 +1915,34 @@ export class Pilot {
       });
     }
     return placed;
+  }
+
+  /**
+   * The beams from the radars that saw the storm looked into to its mark,
+   * as this eye sees them: from each antenna on the ground to where the
+   * mark floats, in the same frame `seen` places the mark in, so a beam
+   * ends at it. From the seat, only what the windows show.
+   */
+  private beams(eye: Eye, fromSeat = false): Telemetry["rays"] {
+    const looked = this.inspected;
+    if (!looked || !this.rayRadars.length) return null;
+    const { state } = this.telemetry;
+    const canvas = this.stage.canvas();
+    const aspect = (canvas?.clientWidth || 1) / (canvas?.clientHeight || 1);
+    const fromEye = (lon: number, lat: number, altitude: number): Vec3 => {
+      const [north, east] = flatOffset(state.lon, state.lat, lon, lat);
+      const up = (altitude - state.altitude) * VERTICAL_SCALE;
+      return [north - eye.north, east - eye.east, -(up - eye.up)];
+    };
+    const project = (point: Vec3) => seenFrom(eye, point, this.fov, aspect);
+    const visible = fromSeat ? (point: Vec3) => throughWindows(inAircraft(state, point)) : undefined;
+    const to = fromEye(looked.mark.lon, looked.mark.lat, markAltitude(looked.mark));
+    const beams = this.rayRadars.map((radar) => {
+      const from = fromEye(radar.lon, radar.lat, radar.heightM);
+      const at = visible && !visible(from) ? null : project(from);
+      const dish = at && at.x >= 0 && at.x <= 1 && at.y >= 0 && at.y <= 1 ? { x: at.x, y: at.y } : null;
+      return { radar, runs: rayRuns(from, to, project, visible), dish };
+    });
+    return { beams, since: this.raysSince, still: this.reducedMotion };
   }
 }

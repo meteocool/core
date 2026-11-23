@@ -261,6 +261,9 @@
         "hail": "hail",
         "tops": "tops"
       },
+      "ray": {
+        "detail": "{distance} NM from it · beam {level}"
+      },
       "horizon": "Artificial horizon: the aircraft's pitch and bank",
       "minimap": {
         "title": "Map around the aircraft",
