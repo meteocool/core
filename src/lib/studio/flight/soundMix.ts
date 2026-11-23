@@ -35,6 +35,7 @@
  */
 import type { FlightAlarm, FlightStatus, FlightView } from "../store";
 import { kindOf } from "./alarms";
+import { THUNDER_M } from "./lightning";
 import { FLAP_NOTCH_S, GEAR_S, MMO, VMO_MS } from "./physics";
 
 /** What of the telemetry the sound follows. */
@@ -48,10 +49,13 @@ export interface SoundInput {
   dbz: number | null;
   rain: number;
   turbulence: number;
-  /** A lightning flash, 0 to 1: it jumps to 1 on a strike and dies away. */
-  flash: number;
-  /** A strike nearby was seen this frame, flash or not (no flash is drawn with reduced motion). */
-  strike: boolean;
+  /**
+   * How far off a strike is whose thunder arrives this frame, metres (the
+   * nearest, where several do); null where none does. A strike's thunder
+   * comes as long after its flash as sound takes from it, flash drawn or not
+   * (none is with reduced motion).
+   */
+  strike: number | null;
   brake: boolean;
   /** A cut to black and back, 0 to 1. */
   fade: number;
@@ -96,7 +100,6 @@ export interface SoundMemory {
   /** How far the engines have spooled towards the throttle, 0 to 1. */
   spool: number;
   throttle: number;
-  flash: number;
   autopilot: boolean;
   low: boolean;
   /** Whether the seat-belt sign has chimed this flight. */
@@ -186,7 +189,13 @@ export interface Callout {
 
 /** Sounds a frame starts, each once. */
 export type SoundEvent =
-  | { kind: "thunder"; distance: number; strength: number }
+  /**
+   * Thunder: how far, 0 (overhead) to 1 (as far as it is heard), and how
+   * strong; and whether it struck right by the aircraft deep in a storm's
+   * core, where it is one hard blast with none of the long roll the ground
+   * gives thunder further off.
+   */
+  | { kind: "thunder"; distance: number; strength: number; deep: boolean }
   | { kind: "thump"; strength: number }
   | { kind: "creak"; strength: number }
   | { kind: "rattle"; strength: number }
@@ -284,6 +293,9 @@ const SEVERE_TURBULENCE = 0.7;
 
 /** Where hail starts to tick on the windshield, dBZ, and where it is at its hardest. */
 const HAIL_DBZ: [number, number] = [52, 62];
+
+/** A strike nearer than this, metres, with the aircraft deep in a storm's core, is heard as one blast from inside the cloud. */
+const DEEP_STRIKE_M = 2500;
 
 /** How much louder the airflow is with the gear all the way down. */
 export const GEAR_WIND = 0.3;
@@ -587,7 +599,7 @@ const ramp = (value: number, low: number, high: number) => clamp01((value - low)
 /** What a flight's sound starts from: the engines already at the throttle, as they are in the air. */
 export function initialMemory(input: Pick<SoundInput, "throttle">, status: Pick<SoundStatus, "autopilot" | "low">): SoundMemory {
   return {
-    spool: input.throttle, throttle: input.throttle, flash: 0, autopilot: status.autopilot, low: status.low, seatbelt: false, thunderQuiet: 4,
+    spool: input.throttle, throttle: input.throttle, autopilot: status.autopilot, low: status.low, seatbelt: false, thunderQuiet: 4,
     gear: 0, gearGoing: 0, flaps: 0, flapsFor: Infinity, heard: [],
     voice: {
       height: NaN, warned: [], banking: false, bankIn: 0, pulling: false, pullFor: 0, landing: false, retarding: false, retardIn: 0,
@@ -783,18 +795,20 @@ export function mixSound(
     if (cockpit) events.push({ kind: "seatbelt" });
   }
 
-  // Thunder: close on a strike, the flash's rising edge; distant now and then near a strong storm, strike or not.
+  // Thunder: a strike's, from as far as it struck, as its sound arrives; distant now and then near a strong storm, strike or not.
   let thunderQuiet = Math.max(0, memory.thunderQuiet - dt);
-  if (input.flash > memory.flash + 0.5 || input.strike) {
-    events.push({ kind: "thunder", distance: 0.05 + 0.2 * random(), strength: 1 });
+  const inside = ramp(input.dbz ?? -Infinity, 38, 55);
+  if (input.strike !== null) {
+    const away = input.strike;
+    const deep = inside > 0.6 && away < DEEP_STRIKE_M;
+    events.push({ kind: "thunder", distance: 0.05 + 0.9 * ramp(away, 0, THUNDER_M), strength: 1, deep });
     thunderQuiet = Math.max(thunderQuiet, 6);
   } else if (thunderQuiet === 0 && !cutting) {
     const storm = input.storm;
     const near = storm ? ramp(storm.peakDbz, 45, 60) * (1 - ramp(storm.distance, 15_000, 90_000)) : 0;
-    const inside = ramp(input.dbz ?? -Infinity, 38, 55);
     if (fires(near * 0.05 + inside * 0.08, dt, random)) {
-      const far = inside >= near ? 0.4 + 0.3 * random() : 0.5 + 0.45 * ramp(storm!.distance, 10_000, 90_000);
-      events.push({ kind: "thunder", distance: far, strength: 0.5 + 0.5 * Math.max(near, inside) });
+      const far = inside >= near ? 0.45 + 0.25 * random() : 0.5 + 0.45 * ramp(storm!.distance, 10_000, 90_000);
+      events.push({ kind: "thunder", distance: far, strength: 0.5 + 0.5 * Math.max(near, inside), deep: false });
       thunderQuiet = 8;
     }
   }
@@ -874,7 +888,7 @@ export function mixSound(
     callouts: said.callouts,
     quiet: said.quiet,
     memory: {
-      spool, throttle: input.throttle, flash: input.flash, autopilot: status.autopilot, low: status.low, seatbelt, thunderQuiet,
+      spool, throttle: input.throttle, autopilot: status.autopilot, low: status.low, seatbelt, thunderQuiet,
       gear, gearGoing, flaps, flapsFor, heard, voice: said.memory, music: scored.memory,
     },
   };

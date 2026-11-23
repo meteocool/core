@@ -7,7 +7,7 @@ import type { MusicLevels, SoundInput, SoundMemory, SoundStatus } from "../../sr
 
 /** Cruise: 250 kt indicated, Mach 0.78, clear air, high up. */
 const CRUISE: SoundInput = {
-  throttle: 0.7, ias: 128, mach: 0.78, dbz: null, rain: 0, turbulence: 0, flash: 0, strike: false, brake: false, fade: 0, storm: null,
+  throttle: 0.7, ias: 128, mach: 0.78, dbz: null, rain: 0, turbulence: 0, strike: null, brake: false, fade: 0, storm: null,
   height: 9000, cloud: 0,
 };
 const STATUS: SoundStatus = { view: "outside", warnings: [], alarms: [], silenced: [], paused: false, autopilot: false, warp: false, low: false };

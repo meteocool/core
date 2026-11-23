@@ -133,7 +133,7 @@ test("the aircraft's own gear folds into it: up, no wheel hangs below the belly;
 /* ---- its sound ---- */
 
 const CRUISE: SoundInput = {
-  throttle: 0.7, ias: 128, mach: 0.5, dbz: null, rain: 0, turbulence: 0, flash: 0, strike: false, brake: false, fade: 0, storm: null,
+  throttle: 0.7, ias: 128, mach: 0.5, dbz: null, rain: 0, turbulence: 0, strike: null, brake: false, fade: 0, storm: null,
 };
 const STATUS: SoundStatus = { view: "cockpit", warnings: [], alarms: [], silenced: [], paused: false, autopilot: false, warp: false, low: false };
 const never = () => 0.999999;

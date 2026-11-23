@@ -34,6 +34,7 @@ import type { SoundCue } from "./soundGraph";
 import { CalloutQueue, initialMemory, mixSound, VOLUME } from "./soundMix";
 import type { Callout, SoundInput, SoundMemory, Spoken } from "./soundMix";
 import { flightMuted, musicAvailable, pageAudio, plugMusic, setFlightMuted, wantMusic } from "./soundtrack";
+import { ThunderClips } from "./thunderClips";
 
 /** Whether the flight's sound is off, the music's with it (soundtrack.ts); the deck shows it. */
 export { flightMuted };
@@ -75,7 +76,10 @@ export class FlightSound {
   private disposed = false;
   private readonly out: GainNode | null = null;
   private tap: MediaStreamAudioDestinationNode | null = null;
-  private strike = false;
+  /** How far off the nearest strike is whose thunder arrived since the last frame, metres; null where none did. */
+  private strike: number | null = null;
+  /** The thunder's recordings, streamed from the flight's start; null where there can be none. */
+  private clips: ThunderClips | null = null;
   private suspendTimer: ReturnType<typeof setTimeout> | null = null;
   /** The cockpit's voice: whose turn it is, what the browser is saying for it now, and whether the browser cannot speak after all. */
   private readonly voice = new CalloutQueue();
@@ -102,8 +106,17 @@ export class FlightSound {
       this.graph = null;
       return;
     }
+    try {
+      if (typeof Audio !== "undefined") this.clips = new ThunderClips(this.context, this.graph.thunderInput());
+    } catch {
+      this.clips = null;
+    }
+    this.graph.useRecordedThunder(this.clips);
     // A key or a click is what lets a page play; any of them may be the one.
-    const wake = () => this.sync();
+    const wake = (event: Event) => {
+      if (event.type !== "visibilitychange") this.clips?.unlock();
+      this.sync();
+    };
     this.listeners.push(
       [window, "keydown", wake, true],
       [window, "pointerdown", wake, true],
@@ -112,6 +125,7 @@ export class FlightSound {
     for (const [target, type, listener, capture] of this.listeners) target.addEventListener(type, listener, capture);
     this.sync();
     this.prime();
+    this.clips?.unlock();
     // Heard as soon as the context runs, which may be a moment after it is made.
     if (this.wanted()) this.graph.cue("takeoff");
   }
@@ -128,7 +142,6 @@ export class FlightSound {
       dbz: telemetry.dbz,
       rain: telemetry.rain,
       turbulence: telemetry.turbulence,
-      flash: telemetry.flash,
       strike: this.strike,
       brake: telemetry.brake,
       fade: telemetry.fade,
@@ -150,7 +163,7 @@ export class FlightSound {
       eye: scene?.eye,
       flight: scene?.flight,
     };
-    this.strike = false;
+    this.strike = null;
     this.memory ??= initialMemory(input, status);
     const { levels, events, callouts, quiet, memory } = mixSound(this.memory, input, status, this.muted, dt);
     this.memory = memory;
@@ -226,9 +239,9 @@ export class FlightSound {
     this.graph.play({ kind: "explosion", strength });
   }
 
-  /** A strike nearby: thunder, whether or not a flash was drawn for it. */
-  strikeNear(): void {
-    this.strike = true;
+  /** A strike's thunder arriving, from so far off, metres: heard whether or not a flash was drawn for it. */
+  strikeNear(metres: number): void {
+    this.strike = Math.min(this.strike ?? Infinity, metres);
   }
 
   /** M: the music off, or on again; remembered for the next flight. The flight's own sounds stay. */
@@ -257,6 +270,8 @@ export class FlightSound {
     setTimeout(() => {
       this.unplug?.();
       this.unplug = null;
+      this.clips?.dispose();
+      this.clips = null;
       graph.dispose();
       out.disconnect();
       this.tap?.disconnect();

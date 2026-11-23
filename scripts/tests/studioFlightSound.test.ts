@@ -11,13 +11,15 @@ import {
   ALARM_CLEAR_S, alarmsOf, alarmStep, kindOf, masterLights, NO_ALARMS, silence, silencedOf,
 } from "../../src/lib/studio/flight/alarms.ts";
 import type { AlarmMemory } from "../../src/lib/studio/flight/alarms.ts";
+import { pickThunder, thunderHeard } from "../../src/lib/studio/flight/thunderClips.ts";
+import type { ThunderClipName } from "../../src/lib/studio/flight/thunderClips.ts";
 import type { FlightAlarm } from "../../src/lib/studio/store.ts";
 
 const near = (a: number, b: number, tolerance: number) => assert.ok(Math.abs(a - b) <= tolerance, `${a} is not ${b} ± ${tolerance}`);
 
 /** Cruise: 250 kt indicated, Mach 0.78, no weather. */
 const CRUISE: SoundInput = {
-  throttle: 0.7, ias: 128, mach: 0.78, dbz: null, rain: 0, turbulence: 0, flash: 0, strike: false, brake: false, fade: 0, storm: null,
+  throttle: 0.7, ias: 128, mach: 0.78, dbz: null, rain: 0, turbulence: 0, strike: null, brake: false, fade: 0, storm: null,
 };
 const STATUS: SoundStatus = { view: "cockpit", warnings: [], alarms: [], silenced: [], paused: false, autopilot: false, warp: false, low: false };
 
@@ -154,19 +156,41 @@ test("rain follows the telemetry's rain, and hail only in the strongest echoes",
 
 /* ---- thunder ---- */
 
-test("thunder cracks on a flash's rising edge only, not while it dies away", () => {
-  let memory = initialMemory(CRUISE, STATUS);
-  let thunder = 0;
-  // The flash as the pilot draws it: jumping to 1 and falling off four a second.
-  for (let flash = 1; flash > 0; flash -= 4 / 60) {
-    const frame = mixSound(memory, { ...CRUISE, flash }, STATUS, false, 1 / 60, never);
-    memory = frame.memory;
-    thunder += frame.events.filter((event) => event.kind === "thunder" && event.distance < 0.35).length;
-  }
-  assert.equal(thunder, 1);
-  // A strike with no flash (reduced motion) is heard too; a flash and its strike together are one thunder.
-  assert.equal(count(mixSound(initialMemory(CRUISE, STATUS), { ...CRUISE, strike: true }, STATUS, false, 1 / 60, never).events, "thunder"), 1);
-  assert.equal(count(mixSound(initialMemory(CRUISE, STATUS), { ...CRUISE, flash: 1, strike: true }, STATUS, false, 1 / 60, never).events, "thunder"), 1);
+/** The thunder a frame starts, if one. */
+const thunderOf = (frame: { events: SoundEvent[] }) => frame.events.find((event) => event.kind === "thunder") as Extract<SoundEvent, { kind: "thunder" }> | undefined;
+
+test("a strike's thunder is one, from as far as it struck: nearer is nearer, deep in a core it is the blast", () => {
+  const strike = (metres: number, dbz: number | null = null) =>
+    thunderOf(mixSound(initialMemory(CRUISE, STATUS), { ...CRUISE, dbz, strike: metres }, STATUS, false, 1 / 60, never));
+  assert.equal(count(mixSound(initialMemory(CRUISE, STATUS), { ...CRUISE, strike: 800 }, STATUS, false, 1 / 60, never).events, "thunder"), 1);
+  const [close, mid, far] = [strike(800)!, strike(8000)!, strike(28_000)!];
+  assert.ok(close.distance < mid.distance && mid.distance < far.distance);
+  assert.ok(close.distance < 0.16 && mid.distance > 0.16 && mid.distance < 0.42 && far.distance > 0.72);
+  assert.equal(close.deep, false);
+  assert.equal(strike(800, 55)!.deep, true);
+  // Deep is right by the aircraft only: a strike kilometres off rolls in from outside the core.
+  assert.equal(strike(8000, 55)!.deep, false);
+  // No strike, no thunder from it.
+  assert.equal(count(mixSound(initialMemory(CRUISE, STATUS), CRUISE, STATUS, false, 1 / 60, never).events, "thunder"), 0);
+});
+
+test("each thunder plays the recording for its distance, the band beside it where that one is busy, the graph's own deep or with none free", () => {
+  const all = () => true;
+  const first = () => 0;
+  assert.equal(pickThunder(0.08, false, all, first), "close");
+  assert.equal(pickThunder(0.3, false, all, first), "near");
+  assert.equal(pickThunder(0.6, false, all, first), "roll");
+  assert.equal(pickThunder(0.9, false, all, first), "far1");
+  assert.equal(pickThunder(0.08, true, all, first), null);
+  const but = (...busy: ThunderClipName[]) => (name: ThunderClipName) => !busy.includes(name);
+  assert.equal(pickThunder(0.08, false, but("close"), first), "near");
+  assert.equal(pickThunder(0.6, false, but("roll"), first), "far1");
+  assert.equal(pickThunder(0.9, false, but("far1", "far2", "far3", "far4"), first), "roll");
+  assert.equal(pickThunder(0.08, false, but("close", "near"), first), null);
+  assert.equal(pickThunder(0.9, false, all, () => 0.999), "far4");
+  // Further is quieter and duller.
+  assert.ok(thunderHeard(0.9, 1).gain < thunderHeard(0.1, 1).gain);
+  assert.ok(thunderHeard(0.9, 1).cutoff < 1000 && thunderHeard(0.1, 1).cutoff > 8000);
 });
 
 test("a strong storm nearby rumbles now and then, a weak or far one does not", () => {

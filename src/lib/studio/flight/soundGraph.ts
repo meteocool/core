@@ -1,7 +1,7 @@
 /**
- * The flight's sound, made as it plays: every sound is synthesized here
- * with the Web Audio API from noise and oscillators, none is a recording.
- * So it costs the page nothing to download, and it follows the flight
+ * The flight's sound, made as it plays: every sound but the soundtrack and
+ * the thunder's recordings is synthesized here with the Web Audio API from
+ * noise and oscillators. So it costs the page next to nothing to download, and it follows the flight
  * continuously: the engines' whine rises with the fan, the wind with the
  * speed, the bumps come as the rough air does.
  *
@@ -21,7 +21,10 @@
  *   panels (a stick-slip train of clicks rung through a resonance) and the
  *   rattles of what is loose in it;
  * - rain hissing and pattering on the windshield, and hail ticking on it;
- * - thunder: a crack that tears, and a long rumble that rolls;
+ * - thunder: recorded (thunderClips.ts), played into it from outside; and
+ *   its own where there is no recording to play, and for a strike right by
+ *   the aircraft deep in a core: a crack that tears, and a long rumble that
+ *   rolls;
  * - the cockpit's alerts and chimes: the master warning's continuous
  *   repetitive chime and the caution's single one, the stall's cricket and
  *   shaker, the terrain's whoops; and the interface's clicks;
@@ -446,6 +449,8 @@ export class SoundGraph {
   private hailAt = 0;
   /** Stops the gear's motor, while it runs. */
   private motor: ((at: number) => void) | null = null;
+  /** The thunder's recordings, where the flight has them: what plays a thunder before the graph's own does. */
+  private recorded: { play(distance: number, strength: number, deep: boolean): boolean } | null = null;
 
   constructor(context: BaseAudioContext, destination: AudioNode = context.destination) {
     this.context = context;
@@ -684,6 +689,16 @@ export class SoundGraph {
     return { theme: this.music.theme, tension: this.music.tension };
   }
 
+  /** Where the thunder's recordings go in: heard as the view hears thunder. */
+  thunderInput(): AudioNode {
+    return this.busses.thunder;
+  }
+
+  /** The thunder's recordings, to play a thunder before the graph's own does; null for the graph's own always. */
+  useRecordedThunder(recorded: { play(distance: number, strength: number, deep: boolean): boolean } | null): void {
+    this.recorded = recorded;
+  }
+
   /** A pause: the music on, lower and darker, as a game's under its pause; or as it was. */
   setMusicPaused(paused: boolean, at = this.context.currentTime): void {
     this.to(this.music.hold.gain, paused ? 0.45 : 1, at + LEAD_S, 0.3);
@@ -694,7 +709,9 @@ export class SoundGraph {
   play(event: SoundEvent, time = this.context.currentTime): void {
     const t = time + LEAD_S;
     switch (event.kind) {
-      case "thunder": this.thunder(event.distance, event.strength, t); break;
+      case "thunder":
+        if (!this.recorded?.play(event.distance, event.strength, event.deep)) this.thunder(event.distance, event.strength, t);
+        break;
       case "thump": this.thump(event.strength, t); break;
       case "creak": this.creak(event.strength, t); break;
       case "rattle": this.rattle(event.strength, t); break;

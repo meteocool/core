@@ -49,7 +49,7 @@ import { toggleFullscreen } from "../../fullscreen";
 import { airAt, noise, roughAir } from "./weather";
 import { advance, BLAST_FROM, broken, harmed, intact, shown, shudder, surfacesLost } from "./damage";
 import type { Damage, DamageEvent } from "./damage";
-import { boltPaths, FLASH_S, flicker, glare, thunderDelay } from "./lightning";
+import { boltPaths, FLASH_S, flicker, glare, THUNDER_M, thunderDelay } from "./lightning";
 import { chargeOf, daylightOf, wetted } from "./glass";
 import { bestScore, FEATS, keepBest, landedScore, NO_SCORE, scored } from "./score";
 import type { Feat, FlightScore } from "./score";
@@ -72,9 +72,8 @@ import type { Levers } from "./levers";
 const STRIKES_ROUND_KM = 14;
 const STRIKES_LATELY_MS = 5 * 60_000;
 
-/** How far round the aircraft lightning is looked for, km, and from how far its thunder is heard. */
+/** How far round the aircraft lightning is looked for, km. */
 const LIGHTNING_KM = 110;
-const THUNDER_KM = 30;
 
 /** The fewest frames a second a flight should have, how many are plenty, and the least sharpness it is drawn at to get them. */
 const FPS_LEAST = 30;
@@ -1661,8 +1660,8 @@ export class Pilot {
     this.flashes.push({ lon, lat, born, seed, ground });
     // Thunder, when the sound of it has had time to arrive; from too far, there is none to hear.
     const away = distanceM(state.lon, state.lat, lon, lat);
-    if (away < THUNDER_KM * 1000) {
-      this.thunder.push(setTimeout(() => this.sound?.strikeNear(), Math.min(thunderDelay(away), 25) * 1000));
+    if (away < THUNDER_M) {
+      this.thunder.push(setTimeout(() => this.sound?.strikeNear(away), Math.min(thunderDelay(away), 25) * 1000));
     }
   }
 

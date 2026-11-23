@@ -83,3 +83,6 @@ export function glare(distance: number): number {
 
 /** How long thunder takes to arrive from so far, seconds. */
 export const thunderDelay = (distance: number): number => distance / 343;
+
+/** From how far a strike's thunder is heard, metres; from farther, none. */
+export const THUNDER_M = 30_000;
