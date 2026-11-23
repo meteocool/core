@@ -10,6 +10,7 @@ import { DEFAULT_FOV, emptyScene } from "./scene";
 import type { Scene } from "./scene";
 import type { SectionPlane } from "./planes";
 import type { FlightStart } from "./flightLink";
+import type { Feat } from "./flight/score";
 
 /**
  * The basemap Studio opens on: the imagery, which is what a picture of
@@ -161,10 +162,15 @@ export interface FlightStatus {
   flapsMoving: boolean;
   /** The spoilers: flat, up as the speed brake, or all of them up on the ground after a landing. */
   spoilers: "in" | "brake" | "ground";
-  /** On its wheels; the engines' thrust turned back; the engines held at full thrust for the angle of attack. */
+  /**
+   * On its wheels; the engines' thrust turned back; the engines held at full
+   * thrust for the angle of attack; and still at full thrust after that has
+   * passed, until the lever is moved (TOGA LK).
+   */
   onGround: boolean;
   reverse: boolean;
   alphaFloor: boolean;
+  thrustLocked: boolean;
   /** The last landing, until the aircraft flies again; and why the flight just ended, for a moment after it has. */
   landing: FlightLanding | null;
   crash: FlightCrash | null;
@@ -178,6 +184,8 @@ export interface FlightStatus {
    */
   alarms: FlightAlarm[];
   silenced: FlightAlarm[];
+  /** The bonus the score was given last, for a moment after (lib/studio/flight/score.ts). */
+  feat: { feat: Feat; points: number } | null;
   /** The radar's colours painted on the ground under the storms (O); and the flight held while the reader is asked whether to end it. */
   radarOnGround: boolean;
   leaving: boolean;
@@ -186,7 +194,8 @@ export interface FlightStatus {
 export const INITIAL_FLIGHT_STATUS: FlightStatus = {
   view: "cockpit", warnings: [], paused: false, recording: false, keys: true, autopilot: false, warp: false,
   clearSky: false, low: false, inspecting: null, cut: null, peel: null, gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false,
-  reverse: false, alphaFloor: false, landing: null, crash: null, lost: [], alarms: [], silenced: [], radarOnGround: false, leaving: false,
+  reverse: false, alphaFloor: false, thrustLocked: false, landing: null, crash: null, lost: [], alarms: [], silenced: [], feat: null,
+  radarOnGround: false, leaving: false,
 };
 
 export const flightStatus = writable<FlightStatus>(INITIAL_FLIGHT_STATUS);

@@ -493,6 +493,13 @@ onDestroy(() => {
       <b class="knob" bind:this={knob}></b>
     </div>
 
+    {#if status.paused && !status.leaving}
+      <!-- Paused, from the strip's rarer buttons or by the page going out of sight: the way on, in the middle where it is found, in every view. -->
+      <button type="button" class="said resume" tabindex="-1" on:click={act("pause")}>
+        <Icon icon={faPlay} /> {$_("studio.flight.touch.paused_resume")}
+      </button>
+    {/if}
+
     {#if clean}
       <!-- The way back out of the clean view, where V is. -->
       <button type="button" class="handle" tabindex="-1" on:click={act("view")}
@@ -848,6 +855,9 @@ onDestroy(() => {
     transform: translateX(-50%);
   }
   .said :global(svg) { flex: none; width: 14px; height: 14px; color: var(--mc-orange); }
+  /* The way on from a pause: larger, and in the middle of the view, over everything but the deck's questions. */
+  .said.resume { top: 50%; padding: 14px 24px; font-size: 16px; transform: translate(-50%, -50%); }
+  .said.resume :global(svg) { width: 16px; height: 16px; }
 
   /* The clean view: nothing drawn but the way back; the controls still fly, and show under a thumb. */
   .handle {

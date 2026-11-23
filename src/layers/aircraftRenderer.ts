@@ -200,6 +200,110 @@ void main() {
   gl_Position = uProjection * seen;
 }`;
 
+/**
+ * St Elmo's fire on the glass, for the glass's shader: short discharges, a
+ * fraction of a second each, that feel their way out over it in steps, dim,
+ * then flash along the whole of their path and flicker out; violet, white at
+ * the core, and branching like a tree as they go. Now here, now there: each
+ * half-metre cell of the glass has one or none in each moment, more often
+ * the more charged the air, and in patches that come and go. Needs `hash`
+ * and `noise` and `uTime` from the shader; `p` is metres over the glass,
+ * `pixel` how far over it a pixel goes.
+ */
+export const ST_ELMO = `
+// The distance from p to the segment from a to b, of as much of it as is grown: the discharge has got 'shown' along its path,
+// and is 'from' along it at a.
+float reached(vec2 p, vec2 a, vec2 b, float from, float shown) {
+  if (shown <= from) return 9.0;
+  vec2 ab = b - a;
+  b = a + ab * min(1.0, (shown - from) / max(length(ab), 1e-5));
+  ab = b - a;
+  vec2 pa = p - a;
+  float h = clamp(dot(pa, ab) / max(dot(ab, ab), 1e-10), 0.0, 1.0);
+  return length(pa - ab * h);
+}
+// How near p is to a discharge from 'origin' going 'angle' for about 'reach' metres, grown this share of the way: a jagged trunk of
+// eight legs, a branch off most of its joints, a twig off some branches. A branch is thinner, so further from it than it is.
+// Nothing of it is further than 1.7 reaches from its origin.
+float discharge(vec2 p, vec2 origin, float angle, float reach, float seed, float share) {
+  float nearest = 9.0;
+  float leg = reach / 8.0;
+  float shown = share * reach * 1.7;
+  vec2 a = origin;
+  float along = 0.0;
+  for (int i = 0; i < 8; i += 1) {
+    float fi = float(i);
+    float turn = angle + (hash(vec2(seed, fi)) - 0.5) * 1.6;
+    vec2 b = a + vec2(cos(turn), sin(turn)) * leg * (0.6 + 0.8 * hash(vec2(seed + 1.7, fi)));
+    nearest = min(nearest, reached(p, a, b, along, shown));
+    if (i > 0 && hash(vec2(seed + 3.1, fi)) < 0.75) {
+      float side = hash(vec2(seed + 4.3, fi)) < 0.5 ? -1.0 : 1.0;
+      float way = turn + side * (0.5 + 0.7 * hash(vec2(seed + 5.9, fi)));
+      vec2 c = a;
+      float at = along;
+      for (int j = 0; j < 3; j += 1) {
+        float fj = float(j) + fi * 4.0;
+        float bend = way + (hash(vec2(seed + 6.7, fj)) - 0.5) * 1.2;
+        vec2 d = c + vec2(cos(bend), sin(bend)) * leg * (0.5 + 0.6 * hash(vec2(seed + 7.3, fj)));
+        nearest = min(nearest, reached(p, c, d, at, shown) * 1.7);
+        if (j == 0 && hash(vec2(seed + 8.9, fj)) < 0.5) {
+          float twig = bend - side * (0.6 + 0.5 * hash(vec2(seed + 9.7, fj)));
+          nearest = min(nearest, reached(p, d, d + vec2(cos(twig), sin(twig)) * leg * 0.7, at + length(d - c), shown) * 2.6);
+        }
+        at += length(d - c);
+        c = d;
+      }
+    }
+    along += length(b - a);
+    a = b;
+  }
+  return nearest;
+}
+vec3 stElmo(vec2 p, float pixel, float charge) {
+  // A cell, metres, and a moment, seconds. A discharge starts in the middle half of its cell and reaches less than 0.6 m,
+  // so the point's own cell and the three nearest it are all that can have one over it. Four grids of cells, each shifted
+  // from the last, each after the first only in more charge than the one before: up to four times as many at once.
+  const float CELL = 0.8;
+  const float MOMENT = 0.25;
+  float core = 0.0;
+  float glow = 0.0;
+  for (int layer = 0; layer < 4; layer += 1) {
+    float many = layer == 0 ? 1.0 : smoothstep(0.05 + 0.2 * float(layer), 0.35 + 0.2 * float(layer), charge);
+    if (many <= 0.0) break;
+    vec2 shift = float(layer) * vec2(0.37, 0.61);
+    vec2 g = p / CELL + shift;
+    vec2 home = floor(g);
+    vec2 toward = sign(fract(g) - 0.5);
+    for (int k = 0; k < 4; k += 1) {
+      vec2 cell = home + vec2(k == 1 || k == 3 ? toward.x : 0.0, k >= 2 ? toward.y : 0.0);
+      // Each cell on a clock of its own, so that they do not all strike at once.
+      float clock = uTime / MOMENT + hash(cell + 0.7 + float(layer) * 3.3) * 17.0;
+      float moment = mod(floor(clock), 997.0);
+      vec2 key = cell + vec2(moment * 0.618, moment * 0.347) + float(layer) * 51.0;
+      float patches = noise(cell * 0.6 + uTime * 0.07);
+      if (hash(key + 2.3) > min(0.95, charge * (0.35 + 0.75 * patches)) * many) continue;
+      // Somewhere in the moment, for a fourteenth of a second to a fifth.
+      float lasts = 0.07 + 0.13 * hash(key + 4.1);
+      float t = (fract(clock) * MOMENT - hash(key + 5.3) * (MOMENT - lasts)) / lasts;
+      if (t < 0.0 || t > 1.0) continue;
+      vec2 origin = (cell - shift + 0.25 + 0.5 * vec2(hash(key + 6.1), hash(key + 6.9))) * CELL;
+      float reach = 0.12 + 0.18 * hash(key + 7.7);
+      if (length(p - origin) > reach * 1.7 + 0.05) continue;
+      // Out in steps, dim, over the first half of its life; then all of it at once, flickering out.
+      float share = (floor(smoothstep(0.0, 0.5, t) * 6.0) + 1.0) / 7.0;
+      float flicker = 0.5 + 0.5 * step(0.3, hash(vec2(mod(floor(uTime * 45.0), 991.0), key.x + key.y)));
+      float bright = t < 0.5 ? 0.35 + 0.25 * share : exp(-(t - 0.5) * 7.0) * flicker;
+      if (t >= 0.5) share = 1.0;
+      float d = discharge(p, origin, hash(key + 8.3) * 6.2832, reach, hash(key + 9.1) * 50.0, share);
+      float width = max(0.0006, pixel * 0.5);
+      core = max(core, (1.0 - smoothstep(width, width + pixel, d)) * bright);
+      glow += (exp(-d / 0.006) * 0.6 + exp(-d / 0.03) * 0.2) * bright;
+    }
+  }
+  return vec3(0.84, 0.7, 1.0) * core * 1.4 + vec3(0.55, 0.25, 1.0) * glow;
+}
+`;
+
 const FRAGMENT = `
 precision highp float;
 in vec3 vNormal;
@@ -287,16 +391,6 @@ float crystals(vec2 q, float detail) {
   branches *= smoothstep(0.05, 0.4, pow(ridged(q * vec2(120.0, 15.0) + vec2(0.4 * noise(q * vec2(10.0, 3.0)), 0.0)), 3.0));
   return mix(0.22, max(needles, 0.85 * branches) + 0.12 * noise(q * 900.0), detail);
 }
-float fbm(vec2 p) {
-  float sum = 0.0;
-  float amplitude = 0.5;
-  for (int i = 0; i < 4; i += 1) {
-    sum += amplitude * noise(p);
-    p = p * 2.03 + 17.0;
-    amplitude *= 0.5;
-  }
-  return sum / 0.9375;
-}
 // The bead whose home is the cell 'home' (its corner), as 'bead' says it.
 vec3 beadFrom(vec2 p, vec2 home, float seed, float amount, float blow, vec2 way) {
   vec2 cell = home + seed;
@@ -351,6 +445,7 @@ vec3 bead(vec2 p, float seed, float amount, float blow, vec2 way) {
   }
   return nearest;
 }
+${ST_ELMO}
 #endif
 #ifdef BROKEN
 // The pieces this draw is of, a bit each (hull, left wing, right wing, tail); all four for a mesh that is not cut.
@@ -494,15 +589,9 @@ void main() {
       * smoothstep(0.1 * spikes + 0.02, 0.0, length(d));
   }
 
-  // St Elmo's fire: violet threads crawling over the glass in patches, flickering; a few patches in a little charge, all of it in a lot.
-  if (uCharge > 0.01) {
-    vec2 q = onGlass * 6.0;
-    vec2 warp = vec2(fbm(q + vec2(uTime * 0.6, -uTime * 0.35)), fbm(q + vec2(-uTime * 0.45, uTime * 0.5) + 5.2));
-    float ridge = 1.0 - abs(fbm(q * 1.8 + warp * 2.5 - uTime * 0.2) * 2.0 - 1.0);
-    float patches = smoothstep(0.75 - 0.45 * uCharge, 0.95 - 0.25 * uCharge, noise(onGlass * 1.3 + vec2(uTime * 0.11, uTime * 0.07)));
-    float flicker = 0.55 + 0.45 * noise(vec2(uTime * 19.0, 3.0));
-    light += (vec3(0.5, 0.38, 1.0) * pow(ridge, 18.0) * 1.8 + vec3(0.32, 0.18, 0.9) * pow(ridge, 5.0) * 0.3) * patches * flicker * uCharge;
-  }
+  // St Elmo's fire: short violet discharges finding their way over the glass; a few in a little charge, many in a lot.
+  float pixel = length(fwidth(onGlass));
+  if (uCharge > 0.01) light += stElmo(onGlass, pixel, uCharge);
 
   // The water over the glass.
   colour = vec4(water.rgb + colour.rgb * (1.0 - water.a), water.a + colour.a * (1.0 - water.a));

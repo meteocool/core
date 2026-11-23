@@ -92,10 +92,11 @@ export interface EcamInput {
   autopilotLost: boolean;
   /** Where the flap lever is, 0 to 4; in where not said. */
   flaps?: number;
-  /** Every spoiler up, after a landing; the engines' thrust turned back; the engines held at full thrust for the angle of attack. */
+  /** Every spoiler up, after a landing; the engines' thrust turned back; the engines held at full thrust for the angle of attack, and after it. */
   groundSpoilers?: boolean;
   reverse?: boolean;
   alphaFloor?: boolean;
+  thrustLocked?: boolean;
 }
 
 export interface Ecam {
@@ -190,6 +191,7 @@ export function ecamOf(input: EcamInput): Ecam {
     }
   }
   if (input.alphaFloor) cautions.push({ text: "A.FLOOR", colour: "amber" });
+  else if (input.thrustLocked) cautions.push({ text: "TOGA LK", colour: "amber" });
   const memo: EcamLine[] = [];
   const low = input.radarAltitude !== null && input.radarAltitude < LANDING_MEMO_M;
   const flaps = input.flaps ?? 0;

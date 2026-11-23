@@ -339,7 +339,19 @@
         "air": "Outside",
         "frames": "Frames",
         "target": "Storm",
-        "radio": "Above ground"
+        "radio": "Above ground",
+        "score": "Score",
+        "best": "Best"
+      },
+      "feat": {
+        "stElmo": "St Elmo's fire",
+        "hail": "Hail on the glass",
+        "lightning": "Lightning close by",
+        "iced": "Iced up",
+        "severe": "Severe turbulence",
+        "core": "Ten seconds in the core",
+        "landed": "Landed",
+        "butter": "Butter landing"
       },
       "keys": {
         "title": "Flying",
@@ -487,7 +499,8 @@
         "show": "Show the flight deck again",
         "turn": "Turn your phone sideways to fly",
         "turn_fullscreen": "Turn your phone sideways to fly · tap for full screen",
-        "paused": "Paused",
+        "paused_resume": "Paused · tap to resume",
+        "thrust_locked": "TOGA LK · thrust held at full · pull the lever back",
         "again": "Throttle up to take off again · Restart to fly the approach again",
         "hint": {
           "stick": "Right thumb: the stick. Pull it down for nose up.",
@@ -510,7 +523,8 @@
       },
       "flaps_jammed": "FLAPS JAMMED",
       "gear_jammed": "GEAR JAMMED",
-      "alpha_floor": "A.FLOOR · full thrust",
+      "alpha_floor": "A.FLOOR · full thrust · too slow: lower the nose",
+      "thrust_locked": "TOGA LK · thrust held at full · press S to pull it back",
       "crash": {
         "terrain": "The ground was too steep to land on",
         "gear": "Landed with the gear up",

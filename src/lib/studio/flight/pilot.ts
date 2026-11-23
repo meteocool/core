@@ -51,6 +51,8 @@ import { advance, BLAST_FROM, broken, harmed, intact, shown, shudder, surfacesLo
 import type { Damage, DamageEvent } from "./damage";
 import { boltPaths, FLASH_S, flicker, glare, thunderDelay } from "./lightning";
 import { chargeOf, daylightOf, wetted } from "./glass";
+import { bestScore, FEATS, keepBest, landedScore, NO_SCORE, scored } from "./score";
+import type { Feat, FlightScore } from "./score";
 import type { Bolt } from "../../../layers/weatherPass";
 import { FlightSound } from "./sound";
 import { alarmsOf, alarmStep, NO_ALARMS, silence, silencedOf } from "./alarms";
@@ -304,9 +306,15 @@ export interface Telemetry {
   flapLever: number;
   /** How far the aircraft has rolled since it last touched down, metres. */
   rolled: number;
+  /** This flight's score (score.ts), and the best one flown in this browser, this one included. */
+  score: FlightScore;
+  best: number;
   /** Seconds flown. */
   time: number;
 }
+
+/** How long a bonus earned is said, seconds. */
+const FEAT_SHOWN_S = 3;
 
 const prefersReducedMotion = () => typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches;
 
@@ -364,6 +372,12 @@ export class Pilot {
    */
   private fallen: { bearing: number; yaw: number } | null = null;
   private paused = false;
+  /** The thrust left at full by the floor, until the lever is moved (`FlightStatus.thrustLocked`). */
+  private thrustLocked = false;
+  /** A strike's glare on the glass as it is, for the score: also for a reader who asked for less motion, who is not shown it. */
+  private glare = 0;
+  /** Until when the last bonus is said, seconds of flight. */
+  private featUntil = -Infinity;
   /**
    * The flight paused when the page goes out of sight: another tab, another
    * app, the screen locked. It stays paused on coming back, for the reader
@@ -464,6 +478,7 @@ export class Pilot {
       state: this.startState(), ias: 0, mach: 0, ground: null, radarAltitude: null, target: null, dbz: null,
       cloud: 0, rain: 0, turbulence: 0, severity: 0, hail: 0, ice: 0, frost: 0, wet: 0, charge: 0, sun: 1, sky: 1, draft: 0, temperature: 0, fps: 60, quality: 1,
       storms: stage.stormTiles(), marks: [], cut: null, chart: { storms: [], target: null }, fade: 0, flash: 0, brake: false, time: 0, gear: 0, flapLever: 0, rolled: 0,
+      score: NO_SCORE, best: bestScore(),
     };
   }
 
@@ -509,6 +524,7 @@ export class Pilot {
   stop(): void {
     if (this.stopped) return;
     this.stopped = true;
+    keepBest(this.telemetry.score.points);
     if (this.frame !== null) cancelAnimationFrame(this.frame);
     this.frame = null;
     this.keys.stop();
@@ -1087,6 +1103,16 @@ export class Pilot {
     this.fading = { at: 0, moved: false };
   }
 
+  /** The score as it now stands, and the last bonus earned said for a moment. */
+  private score({ score, earned }: { score: FlightScore; earned: Feat[] }): void {
+    this.telemetry.score = score;
+    this.telemetry.best = Math.max(this.telemetry.best, score.points);
+    const feat = earned.at(-1);
+    if (!feat) return;
+    this.featUntil = this.telemetry.time + FEAT_SHOWN_S;
+    this.status({ feat: { feat, points: earned.reduce((sum, each) => sum + FEATS[each].points, 0) } });
+  }
+
   private status(patch: Partial<FlightStatus>): void {
     const current = get(flightStatus);
     if (Object.entries(patch).every(([key, value]) => JSON.stringify(current[key as keyof FlightStatus]) === JSON.stringify(value))) {
@@ -1200,6 +1226,9 @@ export class Pilot {
     // An autopilot does not fly a stall, nor a landing, nor an aircraft that has lost anything.
     if ((state.stalled || state.onGround || harmed(this.damage)) && this.autopilot !== null) this.act("autopilot", false);
     this.landed(before, state, dt);
+    // The floor leaves the thrust at full when it lets go, below its height or with the nose down again: until the lever is moved.
+    if (state.alphaFloor) this.thrustLocked = true;
+    else if (input.throttle !== 0 || state.throttle < 1 || state.crash) this.thrustLocked = false;
 
     telemetry.state = state;
     telemetry.ground = ground;
@@ -1218,6 +1247,7 @@ export class Pilot {
       flapsMoving: Math.abs(state.flaps - telemetry.flapLever) > 0.02,
       spoilers: state.spoilers < 0.05 ? "in" : state.spoilers > SPEEDBRAKE + 0.1 ? "ground" : "brake",
       onGround: state.onGround, reverse: state.reverse > 0.5, alphaFloor: state.alphaFloor,
+      thrustLocked: this.thrustLocked && !state.alphaFloor,
     });
     if (telemetry.time > this.crashUntil) this.status({ crash: null });
     // Cloud thickens and thins over half a second or so, as it does past the glass.
@@ -1233,6 +1263,11 @@ export class Pilot {
     // The charge builds over a couple of seconds and goes a little faster; the light changes as fast as the cloud does.
     const charge = chargeOf(air, telemetry.flash);
     telemetry.charge += (charge - telemetry.charge) * (1 - Math.exp(-dt / (charge > telemetry.charge ? 2 : 1.2)));
+    this.score(scored(telemetry.score, {
+      dbz, cloud: telemetry.cloud, charge: telemetry.charge, hail: telemetry.hail, glare: this.glare, frost: telemetry.frost, severity,
+      flying: !state.onGround && !state.crash,
+    }, flown));
+    if (telemetry.time > this.featUntil && get(flightStatus).feat) this.status({ feat: null });
     const daylight = daylightOf(telemetry.cloud, dbz);
     telemetry.sun += (daylight.sun - telemetry.sun) * (1 - Math.exp(-dt / 0.8));
     telemetry.sky += (daylight.sky - telemetry.sky) * (1 - Math.exp(-dt / 1.5));
@@ -1447,6 +1482,7 @@ export class Pilot {
     const touchdown = state.touchdown;
     if (!before.onGround && touchdown) {
       telemetry.rolled = 0;
+      this.score(landedScore(telemetry.score, touchdown.sink));
       this.sound?.touchdown(touchdown.sink, false);
     }
     telemetry.rolled += state.tas * dt;
@@ -1514,7 +1550,15 @@ export class Pilot {
       this.telemetry.gear = 0;
       this.telemetry.flapLever = 0;
       this.telemetry.rolled = 0;
-      this.status({ gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false, reverse: false, alphaFloor: false, landing: null });
+      this.thrustLocked = false;
+      // A new flight, a new score; the last one kept if it was the best.
+      this.telemetry.best = keepBest(this.telemetry.score.points);
+      this.telemetry.score = NO_SCORE;
+      this.featUntil = -Infinity;
+      this.status({ feat: null });
+      this.status({
+        gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false, reverse: false, alphaFloor: false, thrustLocked: false, landing: null,
+      });
       this.alarms = NO_ALARMS;
       this.status({ autopilot: false, warnings: [], alarms: [], silenced: [], clearSky: this.approach.target === null });
     }
@@ -1767,6 +1811,7 @@ export class Pilot {
     ]);
     this.travel = [this.travel[0] + air[0] * this.dt, this.travel[1] + air[1] * this.dt, this.travel[2] + air[2] * this.dt];
     const lightning = this.lightning(pose);
+    this.glare = lightning.glare;
     this.telemetry.flash = this.reducedMotion ? 0 : lightning.glare;
     const { rain, hail, ice } = this.telemetry;
     this.stage.setFlightWeather({

@@ -159,9 +159,10 @@ function drawPopup(element: HTMLElement, seen: Telemetry["marks"][number], telem
 /** Whether the browser puts a page over the whole screen: the disc beside the way out. */
 const canFullscreen = fullscreenSupported();
 
-let readouts: Record<"speed" | "altitude" | "heading" | "target" | "air" | "frames" | "radio" | "rolled", HTMLElement | null> = {
-  speed: null, altitude: null, heading: null, target: null, air: null, frames: null, radio: null, rolled: null,
+let readouts: Record<"speed" | "altitude" | "heading" | "target" | "air" | "frames" | "radio" | "rolled" | "score" | "best", HTMLElement | null> = {
+  speed: null, altitude: null, heading: null, target: null, air: null, frames: null, radio: null, rolled: null, score: null, best: null,
 };
+const points = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
 /** How a landing went, by how fast it came down, m/s: up to 120, 300 and 600 ft a minute, and harder. */
 const landingGrade = (sink: number) => (sink < 0.6 ? "butter" : sink < 1.5 ? "smooth" : sink < 3 ? "firm" : "hard");
@@ -193,6 +194,10 @@ function frame(telemetry: Telemetry): void {
   write(readouts.radio, `${over < 50 ? Math.round(over) : Math.round(over / 10) * 10} ft`);
   write(readouts.rolled, `${Math.round(telemetry.rolled / 10) * 10} m`);
   write(readouts.heading, `${String(Math.round(state.heading) % 360).padStart(3, "0")}°`);
+  const { score } = telemetry;
+  write(readouts.score, `${points.format(Math.floor(score.points))}${score.rate ? ` · +${score.rate}/s` : ""}`);
+  readouts.score?.classList.toggle("earning", score.rate > 0);
+  write(readouts.best, points.format(Math.floor(telemetry.best)));
   const { target } = telemetry;
   // How far, and how long at this speed: no time for an aircraft standing still, or as good as.
   const minutes = target && target.seconds < 6 * 3600
@@ -397,7 +402,12 @@ const WARNINGS = {
       {/each}
     </div>
     <dl class="readouts">
-      <div class="corner-nw"><dt>{$_("studio.flight.readout.speed")}</dt><dd bind:this={readouts.speed}></dd></div>
+      <div class="corner-nw">
+        <dt>{$_("studio.flight.readout.speed")}</dt><dd bind:this={readouts.speed}></dd>
+        <!-- The score: earned in a storm's cloud, faster the stronger its echo, and lit while it is; and the best flown here. -->
+        <dt>{$_("studio.flight.readout.score")}</dt><dd class="score" bind:this={readouts.score}></dd>
+        <dt>{$_("studio.flight.readout.best")}</dt><dd bind:this={readouts.best}></dd>
+      </div>
       <div class="corner-ne" class:beside-screen={canFullscreen}>
         <dt>{$_("studio.flight.readout.altitude")}</dt><dd bind:this={readouts.altitude}></dd>
         <!-- Low down the height over the ground reads out with it; hidden, not gone, so the frame has somewhere to write. -->
@@ -451,12 +461,21 @@ const WARNINGS = {
     {/each}
     {#if status.alphaFloor && status.view !== "clean"}
       <p class="note caution">{$_("studio.flight.alpha_floor")}</p>
+    {:else if status.thrustLocked && status.view !== "clean"}
+      <p class="note caution">{$_($touchControls ? "studio.flight.touch.thrust_locked" : "studio.flight.thrust_locked")}</p>
     {/if}
     {#if status.clearSky && status.view !== "clean"}
       <p class="note">{$_("studio.flight.clear_sky")}</p>
     {/if}
-    {#if status.paused}
-      <p class="note">{$_($touchControls ? "studio.flight.touch.paused" : "studio.flight.paused")}</p>
+    <!-- Under a finger the touch controls' own button says it, and resumes. -->
+    {#if status.feat && status.view !== "clean"}
+      <!-- A bonus earned: what for, and how much. -->
+      {#key status.feat}
+        <p class="note feat">{$_(`studio.flight.feat.${status.feat.feat}`)} · +{points.format(status.feat.points)}</p>
+      {/key}
+    {/if}
+    {#if status.paused && !$touchControls}
+      <p class="note">{$_("studio.flight.paused")}</p>
     {/if}
   </div>
 
@@ -1029,9 +1048,12 @@ const WARNINGS = {
   .warning.caution { border-color: #ffb340; background: rgba(10, 6, 0, 0.6); color: #ffb340; }
   .warning.silenced { opacity: 0.45; animation: none; }
   .note.caution { color: #ffb340; font-weight: 700; }
+  .note.feat { border: 1px solid rgba(191, 140, 255, 0.7); color: #e2ccff; font-weight: 700; animation: feat 0.35s ease-out; }
+  @keyframes feat { from { opacity: 0; transform: scale(0.85); } }
+  .readouts .score.earning { color: #d9b8ff; }
   @keyframes blink { to { visibility: hidden; } }
   @media (prefers-reduced-motion: reduce) {
-    .warning { animation: none; }
+    .warning, .note.feat { animation: none; }
   }
 
   /* The way out and the whole screen, side by side in the corner. */

@@ -83,6 +83,14 @@ test("each warning is called in red and lights the master warning; the overspeed
   assert.equal(ecamOf({ ...calm, autopilotLost: true }).warnings[0].text, "AUTO FLT AP OFF");
 });
 
+test("the floor's full thrust reads A.FLOOR, and TOGA LK once it has let go with the thrust still held; neither lights the master caution", () => {
+  const floor = ecamOf({ ...calm, alphaFloor: true, thrustLocked: true });
+  assert.deepEqual(floor.warnings.map((line) => line.text), ["A.FLOOR"]);
+  const locked = ecamOf({ ...calm, thrustLocked: true });
+  assert.deepEqual(locked.warnings.map((line) => [line.text, line.colour]), [["TOGA LK", "amber"]]);
+  assert.equal(locked.masterCaution, false);
+});
+
 test("ice, or a warning the display does not know, is a caution: amber, and the master caution, after the warnings", () => {
   const ecam = ecamOf({ ...calm, warnings: ["ice", "stall", "something"] });
   assert.deepEqual(ecam.warnings.map((line) => line.colour), ["red", "amber", "amber"]);
