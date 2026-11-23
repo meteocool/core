@@ -1,15 +1,22 @@
 <script lang="ts">
 /**
- * The flight's keys, as a card: on entry for a few seconds, and on H. Flown
+ * The flight's keys, as a card: on entry until the aircraft is first flown
+ * (a key that flies, a finger on a control), put away by its own close
+ * button, and brought back by H. Flown
  * by touch (TouchControls.svelte) there are no keys to list: the card says
  * in a few lines what each thumb has. With a gamepad plugged in, its sticks
  * and buttons are listed under the keys.
  */
+import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { onMount } from "svelte";
 import { _ } from "svelte-i18n";
 import { fullscreenSupported } from "../../../lib/fullscreen";
 import { touchControls } from "../../../lib/studio/flight/touch";
 import { studioFlightOnly } from "../../../lib/studio/store";
+import Icon from "../../Icon.svelte";
+
+/** Put the card away, as H does. */
+export let close: () => void;
 
 /** What the card says of the touch controls, a line each. */
 const TOUCH = ["stick", "throttle", "holds", "strip", "look"];
@@ -84,6 +91,10 @@ onMount(() => {
 
 <section class="keys glass glass-tray" class:touch={$touchControls} aria-label={$_("studio.flight.keys.title")}>
   <h2>{$_("studio.flight.keys.title")}</h2>
+  <button type="button" class="close" tabindex="-1" aria-label={$_("studio.flight.keys.close")} title={$_("studio.flight.keys.close")}
+    on:click={close}>
+    <Icon icon={faXmark} />
+  </button>
   {#if $touchControls}
     <ul>
       {#each TOUCH as line (line)}
@@ -121,8 +132,31 @@ onMount(() => {
     pointer-events: none;
   }
   h2 {
-    margin: 0 0 10px;
+    margin: 0 32px 10px 0;
     font: var(--mc-type-heading);
+  }
+  /* The card lets the view's drags through it; not its close button's press. */
+  .close {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 0;
+    border-radius: var(--mc-radius-pill);
+    background: transparent;
+    color: var(--mc-text-2);
+    font-size: 14px;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .close:hover,
+  .close:focus-visible {
+    color: var(--mc-text);
+    background: var(--mc-tint-hover);
   }
   h3 {
     margin: 12px 0 8px;

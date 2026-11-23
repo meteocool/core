@@ -363,6 +363,7 @@
         "mute": "Music off / on",
         "fullscreen": "Full screen",
         "help": "Show these keys",
+        "close": "Close help",
         "leave": "End the flight (asks first)",
         "leave_plan": "End the flight, back to its plan (asks first)",
         "flaps": "Flaps in / out one step",

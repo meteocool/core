@@ -21,6 +21,8 @@ const deck = (page: Page) => page.getByRole("region", { name: "Flight deck" });
 const throttle = (page: Page) => deck(page).getByLabel("Throttle");
 const flightPlan = (page: Page) => page.getByRole("region", { name: "Flight plan" });
 const leaveAsk = (page: Page) => page.getByRole("alertdialog", { name: "End the flight?" });
+/** The card of the controls, up from takeoff until the aircraft is first flown. */
+const help = (page: Page) => page.getByRole("region", { name: "Flying", exact: true });
 
 /** From Studio's panel to the air: the plan as it is proposed, and off. */
 async function takeOff(page: Page): Promise<void> {
@@ -313,5 +315,59 @@ test.describe("on a desktop", () => {
     await page.keyboard.press("Enter");
     await expect(panel(page)).toBeVisible();
     expect(await offGround()).toBe(false);
+  });
+
+  test("the controls' card stays up until a key first flies the aircraft, and its close button and H put it away and back", async ({ page }) => {
+    test.slow();
+    await page.goto(MAP_3D);
+    await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
+    await expect(panel(page)).toBeVisible({ timeout: 20_000 });
+    await takeOff(page);
+    await expect(deck(page)).toBeVisible();
+    await curtainUp(page);
+    await expect(help(page)).toBeVisible();
+    // Neither the time, nor the outside view, a click on it, the music or Shift alone put it away: none of them flies.
+    await page.keyboard.press("v");
+    await expect(deck(page)).toHaveClass(/view-outside/);
+    await page.mouse.click(700, 120);
+    await deck(page).getByRole("button", { name: "Music on" }).click();
+    await page.keyboard.press("Shift");
+    await page.keyboard.press("Control+ArrowUp");
+    await page.waitForTimeout(8000);
+    await expect(help(page)).toBeVisible();
+    // Its close button puts it away, and the corner's button brings it back.
+    await help(page).getByRole("button", { name: "Close help" }).click();
+    await expect(help(page)).toBeHidden();
+    await deck(page).getByRole("button", { name: "Controls" }).click();
+    await expect(help(page)).toBeVisible();
+    // The first key that flies puts it away; H brings it back.
+    await page.keyboard.press("ArrowUp");
+    await expect(help(page)).toBeHidden();
+    await page.keyboard.press("h");
+    await expect(help(page)).toBeVisible();
+  });
+
+  test.describe("with a touch screen", () => {
+    test.use({ hasTouch: true });
+
+    test("the controls' card stays up until a finger is first on a flight control", async ({ page }) => {
+      test.slow();
+      await page.goto(MAP_3D);
+      await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
+      await expect(panel(page)).toBeVisible({ timeout: 20_000 });
+      await takeOff(page);
+      await expect(deck(page)).toBeVisible();
+      await curtainUp(page);
+      await page.keyboard.press("v");
+      await expect(deck(page)).toHaveClass(/view-outside/);
+      // A finger on the view brings the touch controls up, and flies nothing.
+      await page.touchscreen.tap(700, 120);
+      await expect(page.getByRole("group", { name: "Touch controls" })).toBeVisible();
+      await expect(help(page)).toBeVisible();
+      // A thumb on the stick, even held still in its middle, is flying.
+      const stick = await page.getByLabel("Stick: nose up and down, roll left and right").boundingBox();
+      await page.touchscreen.tap(stick!.x + stick!.width / 2, stick!.y + stick!.height / 2);
+      await expect(help(page)).toBeHidden();
+    });
   });
 });

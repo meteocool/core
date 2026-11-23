@@ -114,6 +114,7 @@ let stickFinger: { id: number; x: number; y: number } | null = null;
 function stickDown(event: PointerEvent): void {
   if (stickFinger) return;
   take(event);
+  pilot.takeControls();
   const [x, y] = framePoint(event);
   stickFinger = { id: event.pointerId, x, y };
 }
@@ -143,6 +144,7 @@ let rudderFinger: { id: number; x: number } | null = null;
 function rudderDown(event: PointerEvent): void {
   if (rudderFinger) return;
   take(event);
+  pilot.takeControls();
   rudderFinger = { id: event.pointerId, x: framePoint(event)[0] };
 }
 function rudderMove(event: PointerEvent): void {
@@ -205,6 +207,7 @@ function leverTo(share: number): void {
 function leverDown(event: PointerEvent): void {
   if (leverFinger) return;
   take(event);
+  pilot.takeControls();
   const at = shareAt(event);
   // Taken hold of by the grip, it moves with the thumb from where it is; pressed anywhere else on the track, it comes to the thumb.
   const off = at - gripShare();
@@ -231,6 +234,8 @@ function leverUp(event: PointerEvent): void {
 
 function hold(which: "brake" | "warp", on: boolean, event: PointerEvent): void {
   if (on) take(event);
+  // Held, the brakes fly; time run faster, as Shift, does not.
+  if (on && which === "brake") pilot.takeControls();
   if (which === "brake") brake = on;
   else warp = on;
   send();

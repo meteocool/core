@@ -181,9 +181,12 @@ export class Keys {
   private padTimer: ReturnType<typeof setInterval> | null = null;
   private readonly listeners: Array<[EventTarget, string, EventListener, boolean]> = [];
   private readonly onAction: (action: FlightAction) => void;
+  private readonly onFly: () => void;
 
-  constructor(onAction: (action: FlightAction) => void) {
+  /** `onFly`: a key that flies held, the first time or any time after; Shift alone, time run faster, does not fly. */
+  constructor(onAction: (action: FlightAction) => void, onFly: () => void = () => {}) {
     this.onAction = onAction;
+    this.onFly = onFly;
   }
 
   start(): void {
@@ -203,6 +206,7 @@ export class Keys {
         return;
       }
       this.held.add(key.code);
+      if (key.code !== "ShiftLeft" && key.code !== "ShiftRight") this.onFly();
     };
     const up = (event: Event) => {
       const key = event as KeyboardEvent;

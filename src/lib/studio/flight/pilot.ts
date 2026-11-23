@@ -225,8 +225,13 @@ const EYE_OVER_GROUND_M = 4;
 const ROLL_SHAKE = 0.3;
 const ROLL_SHAKE_MS = 70;
 
-/** How long the keys card stays up on entry, ms. */
-const KEYS_MS = 7000;
+/**
+ * What a press does that flies the aircraft: the first of them, or the
+ * first key held or finger on a control, puts the keys card away.
+ */
+const FLYING: ReadonlySet<FlightAction> = new Set<FlightAction>([
+  "autopilot", "gear", "flapsOut", "flapsIn", "speedbrake", "autobrake", "parkingBrake",
+]);
 
 /** How a cut to a new start fades: out, then in, seconds. */
 const FADE_OUT_S = 0.35;
@@ -400,7 +405,8 @@ export class Pilot {
   /** Where a fade is: seconds into it, and whether the aircraft has been put back yet. */
   private fading: { at: number; moved: boolean } | null = null;
   private recording: Recording | null = null;
-  private keysTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Whether the aircraft has been flown yet this flight: until then the keys card stays up. */
+  private takenControls = false;
   private stopped = false;
   private readonly reducedMotion = prefersReducedMotion();
   /** What the flight borrowed of Studio, to give back. */
@@ -446,7 +452,7 @@ export class Pilot {
     /** What the reader settled before taking off (plan.ts). */
     private readonly flightPlan: FlightPlan,
   ) {
-    this.keys = new Keys((action) => this.act(action));
+    this.keys = new Keys((action) => this.act(action), () => this.takeControls());
     this.before = {
       style: get(cloudStyle), peel: get(peelLevel), manual: get(peelManual), fov: get(studioFov), scan: get(cloudsTime).shown,
     };
@@ -489,7 +495,6 @@ export class Pilot {
     this.keys.start();
     document.addEventListener("visibilitychange", this.hidden);
     window.addEventListener("pagehide", this.away);
-    this.keysTimer = setTimeout(() => this.status({ keys: false }), KEYS_MS);
     this.frame = requestAnimationFrame((now) => this.tick(now));
     // While developing, within reach of the console: to put the aircraft somewhere, or a storm round it.
     if (import.meta.env?.DEV) (window as unknown as { flightPilot?: Pilot }).flightPilot = this;
@@ -506,8 +511,6 @@ export class Pilot {
     this.stopped = true;
     if (this.frame !== null) cancelAnimationFrame(this.frame);
     this.frame = null;
-    if (this.keysTimer !== null) clearTimeout(this.keysTimer);
-    this.keysTimer = null;
     this.keys.stop();
     document.removeEventListener("visibilitychange", this.hidden);
     window.removeEventListener("pagehide", this.away);
@@ -654,8 +657,20 @@ export class Pilot {
     return this.stage.radarTiles();
   }
 
-  /** Do what a key press asks; the deck's buttons call this too. */
-  act(action: FlightAction): void {
+  /**
+   * The aircraft flown for the first time this flight, by a key, a button,
+   * a finger or the mouse on a control: the keys card, up since takeoff, is
+   * put away. H brings it back.
+   */
+  takeControls(): void {
+    if (this.takenControls) return;
+    this.takenControls = true;
+    if (get(flightStatus).keys) this.status({ keys: false });
+  }
+
+  /** Do what a key press asks; the deck's buttons call this too, and the flight itself (`byHand` false), letting go of the autopilot. */
+  act(action: FlightAction, byHand = true): void {
+    if (byHand && FLYING.has(action)) this.takeControls();
     // Asked whether to end the flight, the keys answer that and nothing else: Enter ends it, Escape flies on.
     if (get(flightStatus).leaving) {
       if (action === "confirm") this.leave();
@@ -753,8 +768,6 @@ export class Pilot {
         this.parkingBrake = !this.parkingBrake;
         break;
       case "help":
-        if (this.keysTimer !== null) clearTimeout(this.keysTimer);
-        this.keysTimer = null;
         this.status({ keys: !get(flightStatus).keys });
         break;
       case "silence": {
@@ -992,6 +1005,7 @@ export class Pilot {
     if (!pick || !control?.hold) return false;
     this.hand = { hold: control.hold, input: { ...NO_INPUT, yaw: control.faces[pick.face].push ?? 0 } };
     this.handOn = pick.name;
+    this.takeControls();
     return true;
   }
 
@@ -1118,6 +1132,8 @@ export class Pilot {
     const telemetry = this.telemetry;
     const input = this.withHand(this.keys.read());
     this.input = input;
+    // A gamepad's stick or the deck's own under the mouse, the first time; keys and fingers say so themselves.
+    if (Keys.moving(input) || input.throttle !== 0) this.takeControls();
     if (this.autopilot !== null && Keys.moving(input)) this.act("autopilot");
 
     if (this.fading) this.fade(dt);
@@ -1182,7 +1198,7 @@ export class Pilot {
     for (let left = flown; left > 1e-6; left -= MAX_DT) state = step(state, asked, Math.min(left, MAX_DT), env);
     this.strain(state, floor, flown);
     // An autopilot does not fly a stall, nor a landing, nor an aircraft that has lost anything.
-    if ((state.stalled || state.onGround || harmed(this.damage)) && this.autopilot !== null) this.act("autopilot");
+    if ((state.stalled || state.onGround || harmed(this.damage)) && this.autopilot !== null) this.act("autopilot", false);
     this.landed(before, state, dt);
 
     telemetry.state = state;

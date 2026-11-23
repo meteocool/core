@@ -461,7 +461,7 @@ const WARNINGS = {
   </div>
 
   {#if status.keys && status.view !== "clean"}
-    <FlightKeys />
+    <FlightKeys close={() => pilot.act("help")} />
   {:else if status.view === "outside"}
     <!-- Where the keys' card stands while that is up. -->
     <FlightMinimap {pilot} bind:this={minimap} />

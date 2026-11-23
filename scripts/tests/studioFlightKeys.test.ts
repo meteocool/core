@@ -34,3 +34,23 @@ test("an arrow whose keyup a Cmd shortcut swallowed does not stay held", () => {
     keys.stop();
   }
 });
+
+test("a key that flies says so; Shift, a shortcut and the others' keys do not", () => {
+  const { send } = page();
+  let flown = 0;
+  const actions: string[] = [];
+  const keys = new Keys((action) => actions.push(action), () => { flown += 1; });
+  keys.start();
+  try {
+    send("keydown", "ShiftLeft", "Shift");
+    send("keydown", "KeyV", "v");
+    send("keydown", "KeyH", "h");
+    send("keydown", "ArrowUp", "ArrowUp", { ctrlKey: true });
+    assert.equal(flown, 0);
+    assert.deepEqual(actions, ["view", "help"]);
+    send("keydown", "ArrowUp", "ArrowUp");
+    assert.equal(flown, 1);
+  } finally {
+    keys.stop();
+  }
+});
