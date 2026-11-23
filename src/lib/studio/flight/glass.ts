@@ -74,6 +74,17 @@ export function daylightOf(cloud: number, dbz: number | null): { sun: number; sk
   return { sun: (1 - 0.92 * cloud) * (1 - 0.75 * storm), sky: 1 - 0.25 * cloud - 0.4 * storm };
 }
 
+/**
+ * Cloud's colour as the sky lights it (`sky` from `daylightOf`, 0 to 1): near
+ * white in daylight, a storm's grey where it is dark. Cloud round the eye and
+ * an aircraft going from sight in it are this one colour, or the aircraft
+ * shows brighter than the cloud it is in.
+ */
+export function cloudColour(sky = 1): [number, number, number] {
+  const light = 0.4 + 0.6 * Math.min(Math.max(sky, 0), 1);
+  return [0.86 * light, 0.89 * light, 0.92 * light];
+}
+
 type Vec3 = [number, number, number];
 
 /**

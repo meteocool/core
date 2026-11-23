@@ -31,7 +31,7 @@ import type { AircraftModel, CockpitPose } from "../lib/studio/flight/model";
 import { blastGlare, makeEffectsPass } from "./aircraftEffects";
 import type { EffectsPass } from "./aircraftEffects";
 import { perspective } from "../lib/studio/flight/view";
-import { windowPanes } from "../lib/studio/flight/glass";
+import { cloudColour, windowPanes } from "../lib/studio/flight/glass";
 import type { WindowPane } from "../lib/studio/flight/glass";
 import type { Vec3 } from "../lib/studio/flight/view";
 import { AIRCRAFT_BYTES, AIRCRAFT_MODEL, fetchAsset, forgetAsset } from "../lib/studio/flight/assets";
@@ -742,9 +742,6 @@ const SCREEN_LIGHTING: Vec3 = [1, 0, 0];
 /** From inside, the windshield is looked through, not at: this much of its own tint. */
 const GLASS_FROM_INSIDE = 0.2;
 
-/** The cloud's colour on the glass. */
-const VEIL_COLOUR: Vec3 = [0.86, 0.89, 0.92];
-
 /** A lightning strike's light, at its brightest: blue-white, and stronger on a flight deck than on a hull in the open sky. */
 const LIGHTNING_COLOUR: Vec3 = [0.78, 0.84, 1];
 const LIGHTNING_INSIDE = 0.95;
@@ -1120,7 +1117,7 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       webgl.enable(webgl.BLEND);
       webgl.blendFunc(webgl.ONE, webgl.ONE_MINUS_SRC_ALPHA);
       webgl.useProgram(veil);
-      for (const [colour, strength] of [[VEIL_COLOUR, view.veil * 0.96], [[1, 1, 1], view.flash * 0.6]] as const) {
+      for (const [colour, strength] of [[cloudColour(view.daylight), view.veil * 0.96], [[1, 1, 1], view.flash * 0.6]] as const) {
         if (strength <= 0.003) continue;
         webgl.uniform4f(uniform(veil, "uColour"), colour[0] * strength, colour[1] * strength, colour[2] * strength, strength);
         webgl.drawArrays(webgl.TRIANGLES, 0, 3);
@@ -1158,7 +1155,8 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
         webgl.uniform3f(uniform(using, "uLighting"), ambient + 0.55 * glare, lit, away);
         webgl.uniform3f(uniform(using, "uFlash"), LIGHTNING_COLOUR[0] * flash, LIGHTNING_COLOUR[1] * flash, LIGHTNING_COLOUR[2] * flash);
         webgl.uniform1i(uniform(using, "uTexture"), 0);
-        webgl.uniform4f(uniform(using, "uFog"), ...VEIL_COLOUR, view.inside ? 0 : view.fog ?? 0);
+        // The cloud the aircraft goes from sight in is the one round the eye, lit as the sky has it: grey in a storm, not white.
+        webgl.uniform4f(uniform(using, "uFog"), ...cloudColour(view.daylight), view.inside ? 0 : view.fog ?? 0);
       };
       prepare(shader);
       webgl.activeTexture(webgl.TEXTURE0);

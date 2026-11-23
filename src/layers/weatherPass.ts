@@ -28,6 +28,7 @@
  */
 import { perspective } from "../lib/studio/flight/view";
 import type { Vec3 } from "../lib/studio/flight/view";
+import { cloudColour } from "../lib/studio/flight/glass";
 
 /** One kind of thing falling past: how many, how long and thick a streak, what colour. */
 interface Fall {
@@ -264,9 +265,6 @@ uniform vec4 uColour;
 out vec4 colour;
 void main() { colour = uColour; }`;
 
-/** The cloud's colour round the eye. */
-const VEIL_COLOUR: Vec3 = [0.86, 0.89, 0.92];
-
 function compile(gl: WebGL2RenderingContext, vertex: string, fragment: string): WebGLProgram {
   const program = gl.createProgram()!;
   for (const [type, source] of [[gl.VERTEX_SHADER, vertex], [gl.FRAGMENT_SHADER, fragment]] as const) {
@@ -446,7 +444,7 @@ export function makeWeatherPass(gl: WebGL2RenderingContext): WeatherPass {
       }
       // Cloud round the eye, over the world and the lightning in it; what is nearer than that goes past in front of it.
       gl.useProgram(wash);
-      const veil = VEIL_COLOUR.map((channel) => channel * lightOf(view)) as Vec3;
+      const veil = cloudColour(view.sky);
       for (const [colour, strength] of [[veil, view.veil * 0.96], [[1, 1, 1], view.flash * 0.6]] as const) {
         if (strength <= 0.003) continue;
         gl.uniform4f(uniform(wash, "uColour"), colour[0] * strength, colour[1] * strength, colour[2] * strength, strength);
