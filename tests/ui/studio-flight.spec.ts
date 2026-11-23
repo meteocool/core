@@ -257,7 +257,7 @@ test.describe("on a desktop", () => {
     // The relief and the imagery draped on it: every tile of either the map asks for.
     let asked = 0;
     page.on("request", (request) => {
-      if (/tiles\.versatiles\.org\/tiles\/satellite-raster|map\.meteocool\.com\/mapterhorn-/.test(request.url())) asked += 1;
+      if (/tiles\.versatiles\.org\/tiles\/satellite-raster|map\.meteocool\.com\/mapterhorn-|tiles\.mapterhorn\.com\//.test(request.url())) asked += 1;
     });
     await page.goto(MAP_3D);
     await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });

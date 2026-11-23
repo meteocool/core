@@ -14,11 +14,12 @@ export const BASEMAP_ROUTE = /^https:\/\/map\.meteocool\.com\/.*\.mvt$/;
 
 /**
  * Versioned terrain, from the same host: immutable per URL as well. Its own
- * cache, because a terrain tile is a 120-160 kB image where a basemap tile is
+ * cache, because a terrain tile is a 120-200 kB image where a basemap tile is
  * a few kB of vectors, and sharing one entry cap would let the 3D map's relief
- * push the flat map's streets out.
+ * push the flat map's streets out. Mapterhorn's own tiles past our copy's
+ * zooms (layers/terrain.ts) share it: they change only when a survey does.
  */
-export const TERRAIN_ROUTE = /^https:\/\/map\.meteocool\.com\/mapterhorn-[^/]+\/.*\.webp$/;
+export const TERRAIN_ROUTE = /^https:\/\/(map\.meteocool\.com\/mapterhorn-[^/]+|tiles\.mapterhorn\.com)\/.*\.webp$/;
 
 /**
  * Radar frames: cache-first.

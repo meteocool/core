@@ -28,7 +28,7 @@ import { HOLES } from "../layers/networkHoles";
 import type { NetworkCode } from "../layers/networkHoles";
 import { forgetMaskedTiles, installMaskedProtocol, registerMaskedTiles } from "../layers/maskedTiles";
 import { maskPath } from "../layers/tileMask";
-import { applyTerrain, VERTICAL_SCALE } from "../layers/terrain";
+import { applyTerrain, installTerrainProtocol, isMissingTerrain, VERTICAL_SCALE } from "../layers/terrain";
 import { budgetDrapes, flightFog, lookedAtHeight } from "../layers/flightGround";
 import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
@@ -1310,6 +1310,7 @@ export default class Cells3DCapability extends Capability {
       // The radar rasters' tiles come through `masked://`; see `ensureRadar`.
       installMaskedProtocol(maplibre);
       installSatelliteProtocol(maplibre);
+      installTerrainProtocol(maplibre);
       built = true;
       let settle!: () => void;
       this.settled = new Promise((resolve) => { settle = resolve; });
@@ -1497,6 +1498,8 @@ export default class Cells3DCapability extends Capability {
         // knows only the error.
         const { sourceId, tile } = event as typeof event & { sourceId?: string; tile?: unknown };
         if (sourceId && tile) {
+          // No relief deeper than the tile a zoom up there, which MapLibre draws instead.
+          if (isMissingTerrain(event.error)) return;
           this.failedSources.add(sourceId);
           console.warn(`3D map: a ${sourceId} tile failed`, event.error);
           return;

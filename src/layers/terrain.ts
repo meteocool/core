@@ -10,7 +10,11 @@
  *
  * Served beside the basemap from map.meteocool.com, out of our own copy of
  * Mapterhorn's archive: the same bytes as their public tiles, versioned by
- * build date like the basemap so a URL never changes content.
+ * build date like the basemap so a URL never changes content. That copy is
+ * their worldwide archive, which ends at zoom 12, 13 m a pixel in the Alps:
+ * flying low there, ridges and faces were smooth blurs. Over the Alps the
+ * three zooms past it, to 1.7 m, come from Mapterhorn's own tile endpoint,
+ * which they offer for this use; see `terrainTileUrl`.
  */
 import type { HillshadeLayerSpecification, Map as GlMap } from "maplibre-gl";
 import { mapterhornAttribution } from "./attributions";
@@ -37,12 +41,88 @@ const TERRAIN_VERSION = import.meta.env?.VITE_TERRAIN_VERSION ?? "20261002";
 /** Terrarium-encoded 512px WebP, worldwide, zoom 0 to 12. */
 const TERRAIN_TILES = `https://map.meteocool.com/mapterhorn-${TERRAIN_VERSION}/{z}/{x}/{y}.webp`;
 
+/** Where our copy ends: about 20 m a pixel at the equator, 13 m in the Alps. */
+export const TERRAIN_COPY_ZOOM = 12;
+
 /**
- * Where the tiles stop being fetched; MapLibre overzooms past it. The archive
- * itself ends here too. About 20 m a pixel, finer than a 250 m radar voxel by
- * far, and every level more is four times the tiles on a phone's connection.
+ * Mapterhorn's own tiles, the same encoding, from national surveys' lidar
+ * where there is one: zoom 13 to 17 over much of Europe, a 404 elsewhere.
+ * Free to use, commercially too, and to cache, under the source datasets'
+ * licences, which the attribution's page lists (mapterhorn.com/faq).
  */
-const TERRAIN_MAX_ZOOM = 12;
+const DEEP_TILES = "https://tiles.mapterhorn.com";
+
+/**
+ * Where the tiles stop being fetched; MapLibre overzooms past it. 1.7 m a
+ * pixel in the Alps, as sharp as the ground looks from a cockpit a few
+ * hundred metres over it. A level more is four times the tiles for detail
+ * the satellite imagery draped on it hardly has.
+ */
+export const TERRAIN_MAX_ZOOM = 15;
+
+/**
+ * Where the zooms past our copy are fetched, west, south, east, north: the
+ * Alps and their foothills, from the Maritime Alps to Vienna's woods. Every
+ * survey there goes to zoom 15 at least. Elsewhere our copy is what there
+ * is, which keeps a flight over the plains from asking a free endpoint for
+ * tiles it would draw no differently.
+ */
+export const DEEP_TERRAIN_AREA: readonly [number, number, number, number] = [5.0, 43.6, 16.8, 48.4];
+
+/** The west, south, east and north edges of tile (z, x, y), in degrees. */
+export function tileBounds(z: number, x: number, y: number): [number, number, number, number] {
+  const n = 2 ** z;
+  const lat = (row: number) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * row) / n))) * 180) / Math.PI;
+  return [(x / n) * 360 - 180, lat(y + 1), ((x + 1) / n) * 360 - 180, lat(y)];
+}
+
+/**
+ * Where tile (z, x, y) is fetched from: our copy to its last zoom, past that
+ * Mapterhorn's endpoint over `DEEP_TERRAIN_AREA`, and null where it is not
+ * fetched at all, so that MapLibre draws the deepest tile it has.
+ */
+export function terrainTileUrl(z: number, x: number, y: number): string | null {
+  if (z <= TERRAIN_COPY_ZOOM) return TERRAIN_TILES.replace("{z}", `${z}`).replace("{x}", `${x}`).replace("{y}", `${y}`);
+  if (z > TERRAIN_MAX_ZOOM) return null;
+  const [west, south, east, north] = tileBounds(z, x, y);
+  const [areaWest, areaSouth, areaEast, areaNorth] = DEEP_TERRAIN_AREA;
+  if (east <= areaWest || west >= areaEast || north <= areaSouth || south >= areaNorth) return null;
+  return `${DEEP_TILES}/${z}/${x}/${y}.webp`;
+}
+
+/** The URL scheme the 3D map reads the relief through; see `installTerrainProtocol`. */
+const TERRAIN_SCHEME = "terrain";
+
+/**
+ * What a deep tile that is not there fails with: outside the area, or a 404
+ * where a survey stops short. Not a fault: MapLibre falls back to the tile
+ * a zoom up, and the 3D map does not ask for it again (`isMissingTerrain`).
+ */
+const MISSING = "no deeper terrain";
+
+/** Whether a tile's error is only that there is no deeper relief there. */
+export function isMissingTerrain(error: unknown): boolean {
+  return error instanceof Error && error.message.startsWith(MISSING);
+}
+
+let protocolInstalled = false;
+
+/** Teach MapLibre `terrain://z/x/y`, once, answered from `terrainTileUrl`. */
+export function installTerrainProtocol(maplibre: {
+  addProtocol(scheme: string, load: (params: { url: string }, abort: AbortController) => Promise<{ data: unknown }>): void;
+}): void {
+  if (protocolInstalled) return;
+  protocolInstalled = true;
+  maplibre.addProtocol(TERRAIN_SCHEME, async (params, abort) => {
+    const [z, x, y] = params.url.slice(`${TERRAIN_SCHEME}://`.length).split("/").map(Number);
+    const url = terrainTileUrl(z, x, y);
+    if (!url) throw new Error(`${MISSING} at ${z}/${x}/${y}`);
+    const response = await fetch(url, { signal: abort.signal });
+    if (response.status === 404 && z > TERRAIN_COPY_ZOOM) throw new Error(`${MISSING} at ${z}/${x}/${y}`);
+    if (!response.ok) throw new Error(`${response.status} for ${url}`);
+    return { data: await response.arrayBuffer() };
+  });
+}
 
 /**
  * Under the basemap's first line, over its fills: the water's outlines and
@@ -97,7 +177,7 @@ export function applyTerrain(gl: GlMap, wanted: boolean, dark: boolean, drapeSiz
   if (present) return;
   gl.addSource(TERRAIN_SOURCE, {
     type: "raster-dem",
-    tiles: [TERRAIN_TILES],
+    tiles: [`${TERRAIN_SCHEME}://{z}/{x}/{y}`],
     tileSize: 512,
     encoding: "terrarium",
     maxzoom: TERRAIN_MAX_ZOOM,
