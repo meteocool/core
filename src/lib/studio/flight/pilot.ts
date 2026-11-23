@@ -41,6 +41,8 @@ import { coresOf, echoTop, flatOffset, MARK_APART_KM, MARK_REACH_KM, markAltitud
 import { bearingDeg, destination, distanceM } from "./geo";
 import { CUT_PUSH_STEP, CUT_TURN_STEP, cutThrough, facingFrom, moved, UNSET_CUT } from "./cut";
 import type { CutSetting } from "./cut";
+import { INSPECTION_KEY, markFor, readInspection } from "./inspection";
+import type { SharedInspection } from "./inspection";
 import type { StormMark } from "./marks";
 import { cockpitEye, inAircraft, outsideEye, seenFrom } from "./view";
 import type { Attitude as FlightAttitude, Eye, Look } from "./view";
@@ -102,6 +104,8 @@ const INSPECT_MODES: InspectMode[] = ["xray", "cut", "peel"];
  */
 const INSPECT_PEEL = 0.72;
 const PEEL_STEP = 0.05;
+/** How long a flight from a link looks for the storm that link had looked into, seconds flown: long enough for the radar's storms to come in. */
+const WANTED_S = 30;
 
 /** How fast rain falls, m/s: next to nothing beside an aircraft's speed, and what makes it slant. */
 const FALL_M_S = 7;
@@ -436,6 +440,8 @@ export class Pilot {
   private cutSetting: CutSetting = UNSET_CUT;
   /** How far a storm looked into is peeled, 0 to 1: the reader's for the rest of the flight once they have moved it. */
   private peelSetting = INSPECT_PEEL;
+  /** The storm a link shared in flight had looked into, until it is marked here and looked into again; see `resume`. */
+  private wanted: SharedInspection | null = null;
   /** What the flight sounds like (sound.ts); from take-off to landing. */
   private sound: FlightSound | null = null;
   /** The alarms the reader has silenced (alarms.ts), from frame to frame. */
@@ -558,6 +564,12 @@ export class Pilot {
     const { touchdown: _touchdown, crash: _crash, ...flying } = state;
     const { debris: _debris, shed: _shed, fires: _fires, blasts: _blasts, coming: _coming, jolt: _jolt, violence: _violence, ...damage } = this.damage;
     const target = this.approach.target;
+    const looked = this.inspected;
+    const inspect: SharedInspection | null = looked && {
+      lon: looked.mark.lon, lat: looked.mark.lat, mode: looked.mode,
+      cut: looked.mode === "cut" && this.cutSetting.facingDeg !== null ? { facingDeg: this.cutSetting.facingDeg, pushKm: this.cutSetting.pushKm } : null,
+      peel: this.peelSetting,
+    };
     return rounded({
       v: 1,
       at: new Date().toISOString(),
@@ -574,6 +586,8 @@ export class Pilot {
       view: status.view, style: get(cloudStyle), head: this.head, orbit: this.orbit, distance: this.distance, zoomed: this.zoomed,
       flown: time,
       target: target ? { lon: target.lon, lat: target.lat, peakDbz: target.peakDbz } : null,
+      // The storm looked into, and how: seen through, cut open where the cut stood, or peeled so far.
+      [INSPECTION_KEY]: inspect,
     }) as FlightSnapshot;
   }
 
@@ -622,6 +636,9 @@ export class Pilot {
     this.orbit = look(snapshot.orbit, this.orbit);
     if (finite(snapshot.distance)) this.distance = clamp(snapshot.distance, OUTSIDE_RANGE);
     if (finite(snapshot.zoomed)) this.zoomed = clamp(snapshot.zoomed, COCKPIT_FOV_RANGE);
+    // The storm that one looked into is looked into again once it is marked here (`slow`); its peel is the flight's from now.
+    this.wanted = readInspection(snapshot);
+    if (this.wanted && this.wanted.peel !== null) this.peelSetting = this.wanted.peel;
     const views: readonly FlightView[] = ["cockpit", "outside", "clean"];
     const view = views.find((one) => one === snapshot.view) ?? this.flightPlan.view;
     const { gear, flapLever } = this.telemetry;
@@ -816,9 +833,11 @@ export class Pilot {
     if (chosen) this.lookInto({ mark: chosen.mark, mode: INSPECT_MODES[0] });
   }
 
-  private lookInto(next: { mark: StormMark; mode: InspectMode } | null): void {
-    // Another storm, or none, is cut afresh: facing the aircraft, through its middle.
-    if (next?.mark !== this.inspected?.mark) this.cutSetting = UNSET_CUT;
+  private lookInto(next: { mark: StormMark; mode: InspectMode } | null, cut: CutSetting = UNSET_CUT): void {
+    // Another storm, or none, is cut afresh: facing the aircraft, through its middle; or where a link had it.
+    if (next?.mark !== this.inspected?.mark) this.cutSetting = cut;
+    // A storm the reader picks, or lets go of, is theirs over the one a link had.
+    this.wanted = null;
     this.inspected = next;
     this.applyInspection();
     this.status({ inspecting: next?.mode ?? null });
@@ -1588,6 +1607,13 @@ export class Pilot {
       storms: chartStorms(this.marked, cells, cores, telemetry.state.lon, telemetry.state.lat),
       target: target && { lon: target.lon, lat: target.lat, radiusKm: target.radiusKm },
     };
+    const wanted = this.wanted;
+    if (wanted) {
+      // The storm a link had looked into, once it is marked; given up on if it never is.
+      const mark = markFor(this.marked, wanted);
+      if (mark) this.lookInto({ mark, mode: wanted.mode }, wanted.cut ?? UNSET_CUT);
+      else if (telemetry.time > WANTED_S) this.wanted = null;
+    }
     const looked = this.inspected;
     if (looked) {
       // The storm looked into keeps its mark whatever else is nearer, and is the same storm in a newer list.

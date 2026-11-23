@@ -87,6 +87,50 @@ test("a flight's link takes off at once from where it says, and once it is over 
   await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
 });
 
+test("a moment shared with a storm cut open opens on that storm cut open, the cut where it stood", async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");
+  // Two flights, each with the 3D map's first bring-up.
+  test.setTimeout(420_000);
+  await noGeocoder(page);
+  await emptyAircraft(page);
+  const deck = page.getByRole("region", { name: "Flight deck" });
+  const inspecting = deck.getByRole("group", { name: "Look into the storm" });
+  const depth = inspecting.getByRole("group", { name: "Where the cut stands" }).locator("output");
+  const looked = () => page.evaluate(() => {
+    const pilot = (window as any).flightPilot;
+    return pilot.inspected && { lon: pilot.inspected.mark.lon, lat: pilot.inspected.mark.lat, mode: pilot.inspected.mode, cut: pilot.cutSetting };
+  });
+
+  // West towards the recorded storms over the Gulf of Lion.
+  await page.goto("/meteoair.html?latLonZ=43.30000,4.40000,7.00&fly=43.3000,4.7000&hdg=265&alt=FL120&spd=280kt&view=outside");
+  await expect(deck).toBeVisible({ timeout: 150_000 });
+  await curtainUp(page);
+  // A storm marked in the view, looked into (I), cut open (I again), turned and pushed deeper.
+  await expect.poll(() => page.evaluate(() => (window as any).flightPilot.telemetry.marks.length), { timeout: 60_000 }).toBeGreaterThan(0);
+  await page.keyboard.press("KeyI");
+  await expect(inspecting.getByRole("radio", { name: "X-ray" })).toBeChecked();
+  await page.keyboard.press("KeyI");
+  await expect(inspecting.getByRole("radio", { name: "Cut open" })).toBeChecked();
+  await page.keyboard.press("Period");
+  for (let step = 0; step < 3; step += 1) await page.keyboard.press("BracketRight");
+  await expect(depth).toHaveText("+3.0 km");
+  const sent = await looked();
+
+  await deck.getByRole("button", { name: "Share this moment" }).first().click();
+  const url = new URL(await page.getByRole("textbox", { name: "Link" }).inputValue());
+  await page.goto(`${url.pathname}${url.search}`);
+  await expect(deck).toBeVisible({ timeout: 150_000 });
+  // The same storm, cut open where the sender's cut stood, once the radar's storms are in.
+  await expect(inspecting.getByRole("radio", { name: "Cut open" })).toBeChecked({ timeout: 60_000 });
+  await expect(depth).toHaveText("+3.0 km");
+  const received = await looked();
+  expect(received.mode).toBe("cut");
+  expect(received.lon).toBeCloseTo(sent.lon, 3);
+  expect(received.lat).toBeCloseTo(sent.lat, 3);
+  expect(received.cut.facingDeg).toBeCloseTo(sent.cut.facingDeg, 3);
+  expect(received.cut.pushKm).toBe(3);
+});
+
 test("the page loads nothing of the flight but its menu music, the plan only the aircraft it shows: the rest comes at take-off, with the loading card",
   async ({ page }, testInfo) => {
     test.skip(testInfo.project.name !== "desktop", "the 3D map's first bring-up is tried on a desktop");

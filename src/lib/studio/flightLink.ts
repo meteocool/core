@@ -21,7 +21,9 @@
  * A link shared in flight carries more: the whole moment it was shared,
  * as `s`, a JSON object in base64url (`FlightSnapshot`). The aircraft's
  * state as it was (attitude, speed, the levers, the gear, what has come
- * off it), where the reader was looking, and the real time and the radar
+ * off it), where the reader was looking, the storm they had looked into
+ * and how (cut open where the cut stood, or peeled so far;
+ * flight/inspection.ts), and the real time and the radar
  * scan it was flown through, so a page that can replay that scan one day
  * can put the receiver in the same sky. The keys above are still written
  * beside it, for whatever reads only those. Nothing in `s` is promised to
