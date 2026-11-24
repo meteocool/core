@@ -45,6 +45,7 @@ import { INSPECTION_KEY, markFor, readInspection } from "./inspection";
 import type { SharedInspection } from "./inspection";
 import type { StormMark } from "./marks";
 import { radarsOf, rayRuns } from "./radarRays";
+import { flightSettings } from "./settings";
 import type { RayPoint, RayRadar } from "./radarRays";
 import { cockpitEye, inAircraft, outsideEye, seenFrom } from "./view";
 import type { Attitude as FlightAttitude, Eye, Look, Vec3 } from "./view";
@@ -453,6 +454,9 @@ export class Pilot {
   /** The radars the storm looked into was built from, and when it was first looked into, for its beams. */
   private rayRadars: RayRadar[] = [];
   private raysSince = 0;
+  /** Whether the reader has the beams drawn at all (settings.ts), and letting go of the settings at landing. */
+  private radarBeams = false;
+  private unsubscribeSettings: (() => void) | null = null;
   /** Where the cut through it stands, once it has been cut open; see cut.ts. */
   private cutSetting: CutSetting = UNSET_CUT;
   /** How far a storm looked into is peeled, 0 to 1: the reader's for the rest of the flight once they have moved it. */
@@ -517,6 +521,11 @@ export class Pilot {
     // Taking off is a click or a key: when a page may begin to make sound.
     this.sound = new FlightSound();
     this.keys.start();
+    this.unsubscribeSettings = flightSettings.subscribe((settings) => {
+      // Turned on with a storm already looked into, its beams grow out from it as if it had just been picked.
+      if (settings.radarBeams && !this.radarBeams) this.raysSince = this.telemetry.time;
+      this.radarBeams = settings.radarBeams;
+    });
     document.addEventListener("visibilitychange", this.hidden);
     window.addEventListener("pagehide", this.away);
     this.frame = requestAnimationFrame((now) => this.tick(now));
@@ -537,6 +546,8 @@ export class Pilot {
     if (this.frame !== null) cancelAnimationFrame(this.frame);
     this.frame = null;
     this.keys.stop();
+    this.unsubscribeSettings?.();
+    this.unsubscribeSettings = null;
     document.removeEventListener("visibilitychange", this.hidden);
     window.removeEventListener("pagehide", this.away);
     this.sound?.dispose();
@@ -1925,7 +1936,7 @@ export class Pilot {
    */
   private beams(eye: Eye, fromSeat = false): Telemetry["rays"] {
     const looked = this.inspected;
-    if (!looked || !this.rayRadars.length) return null;
+    if (!this.radarBeams || !looked || !this.rayRadars.length) return null;
     const { state } = this.telemetry;
     const canvas = this.stage.canvas();
     const aspect = (canvas?.clientWidth || 1) / (canvas?.clientHeight || 1);

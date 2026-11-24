@@ -21,6 +21,7 @@ import { onDestroy, onMount } from "svelte";
 import { _ } from "svelte-i18n";
 import { faRightFromBracket } from "@fortawesome/free-solid-svg-icons/faRightFromBracket";
 import { faQuestion } from "@fortawesome/free-solid-svg-icons/faQuestion";
+import { faGear } from "@fortawesome/free-solid-svg-icons/faGear";
 import { faExpand } from "@fortawesome/free-solid-svg-icons/faExpand";
 import { faCompress } from "@fortawesome/free-solid-svg-icons/faCompress";
 import { faRotateLeft } from "@fortawesome/free-solid-svg-icons/faRotateLeft";
@@ -31,6 +32,7 @@ import { STYLE_FIELD } from "../../../lib/cloudStyle";
 import { radarColormap } from "../../../stores";
 import Icon from "../../Icon.svelte";
 import FlightKeys from "./FlightKeys.svelte";
+import FlightSettings from "./FlightSettings.svelte";
 import TouchControls from "./TouchControls.svelte";
 import FlightMinimap from "./FlightMinimap.svelte";
 import FlightHorizon from "./FlightHorizon.svelte";
@@ -83,6 +85,8 @@ let rays: HTMLCanvasElement | null = null;
 const RADARS = Array.from({ length: RAYS_MOST }, (_unused, index) => index);
 let radars: Array<HTMLElement | null> = RADARS.map(() => null);
 let beamsDrawn = false;
+/* Whether the settings' card is up (FlightSettings.svelte). */
+let settingsOpen = false;
 const COMPASS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
 /** The ways of looking into a marked storm, as the chooser offers them. */
 const INSPECT: InspectMode[] = ["cut", "peel", "xray"];
@@ -527,6 +531,11 @@ const WARNINGS = {
         title={$_("studio.flight.help_title")} aria-label={$_("studio.flight.help")} aria-pressed={status.keys}>
         <Icon icon={faQuestion} />
       </button>
+      <!-- What the reader chooses to see while flying, kept for every flight. -->
+      <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => { settingsOpen = !settingsOpen; }}
+        title={$_("studio.flight.settings.title")} aria-label={$_("studio.flight.settings.title")} aria-pressed={settingsOpen}>
+        <Icon icon={faGear} />
+      </button>
       <!-- The music on or off, the flight's own sounds staying: M, and the menus' switch, are the same. -->
       <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => pilot.act("mute")}
         title={$_($flightMuted ? "studio.flight.sound.off_title" : "studio.flight.sound.on_title")}
@@ -552,6 +561,9 @@ const WARNINGS = {
         <Icon icon={faRightFromBracket} /> {$_("studio.flight.leave")}
       </button>
     </div>
+  {/if}
+  {#if settingsOpen && status.view !== "clean"}
+    <FlightSettings close={() => { settingsOpen = false; }} />
   {/if}
   {#if $flightMuted && status.view !== "clean"}
     <span class="muted" title={$_("studio.flight.muted_title")}><MusicIcon off /> {$_("studio.flight.muted")}</span>

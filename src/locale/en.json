@@ -261,6 +261,12 @@
         "hail": "hail",
         "tops": "tops"
       },
+      "settings": {
+        "title": "Settings",
+        "close": "Close the settings",
+        "radarBeams": "Radar beams",
+        "radarBeams_hint": "While you look into a storm, a beam from each radar that saw it, brighter the lower that radar saw into it."
+      },
       "ray": {
         "detail": "{distance} NM from it · beam {level}"
       },
