@@ -41,7 +41,7 @@
  * where the website has its footer.
  */
 import logo from "../../assets/logo.svg";
-import { onDestroy } from "svelte";
+import { onDestroy, onMount, tick } from "svelte";
 import { get } from "svelte/store";
 import { fade } from "svelte/transition";
 import { _ } from "svelte-i18n";
@@ -51,6 +51,9 @@ import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
 import { faFlask } from "@fortawesome/free-solid-svg-icons/faFlask";
 import { faExpand } from "@fortawesome/free-solid-svg-icons/faExpand";
 import { faCompress } from "@fortawesome/free-solid-svg-icons/faCompress";
+import { faGithub } from "@fortawesome/free-brands-svg-icons/faGithub";
+import { faApple } from "@fortawesome/free-brands-svg-icons/faApple";
+import { faAndroid } from "@fortawesome/free-brands-svg-icons/faAndroid";
 import Icon from "../Icon.svelte";
 import type { LayerManager } from "../../lib/LayerManager";
 import { fullscreen, fullscreenSupported, toggleFullscreen } from "../../lib/fullscreen";
@@ -60,7 +63,7 @@ import { flightRequest, studioFlying, studioOpen } from "../../lib/studio/store"
 import { pastSkyAt, withoutFlightLink } from "../../lib/studio/flightLink";
 import type { FlightStart } from "../../lib/studio/flightLink";
 import type Cells3DCapability from "../../caps/Cells3DCapability";
-import { archiveWindow, cells3dFailed, sharedActiveCap } from "../../stores";
+import { archiveStep, archiveWindow, cells3dFailed, sharedActiveCap } from "../../stores";
 import { BOARD_KEY, boardingUrl, openPastAt, readBoarding } from "../../lib/studio/flight/when";
 import { openShowcase, showcase } from "../../lib/showcase";
 import { reportNotice } from "../../lib/Toast";
@@ -72,6 +75,7 @@ import { demoFallbackBuild, demoWeather, WEATHER_KEY, weatherChoice } from "../.
 import { radarMapHref } from "../../lib/studio/flightPage";
 import { claimMenuMusic } from "../../lib/studio/flight/soundtrack";
 import { curtainDown, lift, lower } from "../../lib/curtain";
+import { rainBoxes, rainView } from "../../lib/studio/flight/rainView";
 
 export let layerManager: LayerManager;
 
@@ -228,7 +232,62 @@ if (link && linked) {
 }
 
 // On the demo's storm the plan is made in it, from the page's first moment (lib/showcase.ts).
-if (showcase && !link) void openShowcase();
+const showcaseOpened = showcase && !link ? openShowcase() : null;
+
+let landingElement: HTMLElement | undefined;
+let mainElement: HTMLElement | undefined;
+let windowElement: HTMLElement | undefined;
+
+/**
+ * The part of the screen the map shows beside the words, px: on a narrow
+ * window the gap above them, on a wide one everything right of them.
+ */
+function mapRegion(): { left: number; top: number; right: number; bottom: number } | null {
+  if (!landingElement || !mainElement) return null;
+  const frame = landingElement.getBoundingClientRect();
+  if (windowElement && windowElement.offsetHeight > 0) {
+    const gap = windowElement.getBoundingClientRect();
+    return { left: frame.left, top: gap.top, right: frame.right, bottom: gap.bottom };
+  }
+  const words = mainElement.getBoundingClientRect();
+  return { left: Math.min(words.right + 24, frame.right - 160), top: frame.top, right: frame.right, bottom: frame.bottom };
+}
+
+/**
+ * The page opens on rain: the map moved to where the radar has it, close
+ * enough that it fills at least half of what the words leave of the map
+ * (lib/studio/flight/rainView.ts). Not once the reader has moved the map
+ * themselves, nor for a link's flight, which looks where it says.
+ */
+async function lookAtRain(): Promise<void> {
+  const map = layerManager.getCapability(layerManager.currentCap ?? "radar")?.getMap();
+  if (!map || layerManager.currentCap === "cells3d") return;
+  let moved = false;
+  const theirs = () => { moved = true; };
+  const viewport = map.getViewport();
+  viewport.addEventListener("pointerdown", theirs, { once: true });
+  viewport.addEventListener("wheel", theirs, { once: true, passive: true });
+  await showcaseOpened;
+  const boxes = await rainBoxes(get(archiveStep));
+  await tick();
+  const region = mapRegion();
+  if (moved || aloft || !region || !boxes.length) return;
+  const found = rainView(boxes, region.right - region.left, region.bottom - region.top);
+  if (!found) return;
+  // The rain's middle at the region's middle: the map's centre is off it by as much.
+  const whole = viewport.getBoundingClientRect();
+  const dx = (region.left + region.right) / 2 - (whole.left + whole.width / 2);
+  const dy = (region.top + region.bottom) / 2 - (whole.top + whole.height / 2);
+  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  map.getView().animate({
+    center: [found.x - dx * found.resolution, found.y + dy * found.resolution],
+    resolution: found.resolution,
+    duration: still ? 0 : 1200,
+  });
+}
+onMount(() => {
+  if (!link) void lookAtRain();
+});
 
 /* On this page the 3D map is the flight's and nothing else: it comes up in
    Studio, whichever way the page got onto it, and goes when Studio does. */
@@ -272,7 +331,7 @@ const steps = [
 </script>
 
 {#if !aloft}
-  <div class="landing" transition:fade={{ duration: 220 }}>
+  <div class="landing" transition:fade={{ duration: 220 }} bind:this={landingElement}>
     <header>
       <p class="mark">
         <Icon icon={faPlaneDeparture} />
@@ -300,7 +359,11 @@ const steps = [
       </div>
     </header>
 
-    <main class="mc-selectable">
+    <!-- On a narrow window, the map seen between the page's top and its words, which scroll up over it. -->
+    <div class="window" bind:this={windowElement}></div>
+
+    <div class="sheet">
+    <main class="mc-selectable" bind:this={mainElement}>
       <p class="eyebrow">
         <span class="tag"><Icon icon={faFlask} /> {$_("studio.flight.page.demo_tag")}</span>
       </p>
@@ -357,11 +420,28 @@ const steps = [
 
     {#if !inApp}
       <footer>
-        <a href={mapHref}>{$_("studio.flight.page.map")}</a>
-        <a href="imprint.html">{$_("studio.flight.page.imprint")}</a>
-        <a href="privacy.html">{$_("studio.flight.page.privacy")}</a>
+        <nav class="links">
+          <a href={mapHref}>{$_("studio.flight.page.map")}</a>
+          <a href="imprint.html">{$_("studio.flight.page.imprint")}</a>
+          <a href="privacy.html">{$_("studio.flight.page.privacy")}</a>
+        </nav>
+        <!-- meteocool's apps and its code. -->
+        <nav class="elsewhere">
+          <a href="https://github.com/meteocool/core#meteocool" target="_blank" rel="noopener" aria-label="GitHub" title="GitHub">
+            <Icon icon={faGithub} />
+          </a>
+          <a href="https://itunes.apple.com/app/meteocool-rain-radar/id1438364623" target="_blank" rel="noopener"
+            aria-label={$_("chrome.alt.app_store")} title={$_("chrome.alt.app_store")}>
+            <Icon icon={faApple} />
+          </a>
+          <a href="https://play.google.com/store/apps/details?id=com.meteocool" target="_blank" rel="noopener"
+            aria-label={$_("chrome.alt.play_store")} title={$_("chrome.alt.play_store")}>
+            <Icon icon={faAndroid} />
+          </a>
+        </nav>
       </footer>
     {/if}
+    </div>
   </div>
 {:else if $cells3dFailed}
   <!-- The 3D map did not come up: its veil offers another try, this the way back. -->
@@ -383,7 +463,11 @@ const steps = [
     inset: 0;
     z-index: var(--mc-z-pill);
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    /* Rows as tall as their words at least: a short window scrolls them rather than cutting them off. */
+    grid-template-rows: auto 1fr auto;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     /* Never wider than the screen for what is in it. */
     grid-template-columns: minmax(0, 1fr);
     box-sizing: border-box;
@@ -402,7 +486,8 @@ const steps = [
   /* The map's own names, softened under the words so the two are not read at once. */
   .landing::before {
     content: "";
-    position: absolute;
+    /* Over the screen however far the words have scrolled. */
+    position: fixed;
     inset: 0;
     z-index: -1;
     -webkit-backdrop-filter: blur(7px);
@@ -410,6 +495,9 @@ const steps = [
     -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 34%, transparent 56%);
     mask-image: linear-gradient(90deg, #000 0%, #000 34%, transparent 56%);
   }
+  /* Wide: the words and the footer are rows of the page's own grid. */
+  .sheet { display: contents; }
+  .window { display: none; }
   /* Global: the music's switch is a button of its own component, which a scoped selector would miss. */
   .landing :global(:is(a, button)) { pointer-events: auto; }
 
@@ -636,11 +724,30 @@ const steps = [
 
   footer {
     display: flex;
-    gap: 18px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px 22px;
     font-size: 12.5px;
   }
-  footer a { color: var(--ink-3); text-decoration: none; }
-  footer a:hover { color: var(--ink); }
+  footer nav { display: flex; align-items: center; }
+  .links { gap: 18px; }
+  .links a { color: var(--ink-3); text-decoration: none; }
+  .links a:hover { color: var(--ink); }
+  .elsewhere { gap: 8px; }
+  .elsewhere a {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--ink-2);
+    transition: background-color 0.12s ease, color 0.12s ease;
+  }
+  .elsewhere a:hover { background: rgba(255, 255, 255, 0.16); color: var(--ink); }
+  .elsewhere a:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+  .elsewhere :global(svg) { width: 16px; height: 16px; }
 
   .back {
     position: fixed;
@@ -660,36 +767,56 @@ const steps = [
     cursor: pointer;
   }
 
-  /* A narrow window: the wash comes up from the foot instead, and the words
-     stand at the bottom with the weather above them. The page's own size,
-     which is not the screen's where it is drawn on its side (lib/sideways.ts). */
-  @container mc-frame (max-width: 760px) {
-    .landing {
-      padding: 16px 18px calc(18px + var(--mc-safe-bottom));
-      background:
-        linear-gradient(180deg, rgba(7, 11, 17, 0.7) 0%, rgba(7, 11, 17, 0) 14%),
-        linear-gradient(0deg, rgba(7, 11, 17, 0.95) 0%, rgba(7, 11, 17, 0.88) 46%, rgba(7, 11, 17, 0.25) 74%, rgba(7, 11, 17, 0) 100%);
-    }
-    .landing::before {
-      -webkit-mask-image: linear-gradient(0deg, #000 0%, #000 44%, transparent 66%);
-      mask-image: linear-gradient(0deg, #000 0%, #000 44%, transparent 66%);
-    }
-    main { align-self: end; padding-bottom: 18px; }
-    .screen { width: 38px; padding: 0; justify-content: center; }
-    .screen span { display: none; }
-    .home.top { display: none; }
-    .home.by-board { display: inline-flex; height: 52px; padding: 0 22px 0 18px; font-size: 16px; }
-    .hint { display: block; order: 1; }
-    .go .note { order: 2; }
-    ol { display: none; }
-    .eyebrow { margin-bottom: 10px; }
-    .lede { margin-top: 12px; }
-    .go { margin-top: 20px; }
-  }
   @container mc-frame (max-height: 620px) {
     .hint { display: block; order: 1; }
     .go .note { order: 2; }
     ol { display: none; }
+  }
+  /* A narrow window: a page that scrolls. The map at its top, between the
+     header and the words, and the words on a sheet of the wash below, which
+     scrolls up over the map. The map takes the touches where it shows: the
+     page scrolls from the sheet. The page's own size, which is not the
+     screen's where it is drawn on its side (lib/sideways.ts). */
+  @container mc-frame (max-width: 760px) {
+    .landing {
+      display: block;
+      padding: 0;
+      background: none;
+    }
+    .landing::before { display: none; }
+    header {
+      padding: max(14px, calc(var(--mc-safe-top) + 8px)) max(18px, calc(var(--mc-safe-right) + 12px)) 12px max(18px, calc(var(--mc-safe-left) + 12px));
+      background: linear-gradient(180deg, rgba(7, 11, 17, 0.78) 0%, rgba(7, 11, 17, 0) 100%);
+    }
+    /* Enough of the map to see the weather on, and the way in still on the first screen below it. */
+    .window { display: block; height: clamp(150px, 34svh, 420px); }
+    .sheet {
+      display: block;
+      position: relative;
+      min-height: 50svh;
+      padding: 24px max(18px, calc(var(--mc-safe-right) + 12px)) calc(22px + var(--mc-safe-bottom)) max(18px, calc(var(--mc-safe-left) + 12px));
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 22px 22px 0 0;
+      background: rgba(7, 11, 17, 0.9);
+      -webkit-backdrop-filter: blur(14px);
+      backdrop-filter: blur(14px);
+      box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.35);
+      pointer-events: auto;
+    }
+    main { width: 100%; }
+    .screen { width: 38px; padding: 0; justify-content: center; }
+    .screen span { display: none; }
+    .home.top { display: none; }
+    .home.by-board { display: inline-flex; height: 52px; padding: 0 22px 0 18px; font-size: 16px; }
+    /* The steps fit, scrolled to: the hint in their place is not wanted. */
+    .hint { display: none; }
+    .hint.grounded { display: block; }
+    ol { display: grid; margin-top: 30px; }
+    .eyebrow { margin-bottom: 10px; }
+    .lede { margin-top: 12px; }
+    .go { margin-top: 22px; }
+    .go .board, .go .home.by-board { flex: 1 1 auto; justify-content: center; }
+    footer { margin-top: 32px; padding-top: 18px; border-top: 1px solid rgba(255, 255, 255, 0.08); justify-content: space-between; }
   }
   /* The smallest phones: the button by the way in says whose the page is. */
   @container mc-frame (max-width: 400px) {
