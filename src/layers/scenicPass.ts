@@ -9,7 +9,8 @@
  */
 import type { Cutaway } from "../lib/cellCutaway";
 import { drawnPart, echoPart, overlap, type BoxPart } from "../lib/volumeBox";
-import { apply, compile, invert, screenRect, type Mat4, type ScenicPass } from "./cellVolumeLayer";
+import type { Map as GlMap } from "maplibre-gl";
+import { apply, compile, depthRangeSet, invert, screenRect, type Mat4, type ScenicPass } from "./cellVolumeLayer";
 
 /*
  * The sun: a disc and its glare, in the open sky only.
@@ -271,9 +272,12 @@ export function layCoresLate(): void {
   layLate?.();
 }
 
-export function makeScenicPass(context: WebGL2RenderingContext): ScenicPass {
+export function makeScenicPass(context: WebGL2RenderingContext, map: GlMap | null = null): ScenicPass {
   const sunProgram = link(context, SUN_VERTEX, SUN_FRAGMENT);
   const layProgram = link(context, LAY_VERTEX, LAY_FRAGMENT);
+  // Looked up once: both are set every frame.
+  const sunAt = { ray: context.getUniformLocation(sunProgram, "uRay"), sun: context.getUniformLocation(sunProgram, "uSun") };
+  const layPictureAt = context.getUniformLocation(layProgram, "uPicture");
   /** The shader a storm's core is drawn with, made the first time one is looked into. */
   let coreProgram: WebGLProgram | null = null;
   const coreUniforms = new Map<string, WebGLUniformLocation | null>();
@@ -404,7 +408,7 @@ export function makeScenicPass(context: WebGL2RenderingContext): ScenicPass {
     context.useProgram(layProgram);
     context.activeTexture(context.TEXTURE0);
     context.bindTexture(context.TEXTURE_2D, picture);
-    context.uniform1i(context.getUniformLocation(layProgram, "uPicture"), 0);
+    context.uniform1i(layPictureAt, 0);
     context.drawArrays(context.TRIANGLES, 0, 3);
     context.bindTexture(context.TEXTURE_2D, null);
   }
@@ -439,8 +443,8 @@ export function makeScenicPass(context: WebGL2RenderingContext): ScenicPass {
       const [east, north, up] = SUN_DIRECTION;
       const length = Math.hypot(east, north, up);
       context.useProgram(sunProgram);
-      context.uniform3fv(context.getUniformLocation(sunProgram, "uRay"), new Float32Array(rays));
-      context.uniform3f(context.getUniformLocation(sunProgram, "uSun"), east / length, -north / length, up / length);
+      context.uniform3fv(sunAt.ray, new Float32Array(rays));
+      context.uniform3f(sunAt.sun, east / length, -north / length, up / length);
       context.enable(context.DEPTH_TEST);
       context.depthFunc(context.LEQUAL);
       context.depthMask(false);
@@ -504,7 +508,7 @@ export function makeScenicPass(context: WebGL2RenderingContext): ScenicPass {
       context.uniform1i(at("uRamp"), 1);
       context.uniform1i(at("uVolume"), 0);
       context.uniform2f(at("uViewport"), width, height);
-      const [depthNear, depthFar] = context.getParameter(context.DEPTH_RANGE) as Float32Array;
+      const [depthNear, depthFar] = depthRangeSet(map, context);
       context.uniform2f(at("uDepthRange"), depthNear, depthFar);
       context.uniform1f(at("uLow"), low);
       context.uniform1f(at("uReach"), reachKm);

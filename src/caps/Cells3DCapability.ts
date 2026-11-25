@@ -29,7 +29,7 @@ import type { NetworkCode } from "../layers/networkHoles";
 import { forgetMaskedTiles, installMaskedProtocol, registerMaskedTiles } from "../layers/maskedTiles";
 import { maskPath } from "../layers/tileMask";
 import { applyTerrain, installTerrainProtocol, isMissingTerrain, VERTICAL_SCALE } from "../layers/terrain";
-import { budgetDrapes, flightFog, lodCamera, lookedAtHeight } from "../layers/flightGround";
+import { budgetDrapes, flightFog, indexDrapes, lodCamera, lookedAtHeight } from "../layers/flightGround";
 import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
@@ -3195,6 +3195,7 @@ export default class Cells3DCapability extends Capability {
       if (this.styleReady) this.applyFlightLod(gl);
       budgetDrapes(gl, null);
       flightFog(gl, false);
+      indexDrapes(gl, false);
       had?.water.remove(gl);
       gl._camera?.transform?.clearNearFarZOverride?.();
       gl.setCenterClampedToGround(before.clamped);
@@ -3257,6 +3258,7 @@ export default class Cells3DCapability extends Capability {
     // The ground's drapes within a budget, and its haze right looking up: layers/flightGround.ts.
     budgetDrapes(gl, flightDrapeBytes());
     flightFog(gl, true);
+    indexDrapes(gl, true);
     // The map draws nothing nearer than a fiftieth of the way to what it
     // looks at, and a camera at the horizon looks kilometres off: low down
     // the ground under the aircraft would be cut away. Near the ground it

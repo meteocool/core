@@ -31,6 +31,12 @@
  *   it ran to nearly two thousand: 3.7 GB of textures (November 2026). While
  *   flying that plane is the ground under the aircraft every frame, never
  *   less than `LEAST_LOOK_DOWN_M` under the eye.
+ * - Which drapes a tile is drawn into. MapLibre asks that of every tile of
+ *   every draped source every frame, and answers each by going through every
+ *   terrain tile: from a cockpit, hundreds of each, and three quarters of
+ *   all the page's work in a frame (November 2026), on the one thread the
+ *   flight has. While flying the terrain tiles are indexed by where they are
+ *   once a frame, and each answer is looked up.
  */
 import type { Map as GlMap } from "maplibre-gl";
 
@@ -234,5 +240,156 @@ export function flightFog(gl: GlMap, on: boolean): void {
     }
     cache.set(tile.key, matrix);
     return matrix;
+  };
+}
+
+/** Where a tile is in the pyramid. */
+export interface TilePlace {
+  z: number;
+  x: number;
+  y: number;
+}
+
+/** The side of a tile in its own units, as MapLibre has it. */
+const EXTENT = 8192;
+
+/** A tile's place as one number: exact to zoom 24. */
+const placeKey = (z: number, x: number, y: number) => ((2 ** z * y + x) * 32) + z;
+
+/** MapLibre's drawing of a square this many units a side, from its top left corner, moved and then scaled. */
+function drapeProjection(side: number, dx: number, dy: number, scale: number | null): Float32Array {
+  // gl-matrix's ortho(0, side, side, 0, 0, 1), translate and scale, term for term: the numbers are MapLibre's own.
+  const lr = 1 / (0 - side);
+  const bt = 1 / (side - 0);
+  const matrix = new Float32Array(16);
+  let m0 = -2 * lr;
+  let m5 = -2 * bt;
+  let m10 = -2;
+  const m12 = m0 * dx + side * lr;
+  const m13 = m5 * dy + side * bt;
+  if (scale !== null) {
+    m0 *= scale;
+    m5 *= scale;
+    m10 *= 0;
+  }
+  matrix[0] = m0;
+  matrix[5] = m5;
+  matrix[10] = m10;
+  matrix[12] = m12;
+  matrix[13] = m13;
+  matrix[14] = -1;
+  matrix[15] = 1;
+  return matrix;
+}
+
+/**
+ * How a tile is drawn into the drape of a terrain tile: null where neither
+ * is the other nor holds it. The same tile fills the drape, a tile inside
+ * the drape's a part of it, and of a tile the drape's is inside, only that
+ * part is drawn.
+ */
+export function drapeMatrix(drape: TilePlace, tile: TilePlace): Float32Array | null {
+  const dz = drape.z - tile.z;
+  if (dz === 0) return drape.x === tile.x && drape.y === tile.y ? drapeProjection(EXTENT, 0, 0, null) : null;
+  if (dz > 0) {
+    // The drape's tile is inside this one.
+    if (tile.x !== drape.x >> dz || tile.y !== drape.y >> dz) return null;
+    const side = EXTENT >> dz;
+    return drapeProjection(side, -(drape.x - ((drape.x >> dz) << dz)) * side, -(drape.y - ((drape.y >> dz) << dz)) * side, null);
+  }
+  const up = -dz;
+  if (drape.x !== tile.x >> up || drape.y !== tile.y >> up) return null;
+  const side = EXTENT >> up;
+  return drapeProjection(EXTENT, (tile.x - ((tile.x >> up) << up)) * side, (tile.y - ((tile.y >> up) << up)) * side, 1 / 2 ** up);
+}
+
+/**
+ * The drapes a tile is drawn into, of these (each by its name), and how
+ * (`drapeMatrix`): looked up by place rather than tried one by one. A tile
+ * is asked about hundreds of times for one set of drapes.
+ */
+export function drapesOver(drapes: ReadonlyArray<readonly [string, TilePlace]>): (tile: TilePlace) => Array<[string, Float32Array]> {
+  /** The drapes at each place, and those anywhere inside it. */
+  const at = new Map<number, Array<readonly [string, TilePlace]>>();
+  const inside = new Map<number, Array<readonly [string, TilePlace]>>();
+  const put = (map: typeof at, key: number, drape: readonly [string, TilePlace]) => {
+    const held = map.get(key);
+    if (held) held.push(drape);
+    else map.set(key, [drape]);
+  };
+  for (const drape of drapes) {
+    const { z, x, y } = drape[1];
+    put(at, placeKey(z, x, y), drape);
+    for (let up = 1; up <= z; up += 1) put(inside, placeKey(z - up, x >> up, y >> up), drape);
+  }
+  return (tile) => {
+    const found: Array<[string, Float32Array]> = [];
+    const take = (list: Array<readonly [string, TilePlace]> | undefined) => {
+      if (!list) return;
+      for (const [name, place] of list) {
+        const matrix = drapeMatrix(place, tile);
+        if (matrix) found.push([name, matrix]);
+      }
+    };
+    take(at.get(placeKey(tile.z, tile.x, tile.y)));
+    take(inside.get(placeKey(tile.z, tile.x, tile.y)));
+    for (let up = 1; up <= tile.z; up += 1) take(at.get(placeKey(tile.z - up, tile.x >> up, tile.y >> up)));
+    return found;
+  };
+}
+
+interface TileId {
+  canonical: TilePlace;
+  clone(): TileId & { terrainRttPosMatrix32f?: Float32Array };
+}
+interface TerrainTiles {
+  _renderableTilesKeys?: string[];
+  _tiles?: Record<string, { tileID: TileId } | undefined>;
+  _getTerrainCoordsForRegularTile?(tile: TileId): Record<string, TileId>;
+}
+const indexedTiles = new WeakSet<TerrainTiles>();
+
+/**
+ * Look up which drapes each tile is drawn into (see the top of this file),
+ * or (false) leave it to MapLibre again. Called every frame of a flight: the
+ * terrain's tiles are made anew whenever the terrain is.
+ */
+export function indexDrapes(gl: GlMap, on: boolean): void {
+  const terrain = (gl as unknown as { terrain?: { tileManager?: TerrainTiles } | null }).terrain?.tileManager;
+  if (!terrain || typeof terrain._getTerrainCoordsForRegularTile !== "function") return;
+  if (!on) {
+    if (!indexedTiles.has(terrain)) return;
+    indexedTiles.delete(terrain);
+    delete terrain._getTerrainCoordsForRegularTile;
+    return;
+  }
+  if (indexedTiles.has(terrain)) return;
+  indexedTiles.add(terrain);
+  const own = terrain._getTerrainCoordsForRegularTile;
+  // MapLibre lists the terrain's tiles anew each time it updates them: the index is good for as long as that list is.
+  let listed: string[] | null = null;
+  let over: ReturnType<typeof drapesOver> | null = null;
+  terrain._getTerrainCoordsForRegularTile = function (this: TerrainTiles, tile: TileId) {
+    const keys = this._renderableTilesKeys;
+    const tiles = this._tiles;
+    if (!keys || !tiles || !tile?.canonical || typeof tile.clone !== "function") return own.call(this, tile);
+    if (keys !== listed || !over) {
+      const drapes: Array<[string, TilePlace]> = [];
+      for (const key of keys) {
+        const place = tiles[key]?.tileID?.canonical;
+        // A tile it does not hold would have thrown in MapLibre's own: let it.
+        if (!place) return own.call(this, tile);
+        drapes.push([key, place]);
+      }
+      over = drapesOver(drapes);
+      listed = keys;
+    }
+    const coords: Record<string, TileId> = {};
+    for (const [key, matrix] of over(tile.canonical)) {
+      const coord = tile.clone();
+      coord.terrainRttPosMatrix32f = matrix;
+      coords[key] = coord;
+    }
+    return coords;
   };
 }

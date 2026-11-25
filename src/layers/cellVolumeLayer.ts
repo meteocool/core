@@ -780,6 +780,25 @@ export function invert(m: Mat4): Float64Array | null {
   ]);
 }
 
+
+/**
+ * The near and far of `glDepthRange` as they now are. From MapLibre's own
+ * note of what it last set where that still holds: asking the GPU waits for
+ * everything drawn so far this frame, with nothing else on the page moving
+ * until it answers. A reach into MapLibre's internals (6.x); a MapLibre
+ * without them, or one whose note may be stale, is asked as before.
+ */
+export function depthRangeSet(map: GlMap | null, context: WebGL2RenderingContext): [number, number] {
+  const noted = (map as unknown as { painter?: { context?: { depthRange?: { current?: unknown; dirty?: unknown } } } } | null)
+    ?.painter?.context?.depthRange;
+  const current = noted?.current;
+  if (noted?.dirty === false && Array.isArray(current) && current.length === 2 && current.every((part) => typeof part === "number")) {
+    return current as [number, number];
+  }
+  const [near, far] = context.getParameter(context.DEPTH_RANGE) as Float32Array;
+  return [near, far];
+}
+
 export function compile(gl: WebGL2RenderingContext, type: number, source: string): WebGLShader {
   const shader = gl.createShader(type)!;
   gl.shaderSource(shader, source);
@@ -1283,7 +1302,7 @@ export interface CloudsLayer extends CustomLayerInterface {
    * among rather than to read a storm from, and brings it with it: it is
    * not part of the map. With it comes what else such a sky draws (`pass`).
    */
-  setScenic(sky: string | null, pass?: ((context: WebGL2RenderingContext) => ScenicPass) | null): void;
+  setScenic(sky: string | null, pass?: ((context: WebGL2RenderingContext, map: GlMap | null) => ScenicPass) | null): void;
   /**
    * A light inside the clouds, for a scenic sky to shine with (lightning):
    * where it is, how many kilometres up, and how bright, 0 to 1. None for null.
@@ -1343,7 +1362,7 @@ export function makeCloudsLayer(
    * the sky is drawn; see `ScenicPass`.
    */
   let scenicPass: ScenicPass | null = null;
-  let makeScenicPass: ((context: WebGL2RenderingContext) => ScenicPass) | null = null;
+  let makeScenicPass: ((context: WebGL2RenderingContext, map: GlMap | null) => ScenicPass) | null = null;
   let scenicScale = 0.5;
   let scenicSky: string | null = null;
   let rampTexture: WebGLTexture | null = null;
@@ -1510,7 +1529,7 @@ export function makeCloudsLayer(
     scenicPass = null;
     if (scenicProgram && makeScenicPass) {
       try {
-        scenicPass = makeScenicPass(context);
+        scenicPass = makeScenicPass(context, map);
       } catch (error) {
         // The clouds are drawn all the same: straight onto the map, and without a sun.
         console.warn("The scenic sky's own passes would not compile", error);
@@ -1727,7 +1746,7 @@ export function makeCloudsLayer(
       context.uniform1i(at("uColumn"), 2);
       context.uniform2f(at("uViewport"), width, height);
       // Whatever MapLibre has set for this layer; see "Depth" above.
-      const [depthNear, depthFar] = context.getParameter(context.DEPTH_RANGE) as Float32Array;
+      const [depthNear, depthFar] = depthRangeSet(map, context);
       context.uniform2f(at("uDepthRange"), depthNear, depthFar);
       context.uniform1i(at("uStyle"), STYLE_INDEX[style]);
       context.uniform4f(at("uGlow"), glow[0], glow[1], glow[2], glow[3]);

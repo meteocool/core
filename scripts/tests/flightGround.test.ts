@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
-  LEAST_DRAPE_SIZE, LEAST_LOOK_DOWN_M, drapeBytes, drapeSizeWithin, fogDepthRow, fogNear, lodCamera, lookedAtHeight,
+  LEAST_DRAPE_SIZE, LEAST_LOOK_DOWN_M, drapeBytes, drapeMatrix, drapeSizeWithin, drapesOver, fogDepthRow, fogNear, lodCamera, lookedAtHeight,
+  type TilePlace,
 } from "../../src/layers/flightGround.ts";
 
 const MB = 1024 * 1024;
@@ -118,4 +119,57 @@ test("level or up, the eye is never taken to look less than the least angle down
 
 test("an eye looking up steeply, further over its point than over the ground, is left as it is", () => {
   assert.deepEqual(lodCamera(12, 7000, 10_000, 5500, RISE), { zoom: 12, up: 7000, away: 10_000 });
+});
+
+/** Where a matrix puts a point of a tile, in the drape's clip space. */
+const drawnAt = (matrix: Float32Array, x: number, y: number) => [matrix[0] * x + matrix[12], matrix[5] * y + matrix[13]];
+
+test("a tile fills the drape of its own terrain tile", () => {
+  const matrix = drapeMatrix({ z: 9, x: 270, y: 180 }, { z: 9, x: 270, y: 180 });
+  assert.ok(matrix);
+  assert.deepEqual(drawnAt(matrix, 0, 0), [-1, 1]);
+  assert.deepEqual(drawnAt(matrix, 8192, 8192), [1, -1]);
+});
+
+test("a drape inside a tile is drawn that part of it, and a tile inside a drape fills its part", () => {
+  // The drape's tile is the lower right quarter of the tile: the tile's middle is the drape's top left.
+  const part = drapeMatrix({ z: 10, x: 541, y: 361 }, { z: 9, x: 270, y: 180 });
+  assert.ok(part);
+  assert.deepEqual(drawnAt(part, 4096, 4096), [-1, 1]);
+  assert.deepEqual(drawnAt(part, 8192, 8192), [1, -1]);
+  // And the other way round the tile is the drape's lower right quarter.
+  const quarter = drapeMatrix({ z: 9, x: 270, y: 180 }, { z: 10, x: 541, y: 361 });
+  assert.ok(quarter);
+  assert.deepEqual(drawnAt(quarter, 0, 0), [0, 0]);
+  assert.deepEqual(drawnAt(quarter, 8192, 8192), [1, -1]);
+});
+
+test("tiles apart from each other share no drape", () => {
+  assert.equal(drapeMatrix({ z: 9, x: 270, y: 180 }, { z: 9, x: 271, y: 180 }), null);
+  assert.equal(drapeMatrix({ z: 10, x: 542, y: 361 }, { z: 9, x: 270, y: 180 }), null);
+  assert.equal(drapeMatrix({ z: 9, x: 270, y: 180 }, { z: 11, x: 1084, y: 720 }), null);
+});
+
+test("looking the drapes up finds what trying every one of them does", () => {
+  // A cockpit's terrain: fine tiles near, coarser ones out to the horizon, one of them twice (the world wrapped).
+  const drapes: Array<[string, TilePlace]> = [];
+  for (let z = 6; z <= 12; z += 1) {
+    for (let dx = 0; dx < 5; dx += 1) for (let dy = 0; dy < 4; dy += 1) drapes.push([`${z}/${dx}/${dy}`, { z, x: (35 << (z - 6)) + dx, y: (22 << (z - 6)) + dy }]);
+  }
+  drapes.push(["again", { z: 6, x: 35, y: 22 }], ["world", { z: 0, x: 0, y: 0 }]);
+  const over = drapesOver(drapes);
+  let found = 0;
+  for (let z = 0; z <= 14; z += 1) {
+    for (let dx = -1; dx < 6; dx += 1) for (let dy = -1; dy < 5; dy += 1) {
+      const tile = z >= 6 ? { z, x: (35 << (z - 6)) + dx, y: (22 << (z - 6)) + dy } : { z, x: (35 >> (6 - z)) + dx, y: (22 >> (6 - z)) + dy };
+      const tried = drapes.flatMap(([name, place]) => {
+        const matrix = drapeMatrix(place, tile);
+        return matrix ? [[name, [...matrix]] as const] : [];
+      }).sort(([a], [b]) => (a < b ? -1 : 1));
+      const looked = over(tile).map(([name, matrix]) => [name, [...matrix]] as const).sort(([a], [b]) => (a < b ? -1 : 1));
+      assert.deepEqual(looked, tried, `${z}/${tile.x}/${tile.y}`);
+      found += looked.length;
+    }
+  }
+  assert.ok(found > 500);
 });
