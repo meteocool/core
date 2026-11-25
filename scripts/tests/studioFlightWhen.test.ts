@@ -30,3 +30,10 @@ test("the page loaded again goes on to the plan, at the moment asked for where t
   assert.deepEqual(readBoarding(new URL(boardingUrl("https://meteocool.com/meteoair.html", "demo", null)).search), { at: null });
   assert.equal(readBoarding("?weather=demo"), null);
 });
+
+test("a past window on the history's storm, ending on its moment, is the recorded storm; any other moment is a past one", () => {
+  const storm = { at: 7200, lon: 4.3, lat: 44.3 };
+  assert.deepEqual(whenOf(false, { start: 0, end: 7200 }, 7200, storm), { kind: "storm" });
+  assert.deepEqual(whenOf(false, { start: 300, end: 7500 }, 7500, storm), { kind: "past", at: 7500 });
+  assert.deepEqual(whenOf(false, null, null, storm), { kind: "now" });
+});

@@ -809,10 +809,15 @@ export function fetchStorms(
   bbox: [number, number, number, number],
   sinceMinutes: number | { since: number; until: number },
   nanobar?: Progress,
+  { minSeverity }: { minSeverity?: number } = {},
 ) {
   return request(nanobar, "/storms", () =>
     dataClient.GET("/storms", {
-      params: { query: { bbox: bbox.map((value) => value.toFixed(3)).join(","), ...stormWindow(sinceMinutes) } },
+      params: { query: {
+        bbox: bbox.map((value) => value.toFixed(3)).join(","),
+        ...stormWindow(sinceMinutes),
+        ...(minSeverity ? { min_severity: minSeverity } : {}),
+      } },
     }), { optional: true });
 }
 

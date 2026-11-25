@@ -44,8 +44,14 @@ export function enterFlightPage(): void {
   studioFlightOnly.set(true);
   document.documentElement.classList.add(FLIGHT_PAGE_CLASS);
   document.title = TITLE;
-  // No text selection starts on this page (global.css): neither does iOS's loupe on a long press.
-  document.addEventListener("selectstart", (event) => event.preventDefault());
+  // No text selection starts on this page (global.css), but in its own words while it is a page to read:
+  // neither does iOS's loupe on a long press on the map, the plan or the flight.
+  document.addEventListener("selectstart", (event) => {
+    const node = event.target instanceof Node ? event.target : null;
+    const element = node instanceof Element ? node : node?.parentElement;
+    const words = element?.closest(".mc-selectable") && !document.documentElement.classList.contains("mc-aboard");
+    if (!words) event.preventDefault();
+  });
 }
 
 /**

@@ -194,7 +194,7 @@
         "headline": "See live storms like never before.",
         "lede": "Fly through real clouds, rebuilt in 3D from radar scans only minutes old.",
         "board": "Plan a flight",
-        "mission_then": "For years we watched storms as colour on a map.",
+        "mission_then": "For years we watched storms as color on a map.",
         "mission_watched": "We watched them grow. We watched them pass.",
         "mission_far": "We never came *close* to one.",
         "mission_now": "Now meteoair takes you there.",
@@ -233,7 +233,7 @@
         "demo": "Needs a recent device and a steady connection.",
         "data": "A flight downloads about {mb} MB. Use Wi-Fi if you can.",
         "replay_tag": "Recorded storm",
-        "replay": "The sky is quiet right now, so you will fly through a recorded storm: real radar and lightning, replayed.",
+        "replay": "The sky is quiet right now, so you will fly through the strongest storm of the last few days: real radar and lightning, replayed.",
         "replay_on": "The sky is quiet right now, so this is a recorded storm: real radar and lightning, replayed.",
         "replay_live": "Fly the quiet sky instead"
       },

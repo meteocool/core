@@ -69,7 +69,7 @@ import { shareAvailable, shareIcon } from "../../../lib/shareSupport";
 import { followSideways } from "../../../lib/sideways";
 import { lift } from "../../../lib/curtain";
 import { archiveStep, archiveWindow, cloudsTime, shareDialog } from "../../../stores";
-import { demoBackend, demoFallbackBuild, demoWeather } from "../../../weatherSource";
+import { demoBackend, demoWeather } from "../../../weatherSource";
 import { addDays, format, getHours, getMinutes, set, startOfDay } from "date-fns";
 import getDfnLocale from "../../../locale/locale";
 import { flightReplan, studioFlightOnly } from "../../../lib/studio/store";
@@ -78,6 +78,7 @@ import type { ArchiveCoverage } from "../../../lib/archive";
 import { loadCoverage } from "../../../lib/archiveCoverage";
 import { DEFAULT_MINUTE, flyWhen, momentOn, whenOf } from "../../../lib/studio/flight/when";
 import type { FlightWhen } from "../../../lib/studio/flight/when";
+import { findHistoryStorm, historyStorm, historyStormBuild } from "../../../lib/studio/flight/stormOfHistory";
 
 /** The 3D map: where the reader was looking, and the storms on the radar. */
 export let stage: Stage;
@@ -249,8 +250,10 @@ if (whenOffered && !demoWeather) {
     coverage = kept;
     days = kept ? coverageDays(kept, dayOf, nextDay).reverse() : [];
   });
+  // The history's strongest storm, offered as the recorded one.
+  if (historyStormBuild) void findHistoryStorm();
 }
-$: when = whenOf(demoWeather, $archiveWindow, $archiveStep);
+$: when = whenOf(demoWeather, $archiveWindow, $archiveStep, $historyStorm);
 $: whenDay = when.kind === "past" ? dayOf(when.at * 1000) : null;
 $: whenValue = whenDay === null ? when.kind : String(whenDay);
 $: dayOptions = whenDay !== null && !days.includes(whenDay) ? [whenDay, ...days] : days;
@@ -263,7 +266,12 @@ const dayName = (day: number) => format(day, "EEE d MMM", { locale: getDfnLocale
 function flyAt(next: FlightWhen): void {
   touched = false;
   viewed = false;
-  void flyWhen(next);
+  void flyWhen(next).then((storm) => {
+    // The history's storm is the one to fly at: the storms are ranked from where it stands.
+    if (!storm) return;
+    look.lon = storm.lon;
+    look.lat = storm.lat;
+  });
 }
 
 function setDay(event: Event): void {
@@ -468,7 +476,7 @@ function keydown(event: KeyboardEvent): void {
           <div class="when-pick">
             <select id="preflight-when" value={whenValue} on:change={setDay}>
               <option value="now">{$_("studio.flight.plan.when_now")}</option>
-              {#if demoFallbackBuild}
+              {#if demoWeather || $historyStorm}
                 <option value="storm">{$_("studio.flight.plan.when_storm")}</option>
               {/if}
               {#each dayOptions as day (day)}

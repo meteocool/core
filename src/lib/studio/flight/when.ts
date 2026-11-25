@@ -1,15 +1,18 @@
 /**
  * When a flight on the flight's page is flown, as its plan asks
  * (components/studio/flight/Preflight.svelte): the radar's now, a past
- * moment the archive keeps (lib/archive.ts), or the recorded storm
- * (src/weatherSource.ts), which the page is on unasked where the live sky
- * has no thunderstorm (lib/studio/flight/fallback.ts).
+ * moment the archive keeps (lib/archive.ts), or the strongest storm of that
+ * history (stormOfHistory.ts), which the page is on unasked where the live
+ * sky has no thunderstorm (fallback.ts).
  *
- * A past moment opens a past window ending on it, which the 3D map, its
- * radar and its strikes then answer for; the page says so only in the plan.
- * The recorded storm is another backend, settled as a page loads: onto it
- * or off it, the page loads again and goes straight back on to the plan
- * (`board`), at the moment chosen where one was.
+ * A past moment, the storm's too, opens a past window ending on it, which
+ * the 3D map, its radar and its strikes then answer for; the page says so
+ * only in the plan. Nothing is loaded again for it.
+ *
+ * A link from before, flown in the demo's recorded storm, is on the demo's
+ * backend (src/weatherSource.ts), settled as a page loads: off it, the page
+ * loads again and goes straight back on to the plan (`board`), at the
+ * moment chosen where one was.
  */
 import { get } from "svelte/store";
 import { archiveWindow } from "../../../stores";
@@ -19,6 +22,8 @@ import type { ArchiveCoverage, ArchiveWindow } from "../../archive";
 import { loadCoverage } from "../../archiveCoverage";
 import { readMoment, writeMoment } from "../flightLink";
 import { curtainDown, lower } from "../../curtain";
+import { findHistoryStorm } from "./stormOfHistory";
+import type { HistoryStorm } from "./stormOfHistory";
 
 export type FlightWhen = { kind: "now" } | { kind: "storm" } | { kind: "past"; at: number };
 
@@ -28,10 +33,11 @@ export const BOARD_KEY = "board";
 /** The time of day the plan offers on a day picked: late afternoon, when thunderstorms are at their height. */
 export const DEFAULT_MINUTE = 16 * 60;
 
-/** When the page's flight is flown, from its weather and the window open on it. */
-export function whenOf(demo: boolean, past: ArchiveWindow | null, step: number | null): FlightWhen {
+/** When the page's flight is flown, from its weather, the window open on it and the history's storm. */
+export function whenOf(demo: boolean, past: ArchiveWindow | null, step: number | null, storm: HistoryStorm | null = null): FlightWhen {
   if (demo) return { kind: "storm" };
-  return past && step !== null ? { kind: "past", at: step } : { kind: "now" };
+  if (!past || step === null) return { kind: "now" };
+  return storm && step === storm.at && past.end === storm.at ? { kind: "storm" } : { kind: "past", at: step };
 }
 
 /**
@@ -66,8 +72,8 @@ export function readBoarding(search: string): { at: number | null } | null {
   return { at: readMoment(asked.trim()) };
 }
 
-/** The page loaded again on `weather`, through black, and on to the plan. */
-async function reloadOnto(weather: "demo" | "live", at: number | null): Promise<void> {
+/** The page loaded again on the live weather, off a link's demo storm, through black, and on to the plan. */
+async function reloadOnto(weather: "live", at: number | null): Promise<void> {
   if (curtainDown()) return;
   await lower();
   window.location.assign(boardingUrl(window.location.href, weather, at));
@@ -85,19 +91,31 @@ export async function openPastAt(at: number): Promise<boolean> {
   return true;
 }
 
-/** The page's flight flown at `next`: the window opened or closed, or the page loaded again onto or off the recorded storm. */
-export async function flyWhen(next: FlightWhen): Promise<void> {
-  if (next.kind === "storm") {
-    if (!demoWeather) await reloadOnto("demo", null);
-    return;
-  }
+/**
+ * The past window on the history's strongest storm opened: whether it was.
+ * The storm, where there was one, for the plan to fly at.
+ */
+export async function openHistoryStorm(): Promise<HistoryStorm | null> {
+  const storm = await findHistoryStorm();
+  if (!storm || !(await openPastAt(storm.at))) return null;
+  return storm;
+}
+
+/**
+ * The page's flight flown at `next`: the window opened or closed, or the
+ * page loaded again off a link's demo storm. Where it is the history's
+ * storm, that storm, for the plan to fly at.
+ */
+export async function flyWhen(next: FlightWhen): Promise<HistoryStorm | null> {
+  if (next.kind === "storm") return demoWeather ? null : openHistoryStorm();
   if (demoWeather) {
     await reloadOnto("live", next.kind === "past" ? next.at : null);
-    return;
+    return null;
   }
   if (next.kind === "now") {
     if (get(archiveWindow)) archiveWindow.set(null);
-    return;
+    return null;
   }
   await openPastAt(next.at);
+  return null;
 }

@@ -36,11 +36,13 @@
  * preview turns, take-off the rest, and a reader on a phone's data is told
  * how large first.
  *
- * On a live build (meteocool.com, next) with no thunderstorm on the radar
- * (lib/studio/flight/fallback.ts), the flight is the demo's recorded storm
- * instead, and the page says so: its button loads the page again on the
- * demo's weather (src/weatherSource.ts), and on to the plan. The reader may
- * keep the live weather all the same.
+ * With no thunderstorm on the radar now (lib/studio/flight/fallback.ts),
+ * the flight is the strongest storm of the history instead
+ * (lib/studio/flight/stormOfHistory.ts), and the page says so: its button
+ * opens the past window on that storm and goes on to the plan, with nothing
+ * loaded again. The reader may keep the live weather all the same. A link
+ * from before, flown in the demo's recorded storm, is still on the demo's
+ * weather (src/weatherSource.ts).
  *
  * In the apps the page is their meteoair mode: a way back to the app's map
  * where the website has its footer.
@@ -76,14 +78,16 @@ import { pastSkyAt, withoutFlightLink } from "../../lib/studio/flightLink";
 import type { FlightStart } from "../../lib/studio/flightLink";
 import type Cells3DCapability from "../../caps/Cells3DCapability";
 import { archiveStep, archiveWindow, cells3dFailed, sharedActiveCap } from "../../stores";
-import { BOARD_KEY, boardingUrl, openPastAt, readBoarding } from "../../lib/studio/flight/when";
+import { BOARD_KEY, openPastAt, readBoarding } from "../../lib/studio/flight/when";
 import { openShowcase, showcase } from "../../lib/showcase";
 import { reportNotice } from "../../lib/Toast";
 import { DeviceDetect } from "../../lib/DeviceDetect";
 import SoundSwitch from "../studio/flight/SoundSwitch.svelte";
 import { FLIGHT_BYTES } from "../../lib/studio/flight/preload";
 import { liveSkyWorthFlying } from "../../lib/studio/flight/fallback";
-import { demoFallbackBuild, demoWeather, WEATHER_KEY, weatherChoice } from "../../weatherSource";
+import { demoWeather, WEATHER_KEY, weatherChoice } from "../../weatherSource";
+import { findHistoryStorm, historyStormBuild } from "../../lib/studio/flight/stormOfHistory";
+import { openHistoryStorm } from "../../lib/studio/flight/when";
 import { radarMapHref } from "../../lib/studio/flightPage";
 import { claimMenuMusic } from "../../lib/studio/flight/soundtrack";
 import { curtainDown, lift, lower } from "../../lib/curtain";
@@ -125,15 +129,17 @@ function reloadWith(weather: "demo" | "live" | null): void {
 }
 
 /**
- * Whether the flight will be the demo's storm: where the page already is on
- * it, or where this live build's radar has no thunderstorm to fly at (asked
- * once the page is up). Not where the reader has asked for the live weather,
- * nor for a link's flight, which is the link's.
+ * Whether the flight will be a recorded storm: the demo's, where a link put
+ * the page on it, or the history's strongest, where the radar has no
+ * thunderstorm to fly at now and the history has one (asked once the page
+ * is up). Not where the reader has asked for the live weather, nor on the
+ * demo's own site, whose weather is its recording, nor for a link's flight,
+ * which is the link's.
  */
-let toDemo = demoWeather;
-if (demoFallbackBuild && !demoWeather && offered && !link && weatherChoice(window.location) !== "live") {
-  void liveSkyWorthFlying().then((worth) => {
-    if (worth === false) toDemo = true;
+let toStorm = demoWeather;
+if (historyStormBuild && !demoWeather && offered && !link && weatherChoice(window.location) !== "live") {
+  void liveSkyWorthFlying().then(async (worth) => {
+    if (worth === false && await findHistoryStorm()) toStorm = true;
   });
 }
 
@@ -166,24 +172,32 @@ function aboard(): void {
 /**
  * The button: on board to the plan. Nothing more is loaded yet: what the
  * flight needs comes once the reader takes off, with how far along it is.
- * To the demo's storm through black, by loading the page again on its weather.
+ * To the history's storm through black: its past window opened, the 3D map
+ * looking at it.
  */
 function plan(): void {
   if (!offered) return;
   // A new flight, whatever was last asked for again.
   flightReplan.set(null);
-  if (toDemo && !demoWeather) {
+  if (toStorm && !demoWeather) {
     if (curtainDown()) return;
-    void lower().then(() => window.location.assign(boardingUrl(window.location.href, "demo", null)));
+    void lower().then(async () => {
+      const storm = await openHistoryStorm();
+      if (storm) {
+        (layerManager.getCapability("cells3d") as Cells3DCapability | undefined)
+          ?.setCamera({ lat: storm.lat, lon: storm.lon, zoom: 8, pitch: 60, bearing: 0 });
+      }
+      board();
+    });
     return;
   }
   aboard();
 }
 
-/** The live weather after all: the page loaded again on it where it is on the demo's, the demo forgotten where it was only planned. */
+/** The live weather after all: the page loaded again on it where a link put it on the demo's, the storm forgotten where it was only planned. */
 function keepLive(): void {
   if (demoWeather) reloadWith("live");
-  else toDemo = false;
+  else toStorm = false;
 }
 
 /* Loaded again onto or off the recorded storm, from the button or the plan
@@ -429,7 +443,7 @@ const guides = [
         </div>
       {/if}
 
-      {#if offered && toDemo}
+      {#if offered && toStorm}
         <p class="note replay" role="status" transition:fade={{ duration: 180 }}>
           <span class="tag"><Icon icon={faBolt} /> {$_("studio.flight.page.replay_tag")}</span>
           {$_(demoWeather ? "studio.flight.page.replay_on" : "studio.flight.page.replay")}
@@ -440,16 +454,14 @@ const guides = [
       {#if offered}
         <!-- Below the way in: what the flight is for, what to try in it and how to fly it. -->
         <div class="brief">
-          <!-- Why the page is here, a breath to a line: the map, the watching, the distance, the flight. -->
+          <!-- Why the page is here: the map and the watching, the distance, the flight. -->
           <div class="mission">
-            <p>{$_("studio.flight.page.mission_then")}</p>
-            <p>{$_("studio.flight.page.mission_watched")}</p>
+            <p>{$_("studio.flight.page.mission_then")} {$_("studio.flight.page.mission_watched")}</p>
             <p>
               <!-- A word between asterisks is said with weight. -->
               {#each $_("studio.flight.page.mission_far").split("*") as bit, index (index)}{#if index % 2}<em>{bit}</em>{:else}{bit}{/if}{/each}
             </p>
-            <p class="now">{$_("studio.flight.page.mission_now")}</p>
-            <p class="seat">{$_("studio.flight.page.mission_seat")}</p>
+            <p class="now">{$_("studio.flight.page.mission_now")} {$_("studio.flight.page.mission_seat")}</p>
           </div>
           <div class="guide">
             {#each guides as guide (guide.title)}
@@ -809,9 +821,8 @@ const guides = [
     line-height: 1.4;
     text-wrap: balance;
   }
-  /* The last two lines are the page's offer, and read as one: set a little apart, and brighter. */
-  .mission .now { margin-top: 5px; }
-  .mission :is(.now, .seat) { color: var(--ink); font-weight: 600; }
+  /* The last line is the page's offer: set a little apart, and brighter. */
+  .mission .now { margin-top: 5px; color: var(--ink); font-weight: 600; }
   /* Side by side where there is room for two, one under the other on a phone. */
   .guide {
     display: grid;

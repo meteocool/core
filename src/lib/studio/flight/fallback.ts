@@ -1,17 +1,15 @@
 /**
- * Whether the live radar has a storm worth a flight, and where there is
- * none, the demo's recorded one instead (src/weatherSource.ts).
+ * Whether the radar has a storm worth a flight: now, or at a past moment.
  *
  * Worth a flight is a thunderstorm: a system on the radar with a heavy core
  * and lightning going off in it. Rain alone is not. A November night over
  * Europe has plenty of rain and the odd 55 dBZ of sea clutter, and a flight
- * at it is grey cloud over the sea; the demo's storm is towers and lightning
- * over the Alps.
+ * at it is grey cloud over the sea. Where the live radar has none, the page
+ * offers the strongest storm of the history instead (stormOfHistory.ts).
  *
- * Asked by the flight's page while the reader reads it, from the same lists
- * the 3D map loads: the composite's volumes, coarse, and the strikes of the
- * last minutes. A list that does not come says nothing either way, and the
- * page stays on its own weather.
+ * Asked from the same lists the 3D map loads: the composite's volumes,
+ * coarse, and the strikes of the minutes before. A list that does not come
+ * says nothing either way.
  */
 import { toLonLat } from "ol/proj";
 import { fetchCurrentVolumes, fetchLightningStrikes } from "../../../api";
@@ -24,17 +22,25 @@ export const WORTHY_DBZ = 45;
 /** And this many strikes in it over `STRIKE_WINDOW_MIN` minutes: lightning going on, not one stray flash. */
 export const WORTHY_STRIKES = 10;
 
+/** Whether a system is a thunderstorm worth flying at. */
+export const worthy = (system: Pick<StormSystem, "peakDbz" | "strikes">): boolean => (
+  system.peakDbz >= WORTHY_DBZ && system.strikes >= WORTHY_STRIKES
+);
+
 /** Whether any of the systems is a thunderstorm worth flying at. */
 export function worthFlying(systems: readonly Pick<StormSystem, "peakDbz" | "strikes">[]): boolean {
-  return systems.some((system) => system.peakDbz >= WORTHY_DBZ && system.strikes >= WORTHY_STRIKES);
+  return systems.some(worthy);
 }
 
-/** Whether the live radar has a storm worth flying at now; null where its lists did not come. */
-export async function liveSkyWorthFlying(now = Date.now()): Promise<boolean | null> {
+/**
+ * The radar's storm systems with their lightning, at `at` (unix seconds) or
+ * now where it is null; null where its lists did not come.
+ */
+export async function systemsAt(at: number | null = null, now = Date.now()): Promise<StormSystem[] | null> {
   try {
-    const until = Math.floor(now / 1000);
+    const until = at ?? Math.floor(now / 1000);
     const [volumes, struck] = await Promise.all([
-      fetchCurrentVolumes(undefined, { coarse: true }),
+      fetchCurrentVolumes(undefined, { coarse: true, at }),
       fetchLightningStrikes(until - STRIKE_WINDOW_MIN * 60, until),
     ]);
     const tiles = (volumes.volumes ?? []).map((volume) => ({
@@ -46,8 +52,14 @@ export async function liveSkyWorthFlying(now = Date.now()): Promise<boolean | nu
       const [lon, lat] = toLonLat([strike.lon, strike.lat]);
       return { lon, lat, at: strike.time_wall };
     });
-    return worthFlying(withStrikes(stormSystems(tiles), strikes));
+    return withStrikes(stormSystems(tiles), strikes);
   } catch {
     return null;
   }
+}
+
+/** Whether the live radar has a storm worth flying at now; null where its lists did not come. */
+export async function liveSkyWorthFlying(now = Date.now()): Promise<boolean | null> {
+  const systems = await systemsAt(null, now);
+  return systems && worthFlying(systems);
 }
