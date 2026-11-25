@@ -1,5 +1,5 @@
 <script lang="ts">
-import { onDestroy } from "svelte";
+import { onDestroy, tick } from "svelte";
 import { derived, get } from "svelte/store";
 import View from "ol/View";
 import { EXTENT as WEB_MERCATOR_EXTENT } from "ol/proj/epsg3857";
@@ -19,7 +19,7 @@ import PeelSlider from "./components/PeelSlider.svelte";
 import { DEFAULT_CLOUD_STYLE, mapStyleOf } from "./lib/cloudStyle";
 import { FEATURES } from "./features";
 import {
-  FLIGHT_BASEMAP, STUDIO_BASEMAP, flightPlanAsked, studioFlightOnly, studioFlying, studioOpen,
+  FLIGHT_BASEMAP, STUDIO_BASEMAP, flightPlanAsked, flightRequest, studioFlightOnly, studioFlying, studioOpen,
 } from "./lib/studio/store";
 import { closeStudio, openFlightPlan, openStudio, studioOffered } from "./lib/studio/session";
 import Logo from "./components/Logo.svelte";
@@ -1120,6 +1120,35 @@ studioFlying.subscribe((flying) => {
   for (const map of lm.maps) if (!map.getTarget()) releaseMap(map);
   stopPacking();
 });
+
+/*
+ * The flight over, and the reader back on a flat map: the 3D map goes
+ * altogether, rather than being kept for a quick way back. It holds the
+ * flight's whole world (terrain, imagery, the storms' volumes, Studio's
+ * layer), which is the most memory the page ever has, and the flat map is
+ * where the reader chose to be. Built again the next time it is opened.
+ * Once Studio is gone, which still talks to it on the way out.
+ */
+let flightWasUp = false;
+const noteFlight = () => {
+  if (get(studioOpen) && (get(studioFlying) || get(flightPlanAsked) || get(studioFlightOnly) || get(flightRequest))) flightWasUp = true;
+};
+const unloadAfterFlight = () => {
+  if (!flightWasUp || get(studioOpen)) return;
+  if (get(sharedActiveCap) !== "cells3d") {
+    flightWasUp = false;
+    void tick().then(() => cells3d?.unload());
+    return;
+  }
+  // Studio closed on the 3D map, and the reader stays on it: a later switch is their own, which keeps it.
+  // Unless the same change goes on to the flat map (the flight's page does), which it has by the next tick.
+  void tick().then(() => {
+    if (!get(studioOpen) && get(sharedActiveCap) === "cells3d") flightWasUp = false;
+  });
+};
+for (const store of [studioOpen, studioFlying, flightPlanAsked, flightRequest]) store.subscribe(noteFlight);
+studioOpen.subscribe(unloadAfterFlight);
+sharedActiveCap.subscribe(unloadAfterFlight);
 
 /*
  * The way back from a detour to the 3D map: a tag or a panel's "open on the
