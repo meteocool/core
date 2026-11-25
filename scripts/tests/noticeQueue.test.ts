@@ -57,7 +57,7 @@ test("a dismissed notice yields to the next", () => {
 });
 
 test("the radar's notice dismissed, the forecast's still yields to nothing wrong", () => {
-  // Dismissing "not coming in" does not make "No Forecast Here" the reason.
+  // Dismissing "not coming in" does not make "No forecast here" the reason.
   const shown = nextNotice({ ...NONE, radarStopped: true, noForecast: true }, new Set(["radar-stopped"]));
   assert.equal(shown, null);
 });

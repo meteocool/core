@@ -38,7 +38,7 @@ test("the stations with Temp and the radars' marks go into the address bar, and 
   await settled(stationPicker(page));
   await stationPicker(page).getByRole("radio", { name: "Temp" }).click();
   await page.getByRole("button", { name: "Settings" }).click();
-  await page.getByRole("switch", { name: "Radar Sites" }).check();
+  await page.getByRole("switch", { name: "Radar sites" }).check();
   await page.keyboard.press("Escape");
   await expect.poll(() => marksShown(page), { timeout: 20_000 }).toBe(true);
 
@@ -60,7 +60,7 @@ test("such a link opened somewhere nothing is saved shows the stations with Temp
   await settled(stationPicker(page));
   await stationPicker(page).getByRole("radio", { name: "Temp" }).click();
   await page.getByRole("button", { name: "Settings" }).click();
-  await page.getByRole("switch", { name: "Radar Sites" }).check();
+  await page.getByRole("switch", { name: "Radar sites" }).check();
   await page.keyboard.press("Escape");
   await expect.poll(() => param(page.url(), "stationParameter")).toBe("temperature");
   const link = new URL(await shareFromMap(page));
@@ -128,7 +128,7 @@ test("the lightning is switched in the storm key, not in Settings, and the addre
   await page.keyboard.press("Escape");
 
   await page.getByRole("button", { name: "Settings" }).click();
-  await expect(page.getByRole("switch", { name: "Storm Cells" })).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Storm cells" })).toBeVisible();
   await expect(page.getByRole("switch", { name: /Lightning/ })).toHaveCount(0);
 });
 

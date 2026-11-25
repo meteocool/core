@@ -19,9 +19,9 @@ test("a tap outside closes it", async ({ page }) => {
   await expect(productMenu(page)).toBeHidden();
 });
 
-test("its \"?\" opens How the Radar Works, which stays open", async ({ page }) => {
+test("its \"?\" opens How the radar works, which stays open", async ({ page }) => {
   await productMenu(page).getByRole("button", { name: "How the radar works" }).click();
-  const explainer = page.getByRole("dialog", { name: "How the Radar Works" });
+  const explainer = page.getByRole("dialog", { name: "How the radar works" });
   await expect(explainer).toBeVisible();
   // It broke by closing again a moment later, with the tray its sheet hides.
   await page.waitForTimeout(1_000);

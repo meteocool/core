@@ -10,7 +10,7 @@ test.beforeEach(async ({ page }) => {
 });
 
 test("the Playback section's loop switch is off, and remembered when turned on", async ({ page }) => {
-  const loop = page.getByRole("switch", { name: "Loop From Two Hours Back" });
+  const loop = page.getByRole("switch", { name: "Start playback two hours back" });
   await expect(loop).not.toBeChecked();
   await loop.check();
   await expect(loop).toBeChecked();
@@ -18,7 +18,7 @@ test("the Playback section's loop switch is off, and remembered when turned on",
 
   await page.reload();
   await page.getByRole("button", { name: "Settings" }).click();
-  await expect(page.getByRole("switch", { name: "Loop From Two Hours Back" })).toBeChecked();
+  await expect(page.getByRole("switch", { name: "Start playback two hours back" })).toBeChecked();
 });
 
 test("the player has no -2h button of its own any more", async ({ page }) => {

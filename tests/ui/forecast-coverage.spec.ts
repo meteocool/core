@@ -15,7 +15,7 @@ const BORDER_VIEW = "/?layer=radar&latLonZ=49.50000,4.00000,8.00";
 /** Central Germany, close enough that the whole screen is inside DWD's reach on a desktop too. */
 const GERMANY_VIEW = "/?layer=radar&latLonZ=50.50000,10.00000,8.00";
 
-const noForecastNotice = (page: Page) => page.getByText("No Forecast Here");
+const noForecastNotice = (page: Page) => page.getByText("No forecast here");
 
 test.beforeEach(async ({ page }) => {
   await page.route("**/v3/radar/timeseries*", (route) => {

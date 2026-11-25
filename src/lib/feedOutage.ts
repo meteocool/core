@@ -5,7 +5,7 @@
  * and one of them (or the whole of EUMETNET's feed) can stop while DWD's
  * keeps going. The map then has nothing new to draw for that country, and
  * meteocool's nowcast, which runs on the same radar, has no run for it: the
- * player would say "No Forecast Here" over ground it normally forecasts. The
+ * player would say "No forecast here" over ground it normally forecasts. The
  * reader is owed the real reason instead.
  *
  * Measured against DWD's newest scan rather than the clock, as
@@ -53,7 +53,7 @@ export function stalledNetworks(feeds: readonly NetworkFeed[], reference: number
  * there is no forecast, and whether a stalled network draws the middle of
  * the screen.
  *
- * In place of "No Forecast Here" wherever a stalled network is on screen at
+ * In place of "No forecast here" wherever a stalled network is on screen at
  * all: the forecast is missing there because its radar is. On any other step
  * only when one draws where the reader is looking, the middle: a map of
  * Germany, whose radar and forecast are live, says nothing of its silent

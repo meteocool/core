@@ -1,7 +1,7 @@
 <script lang="ts">
 /**
  * The panels' way out, as a glass disc: the cell's panel and sheet, the storm
- * core's, and the reading panels (About, Settings, Connection Details), so
+ * core's, and the reading panels (About, Settings, Connection details), so
  * everything that opens over the map closes with the same control in the
  * same corner.
  */

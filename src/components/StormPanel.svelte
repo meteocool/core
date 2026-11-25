@@ -63,7 +63,7 @@ onDestroy(() => {
  * desktop does.
  *
  * Three cases are left alone. A panel above this one owns the key first
- * (About, Settings and Connection Details, in GlassPanel, close on Escape
+ * (About, Settings and Connection details, in GlassPanel, close on Escape
  * themselves and can be open over this), so an open one means the key was
  * not aimed here. A handler that already called `preventDefault`
  * means the same; GlassPanel does, from the capture phase, so it always runs

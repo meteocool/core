@@ -97,7 +97,7 @@ async function visit(browser: Browser, baseURL: string | undefined, device: (typ
   await page.evaluate(async ([bbox, maxAge, station, since]) => {
     await fetch(`/stations/observations?bbox=${bbox}&max_age_minutes=${maxAge}`);
     await fetch(`/stations/${station}/observations?since=${encodeURIComponent(since)}`);
-    // The motion arrows' tile set, asked for only with Rain Motion on (motion.spec.ts).
+    // The motion arrows' tile set, asked for only with Rain motion on (motion.spec.ts).
     await fetch("/v3/motion/layer");
   }, [STATIONS_AROUND, String(STATIONS_MAX_AGE_MINUTES), STATION, new Date(Date.now() - DAY_MS).toISOString()]);
   await context.close();

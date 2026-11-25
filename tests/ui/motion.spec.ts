@@ -11,10 +11,10 @@ import { openRadar } from "./app";
 
 const TILE_SET = "5d0c1a52-8f1e-4c2b-9a77-motion000001";
 
-test("Rain Motion is off until it is turned on in Settings, and is remembered", async ({ page }) => {
+test("Rain motion is off until it is turned on in Settings, and is remembered", async ({ page }) => {
   await openRadar(page);
   await page.getByRole("button", { name: "Settings" }).click();
-  const motion = page.getByRole("switch", { name: "Rain Motion" });
+  const motion = page.getByRole("switch", { name: "Rain motion" });
   await expect(motion).not.toBeChecked();
 
   await motion.check();
@@ -23,7 +23,7 @@ test("Rain Motion is off until it is turned on in Settings, and is remembered", 
   expect(await page.evaluate(() => localStorage.getItem("layerMotion"))).toBe("true");
   await page.reload();
   await page.getByRole("button", { name: "Settings" }).click();
-  await expect(page.getByRole("switch", { name: "Rain Motion" })).toBeChecked();
+  await expect(page.getByRole("switch", { name: "Rain motion" })).toBeChecked();
 });
 
 test("the arrows are asked for only once they are on, from the newest tile set", async ({ page }) => {
@@ -33,7 +33,7 @@ test("the arrows are asked for only once they are on, from the newest tile set",
   expect(asked.filter((path) => path === "/v3/motion/layer")).toEqual([]);
 
   await page.getByRole("button", { name: "Settings" }).click();
-  await page.getByRole("switch", { name: "Rain Motion" }).check();
+  await page.getByRole("switch", { name: "Rain motion" }).check();
 
   await expect.poll(() => asked.filter((path) => path === "/v3/motion/layer").length).toBe(1);
   await expect.poll(() => asked.some((path) => path.startsWith(`/tiles/meteoradar/${TILE_SET}/`) && path.endsWith(".pbf")))
@@ -45,7 +45,7 @@ test("turned off, the arrows stop being drawn and are not asked for again", asyn
   page.on("request", (request) => asked.push(new URL(request.url()).pathname));
   await openRadar(page);
   await page.getByRole("button", { name: "Settings" }).click();
-  const motion = page.getByRole("switch", { name: "Rain Motion" });
+  const motion = page.getByRole("switch", { name: "Rain motion" });
   await motion.check();
   await expect.poll(() => asked.filter((path) => path === "/v3/motion/layer").length).toBe(1);
 

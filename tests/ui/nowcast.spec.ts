@@ -13,7 +13,7 @@ import { fixtureFile, type RecordedResponse } from "./offline";
 const AQUITAINE_VIEW = "/?layer=radar&latLonZ=44.80000,-0.60000,8.00";
 const RUN_LEADS = 12;
 
-const noForecastNotice = (page: Page) => page.getByText("No Forecast Here");
+const noForecastNotice = (page: Page) => page.getByText("No forecast here");
 
 async function step(page: Page, times: number): Promise<void> {
   await timeline(page).focus();

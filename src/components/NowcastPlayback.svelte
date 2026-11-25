@@ -306,7 +306,7 @@ $: outOfForecast = $onForecastStep && saysNoForecast(forecastMissing);
    arriving (lib/feedOutage.ts, or the backend's status, which can blame
    DWD's too): there the map's present is the last picture that came, and
    the nowcast has no run, so the player says the weather service's data is
-   not coming in rather than "No Forecast Here". */
+   not coming in rather than "No forecast here". */
 $: stalledShare = !forecastReachable || !$mapExtent4326 || $stalledNetworks.length === 0 ? 0
   : 1 - uncoveredShare($mapExtent4326, (lon, lat) => drawnByDomains($stalledNetworks, lon, lat));
 $: stalledAtCentre = stalledShare > 0 && $mapExtent4326 !== null

@@ -29,7 +29,7 @@ export const timeline = (page: Page): Locator => page.getByRole("slider", { name
 export const productControl = (page: Page): Locator =>
   page.locator("button[aria-haspopup='menu'][title='Choose the radar product']:visible").first();
 
-export const productMenu = (page: Page): Locator => page.getByRole("menu", { name: "Radar Product" });
+export const productMenu = (page: Page): Locator => page.getByRole("menu", { name: "Radar product" });
 
 export const backToNow = (page: Page): Locator => page.getByRole("button", { name: "Back to now" });
 

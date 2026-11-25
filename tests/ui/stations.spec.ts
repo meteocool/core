@@ -279,7 +279,7 @@ test("the picker stands on a notice strip over the player", async ({ page }) => 
   const pill = page.locator(".stationPicker");
   await settled(pill);
   const strip = page.locator(".strip-dock");
-  await expect(page.getByText("No Radar Here Yet")).toBeVisible();
+  await expect(page.getByText("No radar here yet")).toBeVisible();
   await settled(strip);
   // The strip is about the map, the picker about how it is read: the strip next to the player.
   expect(below((await pill.boundingBox())!, (await strip.boundingBox())!)).toBe(true);

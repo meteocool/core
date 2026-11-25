@@ -154,7 +154,7 @@ function setPlaybackFromStart(value: boolean) {
 </script>
 
 <style>
-  /* The panel is GlassPanel's, shared with About and Connection Details. This
+  /* The panel is GlassPanel's, shared with About and Connection details. This
      is the content: grouped lists in the system's style, a checkmark for the
      chosen row and a switch for each toggle. */
   /* The drawers' section heading (see StormPanel): bold, in the primary ink,

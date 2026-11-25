@@ -4,7 +4,7 @@ import { STALLED_BEHIND_S, saysFeedStopped, stalledNetworks } from "../../src/li
 
 /**
  * Which countries' radar has stopped arriving, measured against DWD's, and
- * when the player says so in place of "No Forecast Here".
+ * when the player says so in place of "No forecast here".
  */
 
 const HX = 1_794_430_200;

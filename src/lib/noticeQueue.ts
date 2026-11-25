@@ -47,7 +47,7 @@ export function ranked(candidates: Candidates): QueuedNotice[] {
   if (candidates.radarStopped) order.push({ kind: "radar-stopped" });
   if (candidates.forecastStopped) order.push({ kind: "forecast-stopped" });
   /* Not while either feed is the reason there is no forecast, dismissed or
-     not: "No Forecast Here" would then give the wrong one. */
+     not: "No forecast here" would then give the wrong one. */
   if (candidates.noForecast && !candidates.radarStopped && !candidates.forecastStopped) {
     order.push({ kind: "no-forecast" });
   }

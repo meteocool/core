@@ -97,7 +97,7 @@ test.describe("with the radars' marks on", () => {
     await expect(tilts.locator("option")).toHaveCount(6);
     await expect(tilts.locator("option").first()).toHaveText(/^0\.5° · /);
     // Nothing drawn over them, so nothing to dim them for.
-    await expect(tray.getByText("This sweep could not be loaded", { exact: true })).toBeVisible();
+    await expect(tray.getByText("Couldn't load this sweep", { exact: true })).toBeVisible();
     expect(await compositeOpacity(page)).toBeCloseTo(before, 5);
 
     // Velocity is offered, the site having published it.

@@ -11,7 +11,7 @@ import { open3d, overlaps } from "./app";
 const MAP_3D = "/?layer=cells3d&latLonZ=50.50000,9.50000,10.00&pitch=0&bearing=0";
 
 const stylePill = (page: Page) => page.getByRole("button", { name: /^Storm style: / });
-const styleMenu = (page: Page) => page.getByRole("menu", { name: "Storm Style" });
+const styleMenu = (page: Page) => page.getByRole("menu", { name: "Storm style" });
 const peel = (page: Page) => page.getByRole("slider", { name: "Peel the storms down to their cores" });
 const stored = (page: Page) => page.evaluate(() => localStorage.getItem("layer3dStyle"));
 

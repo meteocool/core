@@ -40,7 +40,7 @@ test.beforeEach(async ({ page }) => {
 
 test("the menu lists the echo tops and VIL under their own heading", async ({ page }) => {
   await productControl(page).click();
-  const group = productMenu(page).getByRole("group", { name: "Echo Tops & VIL" });
+  const group = productMenu(page).getByRole("group", { name: "Echo tops and VIL" });
   await expect(group.getByRole("menuitemradio")).toHaveCount(4);
   await expect(group.getByRole("menuitemradio").first()).toContainText("18 dBZ top");
   await expect(group.getByRole("menuitemradio").last()).toContainText("VIL");

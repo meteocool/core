@@ -66,7 +66,7 @@ test("a card that cannot be drawn says so, and is asked for again", async ({ pag
   await openRadar(page, VIEW);
   await page.locator(".ol-share button").click();
   await preview.release((route) => route.fulfill({ status: 502, body: "" }));
-  await expect(page.getByText("The preview could not be made.")).toBeVisible();
+  await expect(page.getByText("Couldn't make the preview.")).toBeVisible();
   await expect(instagram(page)).toBeDisabled();
 
   await page.getByRole("button", { name: "Try again" }).click();

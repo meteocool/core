@@ -27,7 +27,7 @@ let openSheets = 0;
  *
  * The one surface a phone has for anything that opens over the map: the
  * storm panels take it through App.svelte, and the reading panels (About,
- * Settings, Connection Details) through GlassPanel, in the reading
+ * Settings, Connection details) through GlassPanel, in the reading
  * material and opened at full height, since they are read rather than
  * navigated with.
  */
@@ -76,7 +76,7 @@ export let fitAtRest = false;
 export let full = false;
 /**
  * Whether the sheet has a half-height stop at all. Not for a page that is read
- * rather than navigated with (About, Settings, Connection Details): a third
+ * rather than navigated with (About, Settings, Connection details): a third
  * of a page of prose over a strip of map is neither, so pulling one down
  * closes it rather than parking it half open.
  */

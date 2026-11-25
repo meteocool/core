@@ -6,7 +6,7 @@ import { smallScreen } from "../stores";
 import { holdNativeChrome } from "../lib/nativeBridge";
 
 /**
- * A panel of text over the map: About, Settings, Connection Details.
+ * A panel of text over the map: About, Settings, Connection details.
  *
  * One component, two frames, chosen by the screen: the same split the storm
  * panels make in App.svelte, so everything that opens over the map takes the

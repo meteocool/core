@@ -44,7 +44,7 @@ async function serveStatus(page: Page, status: Status): Promise<void> {
   await page.route("**/v3/status", (route) => route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(status) }));
 }
 
-const feedNotice = (page: Page) => page.getByText("Radar Data Not Coming In");
+const feedNotice = (page: Page) => page.getByText("Radar data not coming in");
 const warningNotice = (page: Page) => page.getByText("Warning", { exact: true });
 const closeStrip = (page: Page) => page.locator(".strip-dock").getByRole("button", { name: "Close" });
 
@@ -253,6 +253,6 @@ test("the sheet closes on Escape", async ({ page }) => {
 test("Connection details opens the diagnostics from the sheet", async ({ page }) => {
   await openRadar(page, GERMANY_VIEW);
   await statusPill(page).click();
-  await statusSheet(page).getByRole("button", { name: "Connection Details" }).click();
-  await expect(page.getByRole("dialog", { name: "Connection Details" })).toBeVisible();
+  await statusSheet(page).getByRole("button", { name: "Connection details" }).click();
+  await expect(page.getByRole("dialog", { name: "Connection details" })).toBeVisible();
 });
