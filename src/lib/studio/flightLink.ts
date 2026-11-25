@@ -97,7 +97,7 @@ function readSpeed(text: string): FlightStart["speed"] {
 }
 
 /** A moment, `2026-10-08T17:30Z`: to the minute or the second, UTC where it names no zone. Null for anything else. */
-function readMoment(text: string): number | null {
+export function readMoment(text: string): number | null {
   const moment = /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?)(Z|[+-]\d{2}:?\d{2})?$/i.exec(text);
   if (!moment) return null;
   const ms = Date.parse(`${moment[1]}${moment[2] ?? "Z"}`);
@@ -105,7 +105,7 @@ function readMoment(text: string): number | null {
 }
 
 /** A step as a link writes it: `2026-10-08T17:30Z`. */
-function writeMoment(t: number): string {
+export function writeMoment(t: number): string {
   return new Date(t * 1000).toISOString().slice(0, 16) + "Z";
 }
 

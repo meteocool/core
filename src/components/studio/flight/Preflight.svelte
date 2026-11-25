@@ -66,8 +66,16 @@ import { claimMenuMusic } from "../../../lib/studio/flight/soundtrack";
 import { shareAvailable, shareIcon } from "../../../lib/shareSupport";
 import { followSideways } from "../../../lib/sideways";
 import { lift } from "../../../lib/curtain";
-import { archiveStep, cloudsTime, shareDialog } from "../../../stores";
-import { demoBackend } from "../../../weatherSource";
+import { archiveStep, archiveWindow, cloudsTime, shareDialog } from "../../../stores";
+import { demoBackend, demoFallbackBuild, demoWeather } from "../../../weatherSource";
+import { addDays, format, getHours, getMinutes, set, startOfDay } from "date-fns";
+import getDfnLocale from "../../../locale/locale";
+import { studioFlightOnly } from "../../../lib/studio/store";
+import { coverageDays, startMinutes } from "../../../lib/archive";
+import type { ArchiveCoverage } from "../../../lib/archive";
+import { loadCoverage } from "../../../lib/archiveCoverage";
+import { DEFAULT_MINUTE, flyWhen, momentOn, whenOf } from "../../../lib/studio/flight/when";
+import type { FlightWhen } from "../../../lib/studio/flight/when";
 
 /** The 3D map: where the reader was looking, and the storms on the radar. */
 export let stage: Stage;
@@ -105,8 +113,8 @@ const fullScreenOnly = typeof window !== "undefined" && Boolean(window.webkit?.m
   && !window.nativeCapabilities?.inlineVideo;
 const still = fullScreenOnly || (typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches);
 
-/** The lightning the storms are ranked by: every strike the map holds from the last minutes. */
-const recentStrikes = () => stage.strikesSince(Date.now() - STRIKE_WINDOW_MIN * 60_000);
+/** The lightning the storms are ranked by: every strike the map holds from the last minutes; in a past window, the minutes up to its step. */
+const recentStrikes = () => stage.strikesSince((get(archiveStep) ?? Date.now() / 1000) * 1000 - STRIKE_WINDOW_MIN * 60_000);
 /** The storms on the radar, each with its lightning, the best to fly at first (spawn.ts, `rankSystems`). */
 const ranked = (list: typeof tiles, struck: typeof strikes) => rankSystems(withStrikes(stormSystems(list), struck), look.lon, look.lat);
 
@@ -199,6 +207,58 @@ function setTarget(event: Event): void {
   frame();
 }
 
+/* When it is flown: on the flight's own page only, where nothing else says
+   it (lib/studio/flight/when.ts); in the app's Studio, whatever the map shows.
+   Not on the demo's site, whose only weather is its recorded storm. */
+const whenOffered = get(studioFlightOnly) && import.meta.env?.MODE !== "demo";
+const dayOf = (ms: number) => startOfDay(ms).getTime();
+const nextDay = (ms: number) => addDays(ms, 1).getTime();
+const minuteOf = (ms: number) => getHours(ms) * 60 + getMinutes(ms);
+const clock = (day: number, minute: number) => Math.floor(
+  set(day, { hours: Math.floor(minute / 60), minutes: minute % 60, seconds: 0, milliseconds: 0 }).getTime() / 1000,
+);
+/** What the archive keeps, and its days, newest first: the live weather's, which the recorded storm's page does not know. */
+let coverage: ArchiveCoverage | null = null;
+let days: number[] = [];
+if (whenOffered && !demoWeather) {
+  void loadCoverage().then((kept) => {
+    coverage = kept;
+    days = kept ? coverageDays(kept, dayOf, nextDay).reverse() : [];
+  });
+}
+$: when = whenOf(demoWeather, $archiveWindow, $archiveStep);
+$: whenDay = when.kind === "past" ? dayOf(when.at * 1000) : null;
+$: whenValue = whenDay === null ? when.kind : String(whenDay);
+$: dayOptions = whenDay !== null && !days.includes(whenDay) ? [whenDay, ...days] : days;
+$: whenClock = when.kind === "past" ? format(when.at * 1000, "HH:mm") : "";
+$: [firstMinute, lastMinute] = whenDay !== null && coverage ? startMinutes(whenDay, coverage, minuteOf, dayOf) : [0, 1435];
+const hhmm = (minute: number) => `${String(Math.floor(minute / 60)).padStart(2, "0")}:${String(minute % 60).padStart(2, "0")}`;
+const dayName = (day: number) => format(day, "EEE d MMM", { locale: getDfnLocale() });
+
+/** Flown at another time: a new sky, which the plan is made for again, unless the reader changes it after. */
+function flyAt(next: FlightWhen): void {
+  touched = false;
+  viewed = false;
+  void flyWhen(next);
+}
+
+function setDay(event: Event): void {
+  const value = (event.currentTarget as HTMLSelectElement).value;
+  if (value === "now" || value === "storm") {
+    flyAt({ kind: value });
+    return;
+  }
+  // The clock already chosen, on another day; the afternoon, on the first.
+  const at = momentOn(Number(value), when.kind === "past" ? minuteOf(when.at * 1000) : DEFAULT_MINUTE, coverage, clock);
+  if (at !== null) flyAt({ kind: "past", at });
+}
+
+function setClock(event: Event): void {
+  const [hours, minutes] = (event.currentTarget as HTMLInputElement).value.split(":").map(Number);
+  if (whenDay === null || !Number.isFinite(hours) || !Number.isFinite(minutes)) return;
+  const at = momentOn(whenDay, hours * 60 + minutes, coverage, clock);
+  if (at !== null && at !== (when.kind === "past" ? when.at : null)) flyAt({ kind: "past", at });
+}
 
 /* The chart. */
 let chartElement: HTMLDivElement | null = null;
@@ -378,6 +438,26 @@ function keydown(event: KeyboardEvent): void {
           on:pointerdown={() => { viewed = true; }} on:wheel={() => { viewed = true; }}></div>
         <p class="hint">{$_("studio.flight.plan.chart_hint")}</p>
       </div>
+      {#if whenOffered}
+        <div class="field when glass glass-tray">
+          <label for="preflight-when">{$_("studio.flight.plan.when")}</label>
+          <div class="when-pick">
+            <select id="preflight-when" value={whenValue} on:change={setDay}>
+              <option value="now">{$_("studio.flight.plan.when_now")}</option>
+              {#if demoFallbackBuild}
+                <option value="storm">{$_("studio.flight.plan.when_storm")}</option>
+              {/if}
+              {#each dayOptions as day (day)}
+                <option value={String(day)}>{dayName(day)}</option>
+              {/each}
+            </select>
+            {#if when.kind === "past"}
+              <input type="time" step="300" min={hhmm(firstMinute)} max={hhmm(lastMinute)} value={whenClock}
+                aria-label={$_("studio.flight.plan.when_time")} on:change={setClock} />
+            {/if}
+          </div>
+        </div>
+      {/if}
       <div class="field storm glass glass-tray">
         <label for="preflight-target">{$_("studio.flight.plan.target")}</label>
         {#if systems.length}
@@ -693,6 +773,20 @@ function keydown(event: KeyboardEvent): void {
     color: var(--mc-text);
     font: 600 12px/1 var(--mc-font);
   }
+  .when-pick { display: flex; gap: 8px; min-width: 0; }
+  .when-pick select { flex: 1 1 auto; }
+  .when-pick input {
+    flex: none;
+    height: var(--mc-pill-h);
+    box-sizing: border-box;
+    padding: 0 10px;
+    border: 0;
+    border-radius: var(--mc-radius-pill);
+    background: var(--mc-tint);
+    color: var(--mc-text);
+    font: 600 12px/1 var(--mc-font);
+    font-variant-numeric: tabular-nums;
+  }
   .slider {
     display: flex;
     align-items: center;
@@ -836,7 +930,7 @@ function keydown(event: KeyboardEvent): void {
   }
   /* Under a finger, what is pressed is a finger's size. */
   @media (pointer: coarse) {
-    .chip, select { height: 40px; }
+    .chip, select, .when-pick input { height: 40px; }
     .chip { padding: 0 16px; font-size: 13px; }
     .chip.go { padding: 0 22px; }
     .slider input { height: 32px; }

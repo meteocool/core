@@ -18,7 +18,9 @@
  * where the archive no longer keeps it, the flight is in the radar's now,
  * and the page says so. Once that flight is over, its part of the address
  * goes, so a reload is this page again rather than the same flight; the
- * window stays for the plan it ends on, and goes with Studio.
+ * window stays for the plan it ends on, and goes with Studio. The plan says
+ * when it is flown and changes it (lib/studio/flight/when.ts); this page has
+ * no word of the archive, nor its frame round the map.
  *
  * The page is the flight's menu: the menus' music streams and plays on it
  * from the reader's first click or key (lib/studio/flight/soundtrack.ts),
@@ -59,8 +61,7 @@ import { pastSkyAt, withoutFlightLink } from "../../lib/studio/flightLink";
 import type { FlightStart } from "../../lib/studio/flightLink";
 import type Cells3DCapability from "../../caps/Cells3DCapability";
 import { archiveWindow, cells3dFailed, sharedActiveCap } from "../../stores";
-import { loadCoverage } from "../../lib/archiveCoverage";
-import { windowAround } from "../../lib/archive";
+import { BOARD_KEY, boardingUrl, openPastAt, readBoarding } from "../../lib/studio/flight/when";
 import { openShowcase, showcase } from "../../lib/showcase";
 import { reportNotice } from "../../lib/Toast";
 import { DeviceDetect } from "../../lib/DeviceDetect";
@@ -98,18 +99,14 @@ const offered = Boolean(layerManager.getCapability("cells3d"));
 /** Whether it will be flown by touch: the page says how, in place of the keys. */
 const byTouch = touchFirst();
 
-/** The page loaded again with the weather set as asked, `board` to go on to the plan at once. */
-function reloadWith(weather: "demo" | "live" | null, board: boolean): void {
+/** The page loaded again with the weather set as asked, its errand to the plan forgotten. */
+function reloadWith(weather: "demo" | "live" | null): void {
   const url = new URL(window.location.href);
   if (weather) url.searchParams.set(WEATHER_KEY, weather);
   else url.searchParams.delete(WEATHER_KEY);
-  if (board) url.searchParams.set(BOARD_KEY, "1");
-  else url.searchParams.delete(BOARD_KEY);
+  url.searchParams.delete(BOARD_KEY);
   window.location.assign(url.href);
 }
-
-/** On the address, to go straight on to the plan once the page has loaded again on the demo's weather. */
-const BOARD_KEY = "board";
 
 /**
  * Whether the flight will be the demo's storm: where the page already is on
@@ -159,7 +156,7 @@ function plan(): void {
   if (!offered) return;
   if (toDemo && !demoWeather) {
     if (curtainDown()) return;
-    void lower().then(() => reloadWith("demo", true));
+    void lower().then(() => window.location.assign(boardingUrl(window.location.href, "demo", null)));
     return;
   }
   aboard();
@@ -167,23 +164,32 @@ function plan(): void {
 
 /** The live weather after all: the page loaded again on it where it is on the demo's, the demo forgotten where it was only planned. */
 function keepLive(): void {
-  if (demoWeather) reloadWith("live", false);
+  if (demoWeather) reloadWith("live");
   else toDemo = false;
 }
 
-// Back on the demo's weather from the button: on to the plan, and the address without the errand.
-if (demoWeather && offered && new URLSearchParams(window.location.search).has(BOARD_KEY)) {
+/* Loaded again onto or off the recorded storm, from the button or the plan
+   (lib/studio/flight/when.ts): on to the plan, in the past moment asked for
+   where one was, and the address without the errand. */
+const boarding = link ? null : readBoarding(window.location.search);
+if (boarding) {
   const url = new URL(window.location.href);
   url.searchParams.delete(BOARD_KEY);
   history.replaceState(history.state, "", url.href);
-  board();
+}
+if (boarding && offered) {
+  const at = boarding.at;
+  if (at === null) board();
+  else {
+    void openPastAt(at).then((opened) => {
+      if (!opened) reportNotice(get(_)("studio.flight.share.past_gone"));
+      board();
+    });
+  }
 }
 
 /** Whether the page is on its link's flight: from opening until that flight is over, or never got off. */
 let linked = Boolean(link && offered);
-
-/** Whether the page opened a past window for its link's flight: kept through the plan that flight ends on, closed with Studio. */
-let pastOpened = false;
 
 /** The link's part of the address taken off, now that its flight is over. */
 function unlink(): void {
@@ -193,20 +199,6 @@ function unlink(): void {
   if (search !== window.location.search) {
     history.replaceState(history.state, "", `${window.location.pathname}${search}${window.location.hash}`);
   }
-}
-
-/**
- * Open the past window a link's flight is flown in: two hours ending on
- * `at`, kept as the archive keeps it. Before the 3D map comes up, so it
- * never asks for the radar's now. Whether it opened.
- */
-async function openPast(at: number): Promise<boolean> {
-  const coverage = await loadCoverage();
-  const past = coverage ? windowAround(at, coverage) : null;
-  if (!past) return false;
-  archiveWindow.set(past);
-  pastOpened = true;
-  return true;
 }
 
 /** The link's flight: the 3D map comes up looking at its start, and Studio flies from it. */
@@ -226,7 +218,8 @@ if (link && linked) {
     void openShowcase().then(() => { if (linked) takeOff(start); });
   } else if (at === null) takeOff(start);
   else {
-    void openPast(at).then((opened) => {
+    // Before the 3D map comes up, so it never asks for the radar's now.
+    void openPastAt(at).then((opened) => {
       if (!opened) reportNotice(get(_)("studio.flight.share.past_gone"));
       // Gone before the archive answered: the reader left the page's flight.
       if (linked) takeOff(start);
@@ -242,17 +235,14 @@ if (showcase && !link) void openShowcase();
 onDestroy(sharedActiveCap.subscribe((cap) => {
   if (cap === "cells3d") openStudio();
 }));
-/** Whether Studio has been open: not before it first is, which a link's flight from a past window waits for the archive to reach. */
+/** Whether Studio has been open: not before it first is, which a flight in a past window waits for the archive to reach. */
 let studioWasOpen = false;
 onDestroy(studioOpen.subscribe((open) => {
   if (open) studioWasOpen = true;
   if (open || !studioWasOpen) return;
   unlink();
-  // Back on this page, which is the radar's now.
-  if (pastOpened) {
-    pastOpened = false;
-    archiveWindow.set(null);
-  }
+  // Back on this page, which is the radar's now: a past window, from a link or the plan, goes. The recorded storm has no now.
+  if (!showcase && get(archiveWindow)) archiveWindow.set(null);
   if (get(sharedActiveCap) === "cells3d") layerManager.setTarget("radar", MAP_TARGET);
 }));
 let flew = false;

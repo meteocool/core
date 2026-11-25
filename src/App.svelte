@@ -1840,4 +1840,5 @@ if (postInitCb) postInitCb(lm);
 {#if $toolbarVisible === "yes" && !flightOnly}
   <NowcastPlayback cap={lm.getCapability("radar") as RadarCapability} />
 {/if}
-<ArchiveFrame />
+<!-- Not on the flight's page, whose plan says when it is flown (Preflight.svelte). -->
+{#if !flightOnly}<ArchiveFrame />{/if}
