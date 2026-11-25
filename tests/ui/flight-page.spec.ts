@@ -1,6 +1,7 @@
 import type { Page } from "@playwright/test";
 import { expect, test } from "./test";
 import { curtainUp, emptyAircraft, noGeocoder } from "./app";
+import { serveArchive } from "./archive";
 
 /**
  * The flight's own page: meteoair.html, and the web app opened at
@@ -9,6 +10,9 @@ import { curtainUp, emptyAircraft, noGeocoder } from "./app";
  * desktop, where the flight is flown by touch.
  */
 const VIEW = "latLonZ=50.50000,9.50000,6.00";
+
+// The plan lists the days the archive keeps, so it asks `/v3/archive`, which is never recorded.
+test.beforeEach(async ({ page }) => { await serveArchive(page); });
 
 const landing = (page: Page) => page.locator(".landing");
 const board = (page: Page) => page.getByRole("button", { name: "Plan a flight" });

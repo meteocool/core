@@ -1,6 +1,7 @@
 import type { CDPSession, Page } from "@playwright/test";
 import { expect, test } from "./test";
 import { curtainUp, emptyAircraft, noGeocoder } from "./app";
+import { serveArchive } from "./archive";
 
 /**
  * The flight on its side (lib/sideways.ts): in the apps, whose web view
@@ -12,6 +13,9 @@ import { curtainUp, emptyAircraft, noGeocoder } from "./app";
  * picture.
  */
 const VIEW = "latLonZ=43.30000,4.60000,7.00";
+
+// The plan lists the days the archive keeps, so it asks `/v3/archive`, which is never recorded.
+test.beforeEach(async ({ page }) => { await serveArchive(page); });
 const PHONE = { width: 390, height: 844 };
 
 const landing = (page: Page) => page.locator(".landing");
