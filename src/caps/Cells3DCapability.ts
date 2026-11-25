@@ -39,7 +39,7 @@ import {
 } from "../lib/gpuBudget";
 import { drawnExtentM, tileBounds, tileCentre, tileCode } from "../lib/volumeBox";
 import {
-  atLevel, COARSE_ZOOM, coveringTiles, fineAt, fineWithin, footprintOnScreen, volumesAsked, weakParts,
+  atLevel, COARSE_ZOOM, drawnWithin, fineAt, fineWithin, footprintOnScreen, freedAsTiles, volumesAsked,
 } from "../lib/volumeLevels";
 import type { Bounds, FineCandidate } from "../lib/volumeLevels";
 import { framingCamera } from "../lib/stormFrame";
@@ -2373,13 +2373,14 @@ export default class Cells3DCapability extends Capability {
    * of it, as on the map. Drawing the whole sky (`fillSky`), none where it
    * stays drawn over the ground its tiles leave (`weakParts`), and null
    * where it has no tiles to be drawn as, a fill tile's case: it stays
-   * coarse, rather than its weak echo going with it.
+   * coarse, rather than its weak echo going with it. Its tiles are every
+   * network's under it (`coveringTiles`): a fill tile over a neighbouring
+   * network's storm is drawn as its weak parts close up, as a coarse tile is.
    */
   private freedFine(cloud: RadarVolume, tiles: readonly RadarVolume[], usable: (cloud: RadarVolume) => boolean): number | null {
     const own = usable(cloud) ? textureBytes(cloud) : 0;
     if (!this.fillSky || !cloud.tile) return own;
-    if (!tiles.length) return null;
-    return weakParts(cloud.tile, coveringTiles(cloud, tiles)).length ? 0 : own;
+    return freedAsTiles(cloud.tile, tiles, own);
   }
 
   /** Make `fine` the coarse tiles drawn as their tiles; whether that changed any. */
@@ -2469,18 +2470,9 @@ export default class Cells3DCapability extends Capability {
    * where a coarse tile is drawn whole or not at all.
    */
   private weakWithin(drawn: ReadonlyArray<[string, Cutaway]>): Map<string, number[][] | null> {
-    const within = new Map<string, number[][] | null>();
-    if (!this.fillSky) return within;
-    const fine = drawn.flatMap(([, { header }]) => (
-      header.tile && header.tile[0] > COARSE_ZOOM ? [{ tile: header.tile, network: header.network ?? "de", coarse: false }] : []
-    ));
-    for (const [path, { header }] of drawn) {
-      if (!header.tile || header.tile[0] !== COARSE_ZOOM) continue;
-      const parts = weakParts(header.tile, coveringTiles({ tile: header.tile, network: header.network ?? "de" }, fine));
-      const whole = parts.length === 1 && parts[0][0] === COARSE_ZOOM;
-      within.set(path, whole ? null : parts);
-    }
-    return within;
+    if (!this.fillSky) return new Map();
+    // Every network's: another's storm under this tile is a cloud it must not be drawn over too.
+    return drawnWithin(drawn.map(([key, { header }]) => ({ key, tile: header.tile ?? null })));
   }
 
   /**

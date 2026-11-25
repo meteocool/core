@@ -44,6 +44,8 @@ function coarseKey(tile: readonly number[]): string | null {
  * tiles is drawn as well where none of them lies, over its weak echo
  * (`weakParts`), counting only the tiles `weak.covers` says are drawn.
  * Without it, a coarse tile is drawn whole or not at all, as on the map.
+ * Either way, drawn whole it stands in for every network's tiles under it,
+ * and drawn in part it leaves room for every network's (`coveringTiles`).
  */
 export function atLevel(
   clouds: readonly RadarVolume[], coarse: (tile: readonly number[]) => boolean, openPath: string | null = null,
@@ -70,18 +72,21 @@ export function atLevel(
 }
 
 /**
- * The tiles of `fine` that lie in a coarse tile, of its own network: two
- * networks overlap at their borders and each draws its own sky there.
+ * The tiles of `fine` that lie in a coarse tile, of every network.
+ *
+ * Every network's: where networks meet, one's storm can lie under another's
+ * coarse or fill tile, whose own storm tiles are elsewhere or not built at
+ * all. Counted for its own network alone, the zoom-9 tile was drawn whole
+ * over the other's storm, one cloud drawn twice. A coarse tile drawn whole
+ * stands in for every network's tiles under it (`atLevel`), and drawn as
+ * its weak parts it leaves room for every network's too.
  */
 export function coveringTiles(
-  parent: Pick<RadarVolume, "tile" | "network">, fine: readonly Pick<RadarVolume, "tile" | "network" | "coarse">[],
+  parent: { tile?: readonly number[] | null }, fine: readonly { tile?: readonly number[] | null; coarse?: boolean }[],
 ): Array<readonly number[]> {
   const key = parent.tile ? coarseKey(parent.tile) : null;
   if (key === null) return [];
-  return fine.flatMap((cloud) => (
-    !cloud.coarse && cloud.tile && (cloud.network ?? "de") === (parent.network ?? "de") && coarseKey(cloud.tile) === key
-      ? [cloud.tile] : []
-  ));
+  return fine.flatMap((cloud) => (!cloud.coarse && cloud.tile && coarseKey(cloud.tile) === key ? [cloud.tile] : []));
 }
 
 /**
@@ -108,6 +113,42 @@ export function weakParts(tile: readonly number[], fine: readonly (readonly numb
     parts.push(...weakParts([z + 1, x * 2 + dx, y * 2 + dy], inside));
   }
   return parts;
+}
+
+/**
+ * What drawing a coarse tile as its tiles (`tiles`, every network's under
+ * it) frees of its own texture, `own` bytes, in a sky drawn whole: none
+ * where it stays drawn over the ground they leave (`weakParts`), all of it
+ * where they cover it, and null where there are none to be drawn as, which
+ * keeps it coarse. A fill tile with no storm under it is the last; one over
+ * a neighbouring network's storm, the first.
+ */
+export function freedAsTiles(
+  tile: readonly number[], tiles: readonly { tile?: readonly number[] | null; coarse?: boolean }[], own: number,
+): number | null {
+  const under = coveringTiles({ tile }, tiles);
+  if (!under.length) return null;
+  return weakParts(tile, under).length ? 0 : own;
+}
+
+/**
+ * Which tiles of its own each zoom-9 tile drawn is drawn over, by key, from
+ * the tiles drawn: the ground none of the finer tiles drawn beside it
+ * lies on, of any network (`coveringTiles`, `weakParts`). Null for all of
+ * it, and an empty list for none, where it is not drawn at all. A zoom-9
+ * tile with nothing finer drawn in it is left whole, so it stays whole
+ * until its tiles are in.
+ */
+export function drawnWithin(drawn: ReadonlyArray<{ key: string; tile: readonly number[] | null }>): Map<string, number[][] | null> {
+  const within = new Map<string, number[][] | null>();
+  const fine = drawn.flatMap(({ tile }) => (tile && tile[0] > COARSE_ZOOM ? [{ tile, coarse: false }] : []));
+  for (const { key, tile } of drawn) {
+    if (!tile || tile[0] !== COARSE_ZOOM) continue;
+    const parts = weakParts(tile, coveringTiles({ tile }, fine));
+    const whole = parts.length === 1 && parts[0][0] === COARSE_ZOOM;
+    within.set(key, whole ? null : parts);
+  }
+  return within;
 }
 
 /** Whether a tile lies in another, as large or larger: the same, or one of its quarters, theirs, and so on. */

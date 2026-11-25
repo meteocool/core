@@ -3,7 +3,9 @@ import test from "node:test";
 import { drawnPieces } from "../../src/layers/cellVolumeLayer.ts";
 import { drawnPart, tilePart } from "../../src/lib/volumeBox.ts";
 import type { CutawayHeader } from "../../src/lib/cellCutaway.ts";
-import { atLevel, coveringTiles, volumesAsked, weakParts } from "../../src/lib/volumeLevels.ts";
+import {
+  atLevel, coveringTiles, drawnWithin, freedAsTiles, volumesAsked, weakParts,
+} from "../../src/lib/volumeLevels.ts";
 import type { RadarVolume } from "../../src/api/index.ts";
 
 /**
@@ -60,10 +62,10 @@ test("a tile elsewhere covers nothing of it", () => {
   assert.deepEqual(weakParts(COARSE, [[10, 600, 354], [9, 269, 177]]), [COARSE]);
 });
 
-test("only the coarse tile's own network's tiles cover it", () => {
+test("every network's tiles under a coarse tile cover it, its own and its neighbours'", () => {
   const parent = volume(COARSE);
   const tiles = [volume(NW), volume(NE, { network: "fr" }), volume(SW, { coarse: true }), volume([10, 600, 354])];
-  assert.deepEqual(coveringTiles(parent, tiles), [NW]);
+  assert.deepEqual(coveringTiles(parent, tiles), [NW, NE]);
 });
 
 /** Coarse where nothing was put in `fine`. */
@@ -104,6 +106,62 @@ test("a coarse tile drawn whole is drawn whole either way, and a fill tile with 
     const drawn = atLevel(listed, () => true, null, weak).map((cloud) => cloud.path);
     assert.deepEqual(drawn, [volume(COARSE).path, fill.path]);
   }
+});
+
+test("a fill tile over a neighbouring network's storm: drawn whole far off, standing in for it", () => {
+  // A French fill tile with a Swiss storm's tile under it, and no Swiss coarse tile.
+  const fill = volume(COARSE, { network: "fr", fill: true, tier: 1 });
+  const storm = volume(SE, { network: "ch" });
+  for (const weak of [null, { covers: () => true }]) {
+    const drawn = atLevel([fill, storm], () => true, null, weak).map((cloud) => cloud.path);
+    assert.deepEqual(drawn, [fill.path]);
+  }
+});
+
+test("a fill tile over a neighbouring network's storm: close up, drawn around it, never over it", () => {
+  const fill = volume(COARSE, { network: "fr", fill: true, tier: 1 });
+  const storm = volume(SE, { network: "ch" });
+  const drawn = atLevel([fill, storm], coarseUnless(COARSE), null, { covers: () => true }).map((cloud) => cloud.path);
+  assert.deepEqual(drawn, [fill.path, storm.path]);
+  const within = drawnWithin([{ key: fill.path, tile: COARSE }, { key: storm.path, tile: SE }]);
+  assert.deepEqual(within.get(fill.path), [NW, NE, SW]);
+  assert.equal(within.has(storm.path), false);
+});
+
+test("a coarse tile over its own storm and a neighbour's is drawn around both", () => {
+  const coarse = volume(COARSE);
+  const own = volume(NW);
+  const neighbours = volume(SE, { network: "pl" });
+  const drawn = atLevel([coarse, own, neighbours], coarseUnless(COARSE), null, { covers: () => true });
+  assert.deepEqual(drawn.map((cloud) => cloud.path), [coarse.path, own.path, neighbours.path]);
+  const within = drawnWithin([coarse, own, neighbours].map((cloud) => ({ key: cloud.path, tile: cloud.tile! })));
+  assert.deepEqual(within.get(coarse.path), [NE, SW]);
+});
+
+test("a coarse tile its own and a neighbour's tiles cover all of is not drawn over them", () => {
+  const coarse = volume(COARSE, { network: "dk" });
+  const tiles = [volume(NW, { network: "dk" }), volume(NE, { network: "pl" }), volume(SW, { network: "pl" }), volume(SE, { network: "dk" })];
+  const drawn = atLevel([coarse, ...tiles], coarseUnless(COARSE), null, { covers: () => true });
+  assert.ok(!drawn.includes(coarse));
+  const within = drawnWithin([coarse, ...tiles].map((cloud) => ({ key: cloud.path, tile: cloud.tile! })));
+  assert.deepEqual(within.get(coarse.path), []);
+});
+
+test("a zoom-9 tile with nothing finer drawn in it is drawn whole", () => {
+  const within = drawnWithin([{ key: "fill", tile: COARSE }, { key: "elsewhere", tile: [10, 600, 354] }]);
+  assert.equal(within.get("fill"), null);
+});
+
+test("what drawing a zoom-9 tile as its tiles frees agrees with what is drawn of it", () => {
+  const own = 186_624;
+  // No tile under it: it stays coarse.
+  assert.equal(freedAsTiles(COARSE, [volume([10, 600, 354])], own), null);
+  // A neighbour's storm under a fill tile: kept for its weak parts, nothing freed.
+  assert.equal(freedAsTiles(COARSE, [volume(SE, { network: "ch" })], own), 0);
+  // Its own storm in one quarter: the same.
+  assert.equal(freedAsTiles(COARSE, [volume(NW)], own), 0);
+  // Every quarter covered, by two networks: all of it freed.
+  assert.equal(freedAsTiles(COARSE, [volume(NW), volume(NE, { network: "pl" }), volume(SW), volume(SE, { network: "pl" })], own), own);
 });
 
 test("the map asks for its coarse tiles alone, meteoair for the fill tiles too", () => {
