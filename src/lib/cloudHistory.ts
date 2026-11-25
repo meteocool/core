@@ -206,6 +206,8 @@ export function volumeOf(path: string, cutaway: Cutaway, network?: string): Rada
     oldest_scan_at: header.oldest_scan_at ?? null,
     tile: header.tile ?? null,
     coarse: (header.tile?.[0] ?? COARSE_ZOOM + 1) <= COARSE_ZOOM,
+    // Found round a storm, or named by a link to one: a storm's box, never the weak rain between them.
+    fill: false,
     peak_dbz: peakDbz(cutaway),
   };
 }

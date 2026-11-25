@@ -38,7 +38,9 @@ import {
   drapeAnchor, flightDrapeBytes, HANDHELD_DRAPE_SIZE, HANDHELD_TILE_CACHE_ZOOM_LEVELS, isHandheld, mapPixelRatio,
 } from "../lib/gpuBudget";
 import { drawnExtentM, tileBounds, tileCentre, tileCode } from "../lib/volumeBox";
-import { atLevel, COARSE_ZOOM, fineAt, fineWithin, footprintOnScreen } from "../lib/volumeLevels";
+import {
+  atLevel, COARSE_ZOOM, coveringTiles, fineAt, fineWithin, footprintOnScreen, volumesAsked, weakParts,
+} from "../lib/volumeLevels";
 import type { Bounds, FineCandidate } from "../lib/volumeLevels";
 import { framingCamera } from "../lib/stormFrame";
 import { DIM_UNOPENABLE, isFaint, makeCloudsLayer } from "../layers/cellVolumeLayer";
@@ -666,6 +668,8 @@ interface StudioCloud {
   system: string | null;
   dim: number;
   peels: boolean;
+  /** The tiles of its own it is drawn over, null for all of it; see `CloudsLayer.setClouds`. */
+  within?: ReadonlyArray<readonly number[]> | null;
 }
 
 /** An earlier scan on the map in place of the newest; see `showScan`. */
@@ -771,7 +775,7 @@ export default class Cells3DCapability extends Capability {
    * and never in a past window, whose scans are all built.
    */
   private readonly volumes = new VolumeFeed<CurrentVolumes>(
-    () => fetchCurrentVolumes(quietly, { coarse: true, at: get(archiveStep) }).catch(() => null),
+    () => fetchCurrentVolumes(quietly, volumesAsked(this.fillSky, get(archiveStep))).catch(() => null),
     (answer) => this.takeClouds(answer),
   );
 
@@ -856,6 +860,8 @@ export default class Cells3DCapability extends Capability {
     code: string; cutaway: Cutaway; lon: number; lat: number; tier: number;
     /** The storm it is a tile of; see `RadarVolume.system`. */
     system: string | null;
+    /** A fill tile, weak echo where no storm is; see `fillSky`. */
+    fill?: boolean;
   }>();
 
   /**
@@ -1102,6 +1108,12 @@ export default class Cells3DCapability extends Capability {
 
   /** The locate disc's action; see `CapabilityOptions.locate`. */
   private readonly locate: (() => void) | null;
+  /**
+   * Whether this map draws the whole sky: the weak echo between the storms
+   * as well as the storms (`CapabilityOptions.fillSky`), meteoair's page
+   * alone. Settled when the map is made; the 3D map proper draws storms.
+   */
+  private readonly fillSky: boolean;
   /** Takes back the ⌃-click correction, where one was needed; see lib/ctrlDrag.ts. */
   private uncorrectCtrlClicks: (() => void) | null = null;
   /** Takes back the middle drag's turning and tilting; see lib/middleDrag.ts. */
@@ -1112,6 +1124,7 @@ export default class Cells3DCapability extends Capability {
 
     this.nanobar = options.nanobar;
     this.locate = options.locate ?? null;
+    this.fillSky = options.fillSky ?? false;
     // A storm selected on the flat map is not opened here until this map is
     // shown: opening fetches its volume, and `attach` opens whatever is
     // selected by then.
@@ -2189,7 +2202,7 @@ export default class Cells3DCapability extends Capability {
           }
           this.cutaways.set(cloud.path, {
             code: cloud.code, cutaway, lon: cloud.lon, lat: cloud.lat, tier: tierOf(cloud, cutaway),
-            system: cloud.system ?? null,
+            system: cloud.system ?? null, fill: Boolean(cloud.fill),
           });
         }
         // What the new volumes stood in for can go now; see `handOver`. Drawn
@@ -2338,7 +2351,8 @@ export default class Cells3DCapability extends Capability {
       const code = tileCode(cloud.tile[0], cloud.tile[1], cloud.tile[2]);
       const inView = this.inView(gl, tileBounds(cloud.tile[0], cloud.tile[1], cloud.tile[2]));
       if (inView && usable(cloud)) coarseInView += textureBytes(cloud);
-      if (!this.drawnFine(gl, cloud.tile)) continue;
+      const freed = this.freedFine(cloud, tiles.get(code) ?? [], usable);
+      if (freed === null || !this.drawnFine(gl, cloud.tile)) continue;
       if (!inView) {
         fine.add(code);
         continue;
@@ -2346,12 +2360,26 @@ export default class Cells3DCapability extends Capability {
       candidates.push({
         code,
         across: this.acrossPx(gl, tileBounds(cloud.tile[0], cloud.tile[1], cloud.tile[2])),
-        coarseBytes: usable(cloud) ? textureBytes(cloud) : 0,
+        coarseBytes: freed,
         fineBytes: (tiles.get(code) ?? []).reduce((sum, tile) => sum + textureBytes(tile), 0),
       });
     }
     for (const code of fineWithin(candidates, RESIDENT_BYTES - coarseInView)) fine.add(code);
     return this.keepFine(fine);
+  }
+
+  /**
+   * What drawing a coarse tile as its tiles frees of its own texture: all
+   * of it, as on the map. Drawing the whole sky (`fillSky`), none where it
+   * stays drawn over the ground its tiles leave (`weakParts`), and null
+   * where it has no tiles to be drawn as, a fill tile's case: it stays
+   * coarse, rather than its weak echo going with it.
+   */
+  private freedFine(cloud: RadarVolume, tiles: readonly RadarVolume[], usable: (cloud: RadarVolume) => boolean): number | null {
+    const own = usable(cloud) ? textureBytes(cloud) : 0;
+    if (!this.fillSky || !cloud.tile) return own;
+    if (!tiles.length) return null;
+    return weakParts(cloud.tile, coveringTiles(cloud, tiles)).length ? 0 : own;
   }
 
   /** Make `fine` the coarse tiles drawn as their tiles; whether that changed any. */
@@ -2373,8 +2401,9 @@ export default class Cells3DCapability extends Capability {
     for (const cloud of this.clouds) {
       if (!cloud.coarse || !cloud.tile || !lookout.support.withinHold(lookout, cloud.lon, cloud.lat)) continue;
       const code = tileCode(cloud.tile[0], cloud.tile[1], cloud.tile[2]);
-      const coarseBytes = usable(cloud) ? textureBytes(cloud) : 0;
-      coarseHeld += coarseBytes;
+      coarseHeld += usable(cloud) ? textureBytes(cloud) : 0;
+      const coarseBytes = this.freedFine(cloud, tiles.get(code) ?? [], usable);
+      if (coarseBytes === null) continue;
       places.push({
         code, lon: cloud.lon, lat: cloud.lat, coarseBytes,
         fineBytes: (tiles.get(code) ?? []).reduce((sum, tile) => sum + textureBytes(tile), 0),
@@ -2419,12 +2448,39 @@ export default class Cells3DCapability extends Capability {
    * fine ones where large. An earlier scan's coarse tile stays whole where
    * its fine tiles have not been found, or were not there.
    */
-  private levelled(): RadarVolume[] {
+  private levelled(weak = this.fillSky): RadarVolume[] {
     const coarse = (tile: readonly number[]) => {
       const code = tileCode(tile[0], tile[1], tile[2]);
       return !this.fineTiles.has(code) || (this.past !== null && !this.pastFine.has(code));
     };
-    return atLevel(this.clouds, coarse, this.opened?.path ?? null);
+    // Drawing the whole sky, a coarse tile drawn as its tiles stays where they leave its weak echo; see `weakParts`.
+    const covers = weak
+      ? { covers: (cloud: RadarVolume) => !this.faint.has(cloud.path) && !this.retries.givenUp(cloud.path) }
+      : null;
+    return atLevel(this.clouds, coarse, this.opened?.path ?? null, covers);
+  }
+
+  /**
+   * Drawing the whole sky (`fillSky`), the tiles of its own each coarse tile
+   * held is drawn over: those of its ground none of the finer tiles drawn
+   * beside it lies on (`weakParts`); null for all of it, and an empty list
+   * for none. Worked out from what is drawn, not what is wanted, so a
+   * coarse tile stays whole until its tiles are in. Nothing on the map,
+   * where a coarse tile is drawn whole or not at all.
+   */
+  private weakWithin(drawn: ReadonlyArray<[string, Cutaway]>): Map<string, number[][] | null> {
+    const within = new Map<string, number[][] | null>();
+    if (!this.fillSky) return within;
+    const fine = drawn.flatMap(([, { header }]) => (
+      header.tile && header.tile[0] > COARSE_ZOOM ? [{ tile: header.tile, network: header.network ?? "de", coarse: false }] : []
+    ));
+    for (const [path, { header }] of drawn) {
+      if (!header.tile || header.tile[0] !== COARSE_ZOOM) continue;
+      const parts = weakParts(header.tile, coveringTiles({ tile: header.tile, network: header.network ?? "de" }, fine));
+      const whole = parts.length === 1 && parts[0][0] === COARSE_ZOOM;
+      within.set(path, whole ? null : parts);
+    }
+    return within;
   }
 
   /**
@@ -2504,16 +2560,26 @@ export default class Cells3DCapability extends Capability {
     const held = this.heldOpen();
     // Volumes in, waiting behind what stands in for them until the rest are in too.
     const { hide } = this.handOver();
-    const drawn = [...this.cutaways].filter(([path, { cutaway }]) => !hide.has(path) && (
+    const shown = [...this.cutaways].filter(([path, { cutaway }]) => !hide.has(path) && (
       !stale || path === this.opened?.path || !isSuccessor(open.cutaway, cutaway)
-    )).map(([key, { cutaway, tier, system }]): StudioCloud => ({
-      key,
-      cutaway,
-      system,
-      dim: tier === TIER_UNOPENABLE ? DIM_UNOPENABLE : 1,
-      // Held whole: its layers are interpolation, which a peel cannot reveal anything in.
-      peels: tier !== TIER_UNOPENABLE,
-    }));
+    ));
+    const within = this.weakWithin(shown.map(([path, { cutaway }]) => [path, cutaway]));
+    // A coarse tile its tiles cover all of, standing in meanwhile, is not drawn over them.
+    const drawn = shown.filter(([path]) => within.get(path)?.length !== 0).map(([key, entry]): StudioCloud => {
+      const { cutaway, tier, system, fill } = entry;
+      const part = within.get(key);
+      return {
+        key,
+        cutaway,
+        system,
+        // A fill tile never opens, and is not dimmed for it: it is weak rain, seen as well as the storm beside it.
+        dim: tier === TIER_UNOPENABLE && !fill ? DIM_UNOPENABLE : 1,
+        // Held whole: its layers are interpolation, which a peel cannot reveal
+        // anything in. A fill tile too: weak echo, with no core to peel to.
+        peels: tier !== TIER_UNOPENABLE && !fill,
+        ...(part ? { within: part } : {}),
+      };
+    });
     this.keepDrawn(drawn);
     const blended = this.blended();
     this.blending = blended !== null;
@@ -2577,7 +2643,8 @@ export default class Cells3DCapability extends Capability {
     const data = {
       type: "FeatureCollection" as const,
       // Not for a storm too faint to draw: a box promises a cloud.
-      features: this.levelled().filter((cloud) => !this.faint.has(cloud.path)).map((cloud) => {
+      // Nor for a fill tile, which is no storm, nor for a coarse tile drawn beside its own tiles, which have theirs.
+      features: this.levelled(false).filter((cloud) => !this.faint.has(cloud.path) && !cloud.fill).map((cloud) => {
         const dbz = cloud.peak_dbz ?? 40;
         // Against the radar draped under it: the live one, or, with an earlier
         // scan picked, that scan's own, which no storm on the map is behind.
@@ -3366,9 +3433,10 @@ export default class Cells3DCapability extends Capability {
   inspectStorm(target: { lon: number; lat: number; mode: InspectMode; cut: FlightCut | null; peel?: number } | null): boolean {
     let found: { key: string; zoom: number } | null = null;
     if (target && this.flight) {
-      for (const [key, { cutaway }] of this.cutaways) {
+      for (const [key, { cutaway, fill }] of this.cutaways) {
         const tile = cutaway.header.tile;
-        if (!tile) continue;
+        // A fill tile is weak rain, never a storm to look into.
+        if (!tile || fill) continue;
         const [west, south, east, north] = tileBounds(tile[0], tile[1], tile[2]);
         if (target.lon < west || target.lon > east || target.lat < south || target.lat > north) continue;
         if (!found || tile[0] > found.zoom) found = { key, zoom: tile[0] };
@@ -3396,7 +3464,8 @@ export default class Cells3DCapability extends Capability {
   }
 
   stormTiles(): StormTileInfo[] {
-    return this.clouds.map((cloud) => ({
+    // Storms only: a fill tile is the weak rain between them.
+    return this.clouds.filter((cloud) => !cloud.fill).map((cloud) => ({
       lon: cloud.lon, lat: cloud.lat, peakDbz: cloud.peak_dbz ?? null, areaKm2: cloud.area_km2 ?? null,
       coarse: cloud.coarse, tile: cloud.tile ?? null, sites: cloud.sites ?? [],
     }));
@@ -3606,7 +3675,7 @@ export default class Cells3DCapability extends Capability {
       if (!this.shown) return;
       // Quietly, as the flat map's tags are (App.svelte): a refresh.
       const at = get(archiveStep);
-      void fetchCurrentVolumes(quietly, { coarse: true, at }).catch(() => null).then((answer) => {
+      void fetchCurrentVolumes(quietly, volumesAsked(this.fillSky, at)).catch(() => null).then((answer) => {
         if (answer && this.shown && get(archiveStep) === at) this.volumes.offer(answer);
       });
     }, VOLUMES_SETTLE_MS);
@@ -3645,7 +3714,7 @@ export default class Cells3DCapability extends Capability {
       // Its own failure is not the cells' failure: a map with storms and no
       // cutaways is worth drawing. Nor does it take the storms already
       // drawn away; they stay until an answer replaces them.
-      fetchCurrentVolumes(undefined, { coarse: true, at }).catch(() => null),
+      fetchCurrentVolumes(undefined, volumesAsked(this.fillSky, at)).catch(() => null),
     ]);
     // A window's step moved on meanwhile: that step's load is the one to draw.
     if (this.cellsToken !== token || get(archiveStep) !== at) return;
@@ -3713,7 +3782,8 @@ export default class Cells3DCapability extends Capability {
       return;
     }
     this.clouds = this.liveClouds;
-    offerVolumes(this.clouds);
+    // A storm's boxes: a fill tile is none, and is never opened.
+    offerVolumes(this.fillSky ? this.clouds.filter((cloud) => !cloud.fill) : this.clouds);
     this.forgetFaint();
     void this.loadClouds();
     // A storm selected before its box was listed can be cut open now.
@@ -3920,7 +3990,8 @@ export default class Cells3DCapability extends Capability {
     });
     // Where storms were: found in this scan already, and in the nearest newer one looked at, else the list.
     const placesOf = (volumes: RadarVolume[]) => volumes.flatMap((volume) => {
-      if (!volume.tile) return [];
+      // A fill tile is where no storm was.
+      if (!volume.tile || volume.fill) return [];
       const [x, y] = coarseOf(volume.tile);
       return [{ network: networkOf(volume), x, y }];
     });

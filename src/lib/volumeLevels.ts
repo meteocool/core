@@ -14,6 +14,16 @@ import type { RadarVolume } from "../api";
 /** The zoom the worker builds coarse tiles at (`voxels.COARSE_ZOOM`). */
 export const COARSE_ZOOM = 9;
 
+/**
+ * What the 3D map asks `/cells/volumes` for at `at` (unix seconds, null for
+ * now): its coarse tiles, and with `fillSky` the fill tiles too, the weak
+ * echo where no storm is. Only meteoair's page draws the whole sky; the map
+ * asks exactly what it did before there were fill tiles.
+ */
+export function volumesAsked(fillSky: boolean, at: number | null): { coarse: true; fill?: true; at: number | null } {
+  return fillSky ? { coarse: true, fill: true, at } : { coarse: true, at };
+}
+
 /** The coarse tile a tile lies in, as `x/y` at `COARSE_ZOOM`. */
 function coarseKey(tile: readonly number[]): string | null {
   const [z, x, y] = tile;
@@ -29,9 +39,15 @@ function coarseKey(tile: readonly number[]): string | null {
  * before it) is drawn itself. A volume from before tiles is drawn either
  * way. The open volume is always drawn, and the coarse tile over it is not:
  * an open storm keeps its own picture while the reader zooms out.
+ *
+ * With `weak`, a sky drawn whole (meteoair's): a coarse tile drawn as its
+ * tiles is drawn as well where none of them lies, over its weak echo
+ * (`weakParts`), counting only the tiles `weak.covers` says are drawn.
+ * Without it, a coarse tile is drawn whole or not at all, as on the map.
  */
 export function atLevel(
   clouds: readonly RadarVolume[], coarse: (tile: readonly number[]) => boolean, openPath: string | null = null,
+  weak: { covers(cloud: RadarVolume): boolean } | null = null,
 ): RadarVolume[] {
   const fine = clouds.filter((cloud) => !cloud.coarse);
   const open = openPath ? clouds.find((cloud) => cloud.path === openPath && !cloud.coarse) : undefined;
@@ -40,10 +56,64 @@ export function atLevel(
     cloud.coarse && cloud.tile && coarseKey(cloud.tile) !== openKey && coarse(cloud.tile)
   ));
   const covered = new Set(parents.map((cloud) => coarseKey(cloud.tile!)));
+  const drawnWhole = new Set(parents);
+  // Drawn as their tiles, and over what of their ground those leave.
+  const partly = weak ? clouds.filter((cloud) => (
+    cloud.coarse && cloud.tile && !drawnWhole.has(cloud)
+    && weakParts(cloud.tile, coveringTiles(cloud, fine.filter((tile) => weak.covers(tile)))).length > 0
+  )) : [];
   return [
     ...parents,
+    ...partly,
     ...fine.filter((cloud) => !cloud.tile || !covered.has(coarseKey(cloud.tile)) || cloud.path === openPath),
   ];
+}
+
+/**
+ * The tiles of `fine` that lie in a coarse tile, of its own network: two
+ * networks overlap at their borders and each draws its own sky there.
+ */
+export function coveringTiles(
+  parent: Pick<RadarVolume, "tile" | "network">, fine: readonly Pick<RadarVolume, "tile" | "network" | "coarse">[],
+): Array<readonly number[]> {
+  const key = parent.tile ? coarseKey(parent.tile) : null;
+  if (key === null) return [];
+  return fine.flatMap((cloud) => (
+    !cloud.coarse && cloud.tile && (cloud.network ?? "de") === (parent.network ?? "de") && coarseKey(cloud.tile) === key
+      ? [cloud.tile] : []
+  ));
+}
+
+/**
+ * The parts of a tile no tile of `fine` lies over, as the fewest tiles of
+ * the map's own grid: a quarter whole where nothing lies in it, its own
+ * quarters where something does in some of them, and so on down to the
+ * finest of `fine`. Empty where `fine` covers it all; the tile itself
+ * where none of them lies in it.
+ *
+ * Every run builds a coarse tile over each storm's tiles, and it holds the
+ * rain round the storm as well, across its whole ground. The storm's own
+ * tiles cover only the storm: a quarter with no storm in it has none, nor
+ * does the part of a core's tile its cores leave out. Drawn as its tiles
+ * alone, close up, a coarse tile's weak echo there was not drawn at all.
+ */
+export function weakParts(tile: readonly number[], fine: readonly (readonly number[])[]): number[][] {
+  const [z, x, y] = tile;
+  const inside = fine.filter((one) => one[0] >= z && overTile(one, tile));
+  if (!inside.length) return [[z, x, y]];
+  // A tile of `fine` as large as this one, or this one itself, covers all of it.
+  if (inside.some((one) => one[0] === z)) return [];
+  const parts: number[][] = [];
+  for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) {
+    parts.push(...weakParts([z + 1, x * 2 + dx, y * 2 + dy], inside));
+  }
+  return parts;
+}
+
+/** Whether a tile lies in another, as large or larger: the same, or one of its quarters, theirs, and so on. */
+function overTile(inner: readonly number[], outer: readonly number[]): boolean {
+  const shift = inner[0] - outer[0];
+  return shift >= 0 && inner[1] >> shift === outer[1] && inner[2] >> shift === outer[2];
 }
 
 /** The column and row of the zoom-`z` tile a point stands in, as the map numbers them. */

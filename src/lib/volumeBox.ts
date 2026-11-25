@@ -71,6 +71,30 @@ export function echoPart(cutaway: Pick<Cutaway, "header" | "voxels">, dbzLow: nu
   };
 }
 
+/**
+ * The part of a tile's box over one of the tiles in it (a quarter, a
+ * quarter's quarter), as fractions of its texture: the drawn part's share
+ * of it, from top to bottom; null where `tile` is not in the header's tile,
+ * or the header has none. The box's y runs north, the map's rows south.
+ */
+export function tilePart(header: CutawayHeader, tile: readonly number[]): BoxPart | null {
+  const own = header.tile;
+  if (!own) return null;
+  const shift = tile[0] - own[0];
+  if (shift < 0 || tile[1] >> shift !== own[1] || tile[2] >> shift !== own[2]) return null;
+  const n = 2 ** shift;
+  const [across, down] = [tile[1] - own[1] * n, tile[2] - own[2] * n];
+  const { min, max } = drawnPart(header);
+  const at = (axis: 0 | 1, share: number) => min[axis] + (max[axis] - min[axis]) * share;
+  return {
+    min: [at(0, across / n), at(1, 1 - (down + 1) / n), min[2]],
+    max: [at(0, (across + 1) / n), at(1, 1 - down / n), max[2]],
+  };
+}
+
+/** Whether a part of a box holds anything: empty where `overlap` found none. */
+export const holdsAny = (part: BoxPart): boolean => part.min.every((least, axis) => least < part.max[axis]);
+
 /** Where two parts of one box overlap; empty (min past max) where they do not. */
 export function overlap(a: BoxPart, b: BoxPart): BoxPart {
   return {

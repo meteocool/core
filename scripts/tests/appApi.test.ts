@@ -161,3 +161,22 @@ test("only storm volumes are redirected to the asset host", () => {
     "https://assets-staging.meteocool.com/meteoradar/volumes/20261004T020500/de-G1374918628.mcvx",
   );
 });
+
+test("a volumes list reaches the data service with its whole query, fill tiles and all", () => {
+  // meteoair's sky asks for the fill tiles as well; the 3D map does not.
+  // Forwarded as they were asked, they stay two requests with two answers.
+  const sky = appApiRequest(
+    new Request("https://app.meteocool.com/cells/volumes?coarse=true&fill=true&at=2026-11-25T12:00:00Z"),
+    "https://data-next.meteocool.com",
+  );
+  assert.equal(sky.url, "https://data-next.meteocool.com/cells/volumes?coarse=true&fill=true&at=2026-11-25T12:00:00Z");
+  const map = appApiRequest(
+    new Request("https://app.meteocool.com/cells/volumes?coarse=true&at=2026-11-25T12:00:00Z"),
+    "https://data-next.meteocool.com",
+  );
+  assert.equal(map.url, "https://data-next.meteocool.com/cells/volumes?coarse=true&at=2026-11-25T12:00:00Z");
+  // The Worker sets no cache key of its own, which could leave the query
+  // out: the two are cached apart, by URL, wherever they are cached.
+  assert.notEqual(sky.url, map.url);
+  assert.ok(isAppDataPath(new URL(sky.url).pathname));
+});

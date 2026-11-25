@@ -100,11 +100,11 @@
  * it: over the Alps with terrain on, the clouds vanished.
  */
 import type { CustomLayerInterface, CustomRenderMethodInput, Map as GlMap } from "maplibre-gl";
-import { drawnPart, echoPart, overlap } from "../lib/volumeBox";
+import { drawnPart, echoPart, holdsAny, overlap, tilePart } from "../lib/volumeBox";
 import type { BoxPart } from "../lib/volumeBox";
 import { cameraOf, farToNear } from "../lib/drawOrder";
 import { stormsOf, tileEdges, type TileEdges } from "../lib/tileStorms";
-import type { Cutaway } from "../lib/cellCutaway";
+import type { Cutaway, CutawayHeader } from "../lib/cellCutaway";
 import { dbzColour } from "../lib/cellVolume";
 import { HULL_TINT, SHELL_STEP, SHELL_TOP, STYLE_FIELD } from "../lib/cloudStyle";
 import type { CloudStyle } from "../lib/cloudStyle";
@@ -1093,6 +1093,24 @@ export function cutAway(
   ));
 }
 
+/**
+ * The parts of a cloud's box that are marched, each with the tile it stands
+ * over, which orders it among the rest (lib/drawOrder.ts): the box whole,
+ * over the cloud's own tile, for `within` null; else the box cut to each of
+ * those tiles of it (`setClouds`). A part with no echo in it, or a tile not
+ * in the cloud's own, is not drawn at all.
+ */
+export function drawnPieces(
+  header: CutawayHeader, box: BoxPart, within: ReadonlyArray<readonly number[]> | null,
+): Array<{ box: BoxPart; tile: readonly number[] | null }> {
+  if (within === null) return [{ box, tile: header.tile ?? null }];
+  return within.flatMap((tile) => {
+    const part = tilePart(header, tile);
+    const cut = part && overlap(box, part);
+    return cut && holdsAny(cut) ? [{ box: cut, tile }] : [];
+  });
+}
+
 /** One storm on the map: its field, where its box stands, and its texture once uploaded. */
 interface Cloud {
   cutaway: Cutaway;
@@ -1135,6 +1153,8 @@ interface Cloud {
   side: 0 | 1 | null;
   /** How far its storm went from its scan to the other, in Mercator units; see lib/cloudMotion.ts. */
   drift: readonly [number, number];
+  /** The parts of its tile it is drawn over, null for all of it; see `setClouds`. */
+  within: ReadonlyArray<readonly number[]> | null;
   texture: WebGLTexture | null;
   /** The strongest echo in each of its columns, for `tinted`; made the first time that style draws it. */
   column: WebGLTexture | null;
@@ -1243,6 +1263,8 @@ export interface StormCore {
   /** Samples along a ray across its whole width, and how much of its density it keeps between two scans. */
   steps: number;
   weight: number;
+  /** The part of its cube it is drawn in, where it is drawn over only some of its tile; see `drawnPieces`. */
+  part?: BoxPart;
 }
 
 export interface CloudsLayer extends CustomLayerInterface {
@@ -1260,10 +1282,15 @@ export interface CloudsLayer extends CustomLayerInterface {
    * `side` and `drift` are for two scans drawn at once (`setBlend`): which
    * of the two a cloud is of, and how far its storm went from one to the
    * other, in Mercator units.
+   *
+   * `within` draws a tile's cloud over only these tiles of it (its quarters,
+   * theirs), null or left out for all of it: a coarse tile drawn beside the
+   * finer tiles of its storm, over the ground they leave. Its texture is the
+   * same however much of it is drawn.
    */
   setClouds(clouds: ReadonlyArray<{
     key: string; cutaway: Cutaway; dim?: number; peels?: boolean; system?: string | null;
-    side?: 0 | 1 | null; drift?: readonly [number, number];
+    side?: 0 | 1 | null; drift?: readonly [number, number]; within?: ReadonlyArray<readonly number[]> | null;
   }>): void;
   /**
    * How far between its two scans a blend stands, 0 the earlier to 1 the
@@ -1552,7 +1579,7 @@ export function makeCloudsLayer(
         dropColumn(gl, cloud);
         clouds.delete(key);
       }
-      for (const { key, cutaway, dim = 1, peels = true, system = null, side = null, drift = STILL } of next) {
+      for (const { key, cutaway, dim = 1, peels = true, system = null, side = null, drift = STILL, within = null } of next) {
         const kept = clouds.get(key);
         if (kept?.cutaway === cutaway) {
           if (peels && !kept.peels) kept.coreDbz = coreOf(cutaway);
@@ -1561,6 +1588,7 @@ export function makeCloudsLayer(
           kept.system = system;
           kept.side = side;
           kept.drift = drift;
+          kept.within = within;
           continue;
         }
         if (kept?.texture && gl) gl.deleteTexture(kept.texture);
@@ -1588,6 +1616,7 @@ export function makeCloudsLayer(
           peels,
           side,
           drift,
+          within,
           texture: gl ? upload(gl, cutaway) : null,
           column: null,
         });
@@ -1716,16 +1745,22 @@ export function makeCloudsLayer(
       const weights = blend === null ? null : blendWeights(blend, style);
       const ordered = farToNear([...clouds.entries()]
         .filter(([, cloud]) => cloud.texture)
-        .map(([key, cloud]) => {
+        .flatMap(([key, cloud]) => {
           const side = weights === null ? null : cloud.side;
           const weight = side === null ? 1 : weights![side];
           const model = side === null ? cloud.model : carried(cloud.model, side, cloud.drift, blend!);
           const forward = multiply(main, model);
-          const [, , z, w] = apply(forward, 0.5, 0.5, 0.25);
-          const rect = weight > 1e-3 ? screenRect(forward, cloud.corners, width, height) : null;
-          return {
-            key, cloud, model, weight, forward, rect, depth: w > 0 ? z / w : Infinity, tile: cloud.cutaway.header.tile ?? null,
-          };
+          // Drawn over part of its tile, each part is drawn and ordered as a tile of its own.
+          return drawnPieces(cloud.cutaway.header, cloud.box, cloud.within).map(({ box, tile }) => {
+            const corners = cloud.within === null ? cloud.corners : cornersOf(box);
+            const [cx, cy] = cloud.within === null ? [0.5, 0.5] : [(box.min[0] + box.max[0]) / 2, (box.min[1] + box.max[1]) / 2];
+            const [, , z, w] = apply(forward, cx, cy, 0.25);
+            const rect = weight > 1e-3 ? screenRect(forward, corners, width, height) : null;
+            return {
+              key, cloud, box, corners, part: cloud.within === null ? null : box,
+              model, weight, forward, rect, depth: w > 0 ? z / w : Infinity, tile,
+            };
+          });
         }), camera);
 
       context.useProgram(program);
@@ -1779,7 +1814,7 @@ export function makeCloudsLayer(
       // Seen through, its clouds are drawn as the rest and kept for the pass that lays their cores over them all.
       const cores: StormCore[] = [];
 
-      for (const { key, cloud, model, weight, forward, rect } of ordered) {
+      for (const { key, cloud, box, corners, part, model, weight, forward, rect } of ordered) {
         if (rect === null) continue;
         const inverse = invert(forward);
         if (!inverse) continue;
@@ -1789,7 +1824,7 @@ export function makeCloudsLayer(
         // its face; see `CUT_REACH_KM`. One wholly on the side that is gone
         // is not drawn at all.
         const plane = opened !== undefined && cutPoint !== null
-          && (key === cutKey || kmFromCut(model, cloud.box, cutPoint, metre) <= CUT_REACH_KM)
+          && (key === cutKey || kmFromCut(model, box, cutPoint, metre) <= CUT_REACH_KM)
           ? carryCut(model, opened.model, cutPoint, along)
           : null;
         // Studio's planes in this cloud's cube, or the opened storm's one:
@@ -1797,15 +1832,16 @@ export function makeCloudsLayer(
         const cuts = sections
           ? sections.map((section) => carryPlane(model, extentM, section))
           : plane ? [plane] : [];
-        if (cuts.some((cut) => cutAway(cloud.corners, cut))) continue;
+        if (cuts.some((cut) => cutAway(corners, cut))) continue;
 
         const looked = inspection !== null && inspectPoint !== null
-          && (key === inspection.key || kmFromCut(model, cloud.box, inspectPoint, inspectMetre) <= CUT_REACH_KM);
+          && (key === inspection.key || kmFromCut(model, box, inspectPoint, inspectMetre) <= CUT_REACH_KM);
         const lookedAs = looked ? inspection!.style : null;
         if (looked && !lookedAs) {
           cores.push({
             cutaway: cloud.cutaway, texture: cloud.texture!, forward, inverse, steps: cloud.steps * (hidden ? 0.5 : detail), weight,
             at: [(inspectPoint![0] - model[12]) / model[0], (inspectPoint![1] - model[13]) / model[5]],
+            ...(part ? { part } : {}),
           });
         }
         if (hidden) continue;
@@ -1818,8 +1854,8 @@ export function makeCloudsLayer(
         context.uniformMatrix4fv(at("uForward"), false, new Float32Array(forward));
         context.uniformMatrix4fv(at("uInverse"), false, new Float32Array(inverse));
         context.uniform3f(at("uExtentKm"), extentM[0] / 1000, extentM[1] / 1000, extentM[2] / 1000);
-        context.uniform3f(at("uBoxMin"), ...cloud.box.min);
-        context.uniform3f(at("uBoxMax"), ...cloud.box.max);
+        context.uniform3f(at("uBoxMin"), ...box.min);
+        context.uniform3f(at("uBoxMax"), ...box.max);
         // A scenic sky's cloud is soft at every scale: three steps in four do for it.
         context.uniform1f(at("uSteps"), Math.max(8, Math.round(cloud.steps * detail * (apart ? 0.75 : 1))));
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);

@@ -20,4 +20,10 @@ export interface CapabilityOptions {
   screenshot?: boolean;
   /** Ask where the reader is and centre on it: `LayerManager.locate`. */
   locate?: () => void;
+  /**
+   * The 3D map's: draw the whole sky, the weak echo between the storms as
+   * well as the storms. meteoair's own page alone (lib/studio/flightPage.ts);
+   * the 3D map proper draws storms.
+   */
+  fillSky?: boolean;
 }

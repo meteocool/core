@@ -2065,6 +2065,12 @@
             "description": "The id of the patch this tile was cut from. A storm's cores name it as their parent, so a client can find the storm a box belongs to",
             "title": "Feature"
           },
+          "fill": {
+            "default": false,
+            "description": "A zoom-9 tile over weak echo that is in no storm's tile: rain down to 12 dBZ in the column maximum, boxed so that with the coarse tiles the whole sky's echo is drawn. Listed only when asked for; drawn like a coarse tile, but with no tiles under it to draw in its place, and never openable",
+            "title": "Fill",
+            "type": "boolean"
+          },
           "lat": {
             "description": "Latitude of the box's centre: the tile's middle in Mercator",
             "title": "Lat",
@@ -3652,6 +3658,18 @@
               "default": false,
               "description": "Include the coarse zoom-9 tiles, which a client zoomed out draws in place of the tiles under them. Off by default, for clients that would draw both.",
               "title": "Coarse",
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Include the fill: zoom-9 tiles over the weak echo, down to 12 dBZ in the column maximum, that is in no storm's tile and no coarse tile. With the coarse tiles they box the sky's echo at zoom 9 without overlapping them. Each is marked `fill` (and `coarse`, being zoom 9), is never openable, and is listed whenever this is on, whatever `coarse` says. A network's newest scan is then the newest with any volume. Off by default, for clients that draw storms only.",
+            "in": "query",
+            "name": "fill",
+            "required": false,
+            "schema": {
+              "default": false,
+              "description": "Include the fill: zoom-9 tiles over the weak echo, down to 12 dBZ in the column maximum, that is in no storm's tile and no coarse tile. With the coarse tiles they box the sky's echo at zoom 9 without overlapping them. Each is marked `fill` (and `coarse`, being zoom 9), is never openable, and is listed whenever this is on, whatever `coarse` says. A network's newest scan is then the newest with any volume. Off by default, for clients that draw storms only.",
+              "title": "Fill",
               "type": "boolean"
             }
           },

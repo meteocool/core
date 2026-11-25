@@ -8,7 +8,7 @@
  * is the map's, loaded by everyone who opens it, and none of this is.
  */
 import type { Cutaway } from "../lib/cellCutaway";
-import { drawnPart, echoPart, overlap, type BoxPart } from "../lib/volumeBox";
+import { drawnPart, echoPart, holdsAny, overlap, type BoxPart } from "../lib/volumeBox";
 import type { Map as GlMap } from "maplibre-gl";
 import { apply, compile, depthRangeSet, invert, screenRect, type Mat4, type ScenicPass } from "./cellVolumeLayer";
 
@@ -514,10 +514,12 @@ export function makeScenicPass(context: WebGL2RenderingContext, map: GlMap | nul
       context.uniform1f(at("uReach"), reachKm);
       context.activeTexture(context.TEXTURE0);
       context.enable(context.SCISSOR_TEST);
-      for (const { cutaway, texture, forward, inverse, at: where, steps, weight } of cores) {
+      for (const { cutaway, texture, forward, inverse, at: where, steps, weight, part } of cores) {
         const { header, extentM } = cutaway;
-        const box = coreBox(cutaway, low, where, reachKm);
-        if (!box) continue;
+        // A cloud drawn over part of its tile has its core there alone: the rest is its finer tiles'.
+        const whole = coreBox(cutaway, low, where, reachKm);
+        const box = whole && part ? overlap(whole, part) : whole;
+        if (!box || !holdsAny(box)) continue;
         const corners = [0, 1, 2, 3, 4, 5, 6, 7].map((corner): [number, number, number] => [
           corner & 1 ? box.max[0] : box.min[0], corner & 2 ? box.max[1] : box.min[1], corner & 4 ? box.max[2] : box.min[2],
         ]);

@@ -962,8 +962,9 @@ const lm = new LayerManager({
       capability: Cells3DCapability,
       // No OpenLayers layers: MapLibre draws this one. The bare ol/Map it still
       // receives is the camera the layer switcher previews and the shared View
-      // rides on.
-      options: { nanobar: nb, hasBaseLayer: true },
+      // rides on. On meteoair's own page it draws the whole sky, its weak rain
+      // as well as its storms; a flight from the map flies among storms.
+      options: { nanobar: nb, hasBaseLayer: true, fillSky: flightOnly },
     },
     {
       name: "precipTypes",

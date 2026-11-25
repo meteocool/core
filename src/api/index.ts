@@ -713,13 +713,25 @@ export function fetchCurrentCells(nanobar?: Progress, at?: number | null) {
  */
 export function fetchCurrentVolumes(
   nanobar?: Progress,
-  { coarse = false, at }: { coarse?: boolean; at?: number | null } = {},
+  { coarse = false, fill = false, at }: { coarse?: boolean; fill?: boolean; at?: number | null } = {},
 ) {
-  // Coarse tiles only for the 3D map, which draws them in place of the tiles
-  // under them when zoomed out; anything else would draw both.
   return request(nanobar, "/cells/volumes", () => dataClient.GET("/cells/volumes", {
-    params: { query: { ...(coarse ? { coarse: true } : {}), ...atQuery(at) } },
+    params: { query: volumesQuery({ coarse, fill, at }) },
   }));
+}
+
+/**
+ * What `/cells/volumes` is asked with. Coarse tiles only for the 3D map,
+ * which draws them in place of the tiles under them when zoomed out;
+ * anything else would draw both. Fill tiles, the weak echo between the
+ * storms, only for meteoair, whose sky is all of the rain; the map draws
+ * storms. Each left out where it is off, so a caller that asks for neither
+ * asks exactly what it did before there were any.
+ */
+export function volumesQuery(
+  { coarse = false, fill = false, at }: { coarse?: boolean; fill?: boolean; at?: number | null },
+): { coarse?: boolean; fill?: boolean; at?: string } {
+  return { ...(coarse ? { coarse: true } : {}), ...(fill ? { fill: true } : {}), ...atQuery(at) };
 }
 
 /**

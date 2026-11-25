@@ -1365,6 +1365,12 @@ export interface components {
              */
             feature?: string | null;
             /**
+             * Fill
+             * @description A zoom-9 tile over weak echo that is in no storm's tile: rain down to 12 dBZ in the column maximum, boxed so that with the coarse tiles the whole sky's echo is drawn. Listed only when asked for; drawn like a coarse tile, but with no tiles under it to draw in its place, and never openable
+             * @default false
+             */
+            fill: boolean;
+            /**
              * Lat
              * @description Latitude of the box's centre: the tile's middle in Mercator
              */
@@ -2253,6 +2259,8 @@ export interface operations {
             query?: {
                 /** @description Include the coarse zoom-9 tiles, which a client zoomed out draws in place of the tiles under them. Off by default, for clients that would draw both. */
                 coarse?: boolean;
+                /** @description Include the fill: zoom-9 tiles over the weak echo, down to 12 dBZ in the column maximum, that is in no storm's tile and no coarse tile. With the coarse tiles they box the sky's echo at zoom 9 without overlapping them. Each is marked `fill` (and `coarse`, being zoom 9), is never openable, and is listed whenever this is on, whatever `coarse` says. A network's newest scan is then the newest with any volume. Off by default, for clients that draw storms only. */
+                fill?: boolean;
                 /** @description The time to answer for, UTC: each network's newest scan at or before it, if it was in the half hour before. Defaults to now. An answer for a time over an hour ago never changes, and is cached for good */
                 at?: string | null;
             };
