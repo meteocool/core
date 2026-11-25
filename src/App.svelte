@@ -1484,12 +1484,23 @@ const cyclonesLoaded = reloadCyclones();
 if (!screenshot && !webglSupported()) reportNotice($_("notice.no_webgl"));
 
 if (screenshot && radarCap) {
+  const radar = radarCap;
+  // A picture of a past window (a shared link's card) is of its frames, not
+  // the live ones loaded first: waited for once the link has opened it. One
+  // that never opens is the picture's timeout. A picture's page is closed
+  // once taken, so the subscription is left to go with it.
+  const shown = openingLink.window && openingLink.layer !== "cells3d"
+    ? new Promise<void>((resolve) => {
+      archiveWindow.subscribe((past) => { if (past) resolve(); });
+    }).then(() => radar.whenLoaded())
+    : radar.loaded;
   whenDrawn(
-    radarCap.getMap(),
-    Promise.allSettled([radarCap.loaded, lightningLoaded, cyclonesLoaded]),
+    radar.getMap(),
+    Promise.allSettled([shown, lightningLoaded, cyclonesLoaded]),
     markScreenshotReady,
   );
 }
+
 
 /* Everything that has to happen when the page starts running again. The web
    never reached this: the hook existed for the two native apps to call, and

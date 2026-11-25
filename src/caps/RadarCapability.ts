@@ -362,9 +362,19 @@ export default class RadarCapability extends Capability {
    * The first grid, every network's newest frame and the snow overlay,
    * settled either way: every layer the first picture has is on the map by
    * then, though not yet its tiles. What a screenshot waits on before it
-   * waits for the map to draw; see lib/screenshot.ts.
+   * waits for the map to draw; see lib/screenshot.ts. Once a past window
+   * opens, its grid instead.
    */
   loaded: Promise<unknown> = Promise.resolve();
+
+  /** `loaded` as it stands once nothing replaces it any more: a window opened meanwhile is waited for too. */
+  async whenLoaded(): Promise<void> {
+    let seen: Promise<unknown>;
+    do {
+      seen = this.loaded;
+      await seen;
+    } while (seen !== this.loaded);
+  }
 
   constructor(map: Map, additionalLayers: BaseLayer[], options: CapabilityOptions) {
     super(map, "radar", () => {
@@ -679,7 +689,8 @@ export default class RadarCapability extends Capability {
     radarCadence.set(EMPTY_CADENCE);
     this.nowcastGrid = {};
     this.gridconfig = this.regenerateGridConfig();
-    this.reloadRadar();
+    // What a picture of the window waits on: its grid, not the live one.
+    this.loaded = Promise.allSettled([this.downloadCurrentRadar()]);
     this.snowOverlay?.setVisible(true);
   }
 

@@ -30,7 +30,7 @@ import {
 } from "./api";
 import { appLinksResponse } from "./appLinks";
 import { isStreamedPath, withByteRange } from "./ranges";
-import { PREVIEW_HEIGHT, PREVIEW_WIDTH, previewPath } from "../src/lib/sharePreview";
+import { PREVIEW_HEIGHT, PREVIEW_WIDTH, previewPathOf } from "../src/lib/sharePreview";
 
 interface Env {
   ASSETS: Fetcher;
@@ -93,13 +93,14 @@ function escapeAttribute(value: string): string {
 
 function metaTags(
   url: string,
-  latLonZ: string | null,
+  params: URLSearchParams,
   lang: string | null,
   previewOrigin: string,
 ): string {
   const copy = lang === "de" ? COPY.de : COPY.en;
-  // The same card the share dialog shows the sender (src/lib/sharePreview.ts).
-  const preview = `${previewOrigin}${previewPath(latLonZ)}`;
+  // The same card the share dialog shows the sender (src/lib/sharePreview.ts):
+  // the link's view, at the moment it shows.
+  const preview = `${previewOrigin}${previewPathOf(params)}`;
 
   return `
       <meta property="og:title" content="${escapeAttribute(copy.title)}" />
@@ -172,7 +173,7 @@ export default {
 
     const tags = metaTags(
       request.url,
-      searchParams.get("latLonZ"),
+      searchParams,
       searchParams.get("share_lang"),
       env.PREVIEW_ORIGIN ?? DEFAULT_PREVIEW_ORIGIN,
     );
