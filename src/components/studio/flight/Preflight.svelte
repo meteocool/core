@@ -36,6 +36,7 @@ import { boundingExtent } from "ol/extent";
 import { fromLonLat, toLonLat } from "ol/proj";
 import { Circle as CircleStyle, Fill, RegularShape, Stroke, Style, Text } from "ol/style";
 import { faPlaneDeparture } from "@fortawesome/free-solid-svg-icons/faPlaneDeparture";
+import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
 import CloseDisc from "../../CloseDisc.svelte";
 import Icon from "../../Icon.svelte";
 import AircraftPreview from "./AircraftPreview.svelte";
@@ -564,7 +565,10 @@ function keydown(event: KeyboardEvent): void {
       </button>
     {/if}
     {#if onback}
-      <button type="button" class="chip glass glass-pill" on:click={onback}>{$_("studio.flight.plan.back")}</button>
+      <!-- meteocool's own way home, as on the flight's page (components/meteoair/Landing.svelte). -->
+      <button type="button" class="chip home" on:click={onback}>
+        <Icon icon={faArrowLeft} /><img src={logo} alt="" />{$_("studio.flight.plan.back")}
+      </button>
     {:else}
       <button type="button" class="chip glass glass-pill" on:click={oncancel}>{$_("studio.flight.plan.cancel")}</button>
     {/if}
@@ -873,6 +877,18 @@ function keydown(event: KeyboardEvent): void {
     transition: width 0.2s ease;
   }
   .chip.go:hover { background: color-mix(in srgb, var(--mc-orange) 88%, #fff); }
+  .chip.home {
+    gap: 8px;
+    padding: 0 18px 0 14px;
+    background: #0a84ff;
+    color: #fff;
+    box-shadow: 0 6px 20px rgba(10, 132, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    transition: transform 0.12s ease, background-color 0.12s ease;
+  }
+  .chip.home img { width: 24px; height: 24px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
+  .chip.home:hover { background: #409cff; transform: translateY(-1px); }
+  .chip.home:active { transform: translateY(0) scale(0.98); }
+  .chip.home:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
 
   /* Wide: the briefing in two columns, in half the height. */
   @container mc-frame (min-width: 1200px) {
