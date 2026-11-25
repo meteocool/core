@@ -577,8 +577,11 @@ const VIEWS: Record<FlightView, {
 export const ENGINE_HEARD = {
   /** Where each is heard from, metres ahead of the aircraft's middle. */
   roarAt: -28, fanAt: 6,
-  /** How far off the engines sound as they do from the eye's first place, metres; and where they fade out, to nothing. */
-  near: 60, fades: [220, 480] as const,
+  /**
+   * How far off the engines sound as they do from the eye's first place, metres; and where they fade out, to nothing:
+   * barely heard by the time the aircraft fills only a quarter of the picture's height (about 125 m at the 60° view).
+   */
+  near: 60, fades: [60, 135] as const,
   /** How much of the airflow's noise is left from furthest: it is the eye's own air as much as the aircraft's. */
   windFar: 0.3,
 };

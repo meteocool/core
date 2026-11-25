@@ -16,9 +16,12 @@ test("from behind or ahead the engines are in the middle; from a side, the roar 
 
 test("further off the engines close in on the middle, fall quieter and, far enough, are gone", () => {
   const near = heardFrom(90, 40);
-  const far = heardFrom(90, 300);
+  const far = heardFrom(90, 100);
   assert.ok(Math.abs(far.roarPan) < Math.abs(near.roarPan));
   assert.ok(far.level < near.level && far.level > 0);
+  // The aircraft a quarter of the picture's height: barely heard.
+  const quarter = heardFrom(90, 125).level;
+  assert.ok(quarter > 0 && quarter < 0.1, String(quarter));
   assert.equal(heardFrom(90, ENGINE_HEARD.fades[1]).level, 0);
   assert.equal(heardFrom(0, 600).level, 0);
 });
