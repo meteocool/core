@@ -19,7 +19,7 @@ import PeelSlider from "./components/PeelSlider.svelte";
 import { DEFAULT_CLOUD_STYLE, mapStyleOf } from "./lib/cloudStyle";
 import { FEATURES } from "./features";
 import {
-  FLIGHT_BASEMAP, STUDIO_BASEMAP, flightPlanAsked, flightRequest, studioFlightOnly, studioFlying, studioOpen,
+  FLIGHT_BASEMAP, STUDIO_BASEMAP, flightPlanAsked, flightReplan, flightRequest, studioFlightOnly, studioFlying, studioOpen,
 } from "./lib/studio/store";
 import { closeStudio, openFlightPlan, openStudio, studioOffered } from "./lib/studio/session";
 import Logo from "./components/Logo.svelte";
@@ -161,7 +161,7 @@ import { isHandheld } from "./lib/gpuBudget";
 import LightningCapability from "./caps/LightningCapability";
 import makeStationLayer from "./layers/stations";
 import makeFlightTrackLayer from "./layers/flightTracks";
-import { selectedFlightTrack } from "./lib/studio/flightTracks";
+import { flightTracks, selectedFlightTrack, startFrom } from "./lib/studio/flightTracks";
 import FlightTrackCard from "./components/FlightTrackCard.svelte";
 import StationManager from "./lib/StationManager";
 import makeMotionArrowLayer from "./layers/motionArrows";
@@ -741,14 +741,15 @@ stationLayerVisible.subscribe((value) => {
 });
 stationChoice.subscribe((choice) => window.settings.set("stationParameter", choice));
 /* The reader's own meteoair flights, for two hours after they were flown
-   (layers/flightTracks.ts); tapped, a card to fly one again or delete it.
-   Not in a screenshot, nor on the flight's own page, nor over a past
-   window's radar, which they were never flown through. */
+   (layers/flightTracks.ts); tapped, a card to fly one again or delete it,
+   and on the flight's own page its plan, to change and fly again. Not in a
+   screenshot, nor over a past window's radar, which they were never flown
+   through: but the flight's own page shows no window it does not fly in. */
 const flightTrackLayer = makeFlightTrackLayer();
 onDestroy(() => flightTrackLayer.dispose());
-const flightTracksWanted = !screenshot && !flightOnly;
+const flightTracksWanted = !screenshot;
 archiveWindow.subscribe((past) => {
-  flightTrackLayer.layer.setVisible(flightTracksWanted && !past);
+  flightTrackLayer.layer.setVisible(flightTracksWanted && (!past || flightOnly));
   if (past) selectedFlightTrack.set(null);
 });
 /* The rain's motion arrows over the radar map, the newest; not in a
@@ -1282,6 +1283,13 @@ lm.forEachMap((map) => {
         (feature) => feature.get("flightTrack") as string | undefined,
         { layerFilter: (layer) => layer === flightTrackLayer.layer, hitTolerance: 8 },
       );
+      if (track && flightOnly) {
+        // The flight's own page has no card: the flight's plan, as that one took off.
+        const flown = get(flightTracks).find((one) => one.id === track);
+        const start = flown ? startFrom(flown.first) : null;
+        if (start) flightReplan.set({ start, track: { id: track, from: "start" } });
+        return;
+      }
       if (track) {
         const [lon, lat] = toLonLat(event.coordinate);
         selectedFlightTrack.set({ id: track, at: [lon, lat] });

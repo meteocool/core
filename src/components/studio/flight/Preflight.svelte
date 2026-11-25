@@ -37,6 +37,7 @@ import { fromLonLat, toLonLat } from "ol/proj";
 import { Circle as CircleStyle, Fill, RegularShape, Stroke, Style, Text } from "ol/style";
 import { faPlaneDeparture } from "@fortawesome/free-solid-svg-icons/faPlaneDeparture";
 import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
+import { faRotateLeft } from "@fortawesome/free-solid-svg-icons/faRotateLeft";
 import CloseDisc from "../../CloseDisc.svelte";
 import Icon from "../../Icon.svelte";
 import AircraftPreview from "./AircraftPreview.svelte";
@@ -60,7 +61,7 @@ import {
 import type { StormSystem } from "../../../lib/studio/flight/spawn";
 import { FLIGHT_BASEMAP } from "../../../lib/studio/store";
 import { flightLinkOrigin, flightLinkUrl } from "../../../lib/studio/flightLink";
-import { startOf } from "../../../lib/studio/flight/plan";
+import { againPlan, planHere, startOf } from "../../../lib/studio/flight/plan";
 import { sendLink } from "../../../lib/share";
 import { flightLoad, shareOf } from "../../../lib/studio/flight/preload";
 import { claimMenuMusic } from "../../../lib/studio/flight/soundtrack";
@@ -71,7 +72,7 @@ import { archiveStep, archiveWindow, cloudsTime, shareDialog } from "../../../st
 import { demoBackend, demoFallbackBuild, demoWeather } from "../../../weatherSource";
 import { addDays, format, getHours, getMinutes, set, startOfDay } from "date-fns";
 import getDfnLocale from "../../../locale/locale";
-import { studioFlightOnly } from "../../../lib/studio/store";
+import { flightReplan, studioFlightOnly } from "../../../lib/studio/store";
 import { coverageDays, startMinutes } from "../../../lib/archive";
 import type { ArchiveCoverage } from "../../../lib/archive";
 import { loadCoverage } from "../../../lib/archiveCoverage";
@@ -128,9 +129,29 @@ const proposed = (): FlightPlan => (demoBackend && systems.length ? showcasePlan
   systems.length ? approachTo(systems[0], tiles, ground) : clearSkyStart(look.lon, look.lat, look.bearing, ground),
   FLIGHT_STYLE,
 );
-let plan: FlightPlan = proposed();
-/** Whether the reader has changed the plan: from then on it is theirs, whatever the radar lists next. */
-let touched = false;
+/**
+ * A flight flown before, asked for again from its track on the flight's own
+ * page (`flightReplan`): the plan opens as that one took off, and says so,
+ * until the reader asks for a new one.
+ */
+let again = get(flightReplan);
+const flownAgain = (): FlightPlan | null => {
+  if (!again) return null;
+  const from = planHere(again.start, systems, ground, look.bearing, FLIGHT_STYLE);
+  return again.start.snapshot ? againPlan(from, again.start.snapshot, systems) : from;
+};
+let plan: FlightPlan = flownAgain() ?? proposed();
+/** Whether the reader has changed the plan: from then on it is theirs, whatever the radar lists next. A flight flown again is theirs from the start. */
+let touched = again !== null;
+/** A new flight after all: the plan the radar proposes, and nothing of the one flown before. */
+function fresh(): void {
+  again = null;
+  flightReplan.set(null);
+  touched = false;
+  plan = proposed();
+  viewed = false;
+  frame();
+}
 function change(next: FlightPlan): void {
   touched = true;
   plan = next;
@@ -164,12 +185,14 @@ const listTimer = setInterval(() => {
     return;
   }
   const was = plan.target;
+  // A flight flown again, planned before its storm was listed: at that storm once it is.
+  if (!was && again) plan = { ...plan, target: flownAgain()?.target ?? null };
   if (!was) return;
-  const again = systems
+  const stands = systems
     .map((system) => ({ system, km: distanceM(was.lon, was.lat, system.lon, system.lat) / 1000 }))
     .filter(({ km }) => km <= SAME_SYSTEM_KM)
     .sort((a, b) => a.km - b.km)[0];
-  if (again) plan = { ...plan, target: again.system };
+  if (stands) plan = { ...plan, target: stands.system };
 }, LIST_MS);
 
 /* Where the clouds begin over the start, as the stations there have it; asked again once the start has moved. */
@@ -548,6 +571,14 @@ function keydown(event: KeyboardEvent): void {
   </div>
 
   <footer>
+    {#if again}
+      <!-- The plan is a flight flown before, from the map of the flight's own page: said, with the way to a new one. -->
+      <p class="again" role="status">
+        <Icon icon={faRotateLeft} />
+        <span>{$_("studio.flight.plan.again")}</span>
+        <button type="button" on:click={fresh}>{$_("studio.flight.plan.again_fresh")}</button>
+      </p>
+    {/if}
     {#if $shareAvailable}
       <!-- A link that takes off from this plan, over the weather of whenever it is opened; in a past window, over that window's step. -->
       <button type="button" class="chip glass glass-pill"
@@ -867,6 +898,32 @@ function keydown(event: KeyboardEvent): void {
   .chip:disabled { cursor: default; opacity: 0.45; }
   .chip :global(svg) { width: 12px; height: 12px; }
   footer .chip { height: 40px; padding: 0 18px; font-size: 13px; }
+  /* A flight flown again: said at the foot, left of the ways off, in the colour its track is drawn in. */
+  .again {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex: 1 1 240px;
+    min-width: 0;
+    margin: 0 auto 0 0;
+    color: rgba(244, 246, 248, 0.86);
+    font: 500 12.5px/1.35 var(--mc-font);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+  .again :global(svg) { flex: none; width: 13px; height: 13px; color: #ff4fd8; }
+  .again button {
+    flex: none;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #fff;
+    font: inherit;
+    font-weight: 650;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    cursor: pointer;
+  }
+  .again button:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
   .chip.go { position: relative; overflow: hidden; padding: 0 24px; background: var(--mc-orange); color: #1a1205; box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3); }
   .chip.go .load {
     position: absolute;
@@ -882,13 +939,35 @@ function keydown(event: KeyboardEvent): void {
     padding: 0 18px 0 14px;
     background: #0a84ff;
     color: #fff;
-    box-shadow: 0 6px 20px rgba(10, 132, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    box-shadow: 0 6px 20px rgba(10, 132, 255, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.28);
     transition: transform 0.12s ease, background-color 0.12s ease;
   }
   .chip.home img { width: 24px; height: 24px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
   .chip.home:hover { background: #409cff; transform: translateY(-1px); }
   .chip.home:active { transform: translateY(0) scale(0.98); }
   .chip.home:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+  /* Its glow, a halo behind it that breathes: slowly, and barely. */
+  .chip.home { position: relative; isolation: isolate; }
+  .chip.home::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    z-index: -1;
+    border-radius: inherit;
+    background: #0a84ff;
+    filter: blur(14px);
+    opacity: 0.42;
+    pointer-events: none;
+    animation: home-breathe 5.2s ease-in-out infinite alternate;
+  }
+  @keyframes home-breathe {
+    from { opacity: 0.3; transform: scale(0.97); }
+    to { opacity: 0.55; transform: scale(1.03); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .chip.home::before { animation: none; }
+  }
 
   /* Wide: the briefing in two columns, in half the height. */
   @container mc-frame (min-width: 1200px) {

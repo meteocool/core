@@ -20,7 +20,7 @@ for (const path of [`/meteoair.html?${VIEW}`, `/?${VIEW}#meteoair`]) {
     async ({ page }) => {
       await page.goto(path);
       await expect(landing(page)).toBeVisible({ timeout: 30_000 });
-      await expect(page.getByRole("heading", { level: 1 })).toContainText("Fly through live clouds");
+      await expect(page.getByRole("heading", { level: 1 })).toContainText("See live storms like never before");
       await expect(page.locator("#map canvas").first()).toBeVisible();
       await expect(appChrome(page)).toHaveCount(0);
       await expect(page.locator(".ol-attribution")).toContainText("OpenStreetMap");

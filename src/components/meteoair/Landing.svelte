@@ -3,8 +3,13 @@
  * The flight's own page (meteoair.html): what it says over the radar map,
  * and the way into the flight.
  *
- * The map underneath is the app's own, with nothing over it: it can be moved,
- * and where it is looking is where the flight's plan looks for its storms.
+ * The map underneath is the app's own, with nothing over it: it is put on
+ * the radar's rain and can be moved. Where to fly, and at which storm, is
+ * the plan's to ask; the page says nothing of the map being a way to choose.
+ *
+ * The reader's own flights of the last two hours are drawn on that map
+ * (layers/flightTracks.ts). One clicked opens the plan as that flight took
+ * off, to change and fly again (`flightReplan`), and the plan says so.
  * The button puts the page on the 3D map in Studio, which on this page opens
  * straight on the plan (components/studio/Studio.svelte); the plan put away,
  * the page is back on the radar and these words.
@@ -51,6 +56,12 @@ import { faArrowLeft } from "@fortawesome/free-solid-svg-icons/faArrowLeft";
 import { faFlask } from "@fortawesome/free-solid-svg-icons/faFlask";
 import { faExpand } from "@fortawesome/free-solid-svg-icons/faExpand";
 import { faCompress } from "@fortawesome/free-solid-svg-icons/faCompress";
+import { faCloudBolt } from "@fortawesome/free-solid-svg-icons/faCloudBolt";
+import { faCloudShowersHeavy } from "@fortawesome/free-solid-svg-icons/faCloudShowersHeavy";
+import { faPlaneArrival } from "@fortawesome/free-solid-svg-icons/faPlaneArrival";
+import { faHourglassHalf } from "@fortawesome/free-solid-svg-icons/faHourglassHalf";
+import { faRoute } from "@fortawesome/free-solid-svg-icons/faRoute";
+import { faGaugeHigh } from "@fortawesome/free-solid-svg-icons/faGaugeHigh";
 import { faGithub } from "@fortawesome/free-brands-svg-icons/faGithub";
 import { faApple } from "@fortawesome/free-brands-svg-icons/faApple";
 import { faAndroid } from "@fortawesome/free-brands-svg-icons/faAndroid";
@@ -59,7 +70,8 @@ import type { LayerManager } from "../../lib/LayerManager";
 import { fullscreen, fullscreenSupported, toggleFullscreen } from "../../lib/fullscreen";
 import { closeStudio, openStudio } from "../../lib/studio/session";
 import { touchFirst } from "../../lib/studio/flight/touch";
-import { flightRequest, studioFlying, studioOpen } from "../../lib/studio/store";
+import { flightReplan, flightRequest, studioFlying, studioOpen } from "../../lib/studio/store";
+import { flightTracks } from "../../lib/studio/flightTracks";
 import { pastSkyAt, withoutFlightLink } from "../../lib/studio/flightLink";
 import type { FlightStart } from "../../lib/studio/flightLink";
 import type Cells3DCapability from "../../caps/Cells3DCapability";
@@ -158,6 +170,8 @@ function aboard(): void {
  */
 function plan(): void {
   if (!offered) return;
+  // A new flight, whatever was last asked for again.
+  flightReplan.set(null);
   if (toDemo && !demoWeather) {
     if (curtainDown()) return;
     void lower().then(() => window.location.assign(boardingUrl(window.location.href, "demo", null)));
@@ -294,12 +308,24 @@ onMount(() => {
 onDestroy(sharedActiveCap.subscribe((cap) => {
   if (cap === "cells3d") openStudio();
 }));
+/* One of the reader's own flights, clicked on the map: on board to its plan, the 3D map looking at where it took off. */
+onDestroy(flightReplan.subscribe((again) => {
+  if (!again || !offered || $sharedActiveCap === "cells3d" || linked) return;
+  if (curtainDown()) {
+    flightReplan.set(null);
+    return;
+  }
+  (layerManager.getCapability("cells3d") as Cells3DCapability | undefined)
+    ?.setCamera({ lat: again.start.lat, lon: again.start.lon, zoom: 8, pitch: 60, bearing: again.start.heading ?? 0 });
+  aboard();
+}));
 /** Whether Studio has been open: not before it first is, which a flight in a past window waits for the archive to reach. */
 let studioWasOpen = false;
 onDestroy(studioOpen.subscribe((open) => {
   if (open) studioWasOpen = true;
   if (open || !studioWasOpen) return;
   unlink();
+  flightReplan.set(null);
   // Back on this page, which is the radar's now: a past window, from a link or the plan, goes. The recorded storm has no now.
   if (!showcase && get(archiveWindow)) archiveWindow.set(null);
   if (get(sharedActiveCap) === "cells3d") layerManager.setTarget("radar", MAP_TARGET);
@@ -322,11 +348,18 @@ $: if (!menu && release) {
 }
 onDestroy(() => release?.());
 
-/** The way through it, a step at a time: the last one says how it is flown, by touch or keys. */
-const steps = [
-  { title: "find", text: "find_text" },
-  { title: "plan", text: "plan_text" },
-  { title: "fly", text: byTouch ? "fly_text_touch" : "fly_text" },
+/** Under the way in: what to go and do in the storm, and how an airliner wants to be flown. */
+const guides = [
+  { title: "try_title", items: [
+    { key: "try_through", icon: faCloudBolt },
+    { key: "try_under", icon: faCloudShowersHeavy },
+    { key: "try_land", icon: faPlaneArrival },
+  ] },
+  { title: "fly_title", items: [
+    { key: "fly_time", icon: faHourglassHalf },
+    { key: "fly_route", icon: faRoute },
+    { key: "fly_control", icon: faGaugeHigh },
+  ] },
 ] as const;
 </script>
 
@@ -381,12 +414,10 @@ const steps = [
             <img src={logo} alt="" />
             <span>{$_("studio.flight.plan.back")}</span>
           </a>
-          <!-- Where the steps below have no room: the first of them, and how a phone flies. -->
-          <p class="hint">
-            {$_("studio.flight.page.find_text")}
-            {#if byTouch}{$_("studio.flight.page.fly_text_touch")}{/if}
-          </p>
-          <p class="note">{$_("studio.flight.page.demo")}</p>
+          {#if $flightTracks.length}
+            <!-- The reader's own flights are on the map, in this colour, and each is a way in. -->
+            <p class="recent"><span class="trace" aria-hidden="true"></span>{$_("studio.flight.page.tracks")}</p>
+          {/if}
           {#if metered}
             <p class="note data">{$_("studio.flight.page.data", { values: { mb: megabytes } })}</p>
           {/if}
@@ -407,14 +438,39 @@ const steps = [
       {/if}
 
       {#if offered}
-        <ol>
-          {#each steps as step (step.title)}
-            <li>
-              <h2>{$_(`studio.flight.page.${step.title}`)}</h2>
-              <p>{$_(`studio.flight.page.${step.text}`)}</p>
-            </li>
-          {/each}
-        </ol>
+        <!-- Below the way in: what the flight is for, what to try in it and how to fly it. -->
+        <div class="brief">
+          <!-- Why the page is here, a breath to a line: the map, the watching, the distance, the flight. -->
+          <div class="mission">
+            <p>{$_("studio.flight.page.mission_then")}</p>
+            <p>{$_("studio.flight.page.mission_watched")}</p>
+            <p>
+              <!-- A word between asterisks is said with weight. -->
+              {#each $_("studio.flight.page.mission_far").split("*") as bit, index (index)}{#if index % 2}<em>{bit}</em>{:else}{bit}{/if}{/each}
+            </p>
+            <p class="now">{$_("studio.flight.page.mission_now")}</p>
+            <p class="seat">{$_("studio.flight.page.mission_seat")}</p>
+          </div>
+          <div class="guide">
+            {#each guides as guide (guide.title)}
+              <section>
+                <h2>{$_(`studio.flight.page.${guide.title}`)}</h2>
+                <ul>
+                  {#each guide.items as item (item.key)}
+                    <li>
+                      <Icon icon={item.icon} />
+                      <p><strong>{$_(`studio.flight.page.${item.key}`)}</strong> {$_(`studio.flight.page.${item.key}_text`)}</p>
+                    </li>
+                  {/each}
+                </ul>
+              </section>
+            {/each}
+          </div>
+          <p class="note small">
+            {$_(byTouch ? "studio.flight.page.controls_touch" : "studio.flight.page.controls")}
+            {$_("studio.flight.page.demo")}
+          </p>
+        </div>
       {/if}
     </main>
 
@@ -453,9 +509,13 @@ const steps = [
 <style>
   /* Over the map and its credits' side of the page only in shade: the words
      stand on a dark wash down the left, whatever the basemap, and the map is
-     the page's to the right of it. Nothing here takes the pointer but what
-     is pressed, so the map moves under the rest. */
+     the page's to the right of it. The wash is as wide as the words at
+     least (--words), however narrow the window: no word is read off the
+     map's own names or its rain. Nothing here takes the pointer but what is
+     pressed, so the map moves under the rest. */
   .landing {
+    --gutter: max(clamp(20px, 4.5cqw, 72px), calc(var(--mc-safe-left) + 12px));
+    --words: calc(var(--gutter) + 540px);
     --ink: #f4f6f8;
     --ink-2: rgba(244, 246, 248, 0.78);
     --ink-3: rgba(244, 246, 248, 0.6);
@@ -478,7 +538,13 @@ const steps = [
     padding-right: max(clamp(20px, 4.5cqw, 72px), calc(var(--mc-safe-right) + 12px));
     /* And clear of the status bar, a phone's clock and all. */
     padding-top: max(clamp(18px, 3.2cqh, 36px), calc(var(--mc-safe-top) + 8px));
-    background: linear-gradient(90deg, rgba(7, 11, 17, 0.92) 0%, rgba(7, 11, 17, 0.84) 30%, rgba(7, 11, 17, 0.4) 50%, rgba(7, 11, 17, 0) 68%);
+    background: linear-gradient(90deg,
+      rgba(7, 11, 17, 0.94) 0%,
+      rgba(7, 11, 17, 0.88) max(30%, calc(var(--words) - 40px)),
+      rgba(7, 11, 17, 0.5) max(50%, calc(var(--words) + 70px)),
+      rgba(7, 11, 17, 0) max(68%, calc(var(--words) + 210px)));
+    /* And each word with a shade of its own, for the rain the wash lets through. */
+    text-shadow: 0 1px 2px rgba(7, 11, 17, 0.85), 0 0 14px rgba(7, 11, 17, 0.6);
     color: var(--ink);
     font-family: var(--mc-font);
     pointer-events: none;
@@ -490,10 +556,10 @@ const steps = [
     position: fixed;
     inset: 0;
     z-index: -1;
-    -webkit-backdrop-filter: blur(7px);
-    backdrop-filter: blur(7px);
-    -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 34%, transparent 56%);
-    mask-image: linear-gradient(90deg, #000 0%, #000 34%, transparent 56%);
+    -webkit-backdrop-filter: blur(9px);
+    backdrop-filter: blur(9px);
+    -webkit-mask-image: linear-gradient(90deg, #000 0%, #000 max(34%, calc(var(--words) + 10px)), transparent max(56%, calc(var(--words) + 140px)));
+    mask-image: linear-gradient(90deg, #000 0%, #000 max(34%, calc(var(--words) + 10px)), transparent max(56%, calc(var(--words) + 140px)));
   }
   /* Wide: the words and the footer are rows of the page's own grid. */
   .sheet { display: contents; }
@@ -540,7 +606,7 @@ const steps = [
     font: 650 15px/1 var(--mc-font);
     text-decoration: none;
     white-space: nowrap;
-    box-shadow: 0 8px 24px rgba(10, 132, 255, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    box-shadow: 0 8px 24px rgba(10, 132, 255, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.28);
     transition: transform 0.12s ease, background-color 0.12s ease;
   }
   .home img { width: 26px; height: 26px; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3)); }
@@ -548,6 +614,30 @@ const steps = [
   .home:hover { background: #409cff; transform: translateY(-1px); }
   .home:active { transform: translateY(0) scale(0.98); }
   .home:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+  /* The two ways off the page, each with a glow of its own colour: a halo behind it that breathes, slowly and barely. */
+  .home, .board:not(.quiet) { position: relative; isolation: isolate; }
+  .home { --glow: #0a84ff; }
+  .board { --glow: var(--mc-orange); }
+  .home::before, .board:not(.quiet)::before {
+    content: "";
+    position: absolute;
+    inset: -4px;
+    z-index: -1;
+    border-radius: inherit;
+    background: var(--glow);
+    filter: blur(14px);
+    opacity: 0.42;
+    pointer-events: none;
+    animation: breathe 5.2s ease-in-out infinite alternate;
+  }
+  @keyframes breathe {
+    from { opacity: 0.3; transform: scale(0.97); }
+    to { opacity: 0.55; transform: scale(1.03); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .home::before, .board:not(.quiet)::before { animation: none; }
+  }
   .home.by-board { display: none; }
   .screen:hover { background: rgba(30, 38, 50, 0.8); }
   .screen:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
@@ -581,20 +671,22 @@ const steps = [
   .eyebrow { margin: 0 0 14px; }
   h1 {
     margin: 0;
-    font-size: clamp(34px, 4.6vw, 60px);
-    font-size: clamp(34px, 4.6cqw, 60px);
+    font-size: clamp(34px, 4.6vw, 56px);
+    font-size: clamp(34px, 4.6cqw, 56px);
     font-weight: 750;
     line-height: 1.04;
     letter-spacing: -0.03em;
     text-wrap: balance;
   }
+  /* The headline's second line: what the page is, in a breath. */
   .lede {
-    margin: 18px 0 0;
-    color: var(--ink-2);
-    font-size: clamp(15px, 1.25vw, 18px);
-    font-size: clamp(15px, 1.25cqw, 18px);
-    line-height: 1.5;
-    text-wrap: pretty;
+    margin: 14px 0 0;
+    color: var(--ink);
+    font-size: clamp(17px, 1.45vw, 21px);
+    font-size: clamp(17px, 1.45cqw, 21px);
+    font-weight: 500;
+    line-height: 1.4;
+    text-wrap: balance;
   }
 
   .go {
@@ -602,7 +694,7 @@ const steps = [
     flex-wrap: wrap;
     align-items: center;
     gap: 12px 18px;
-    margin-top: 28px;
+    margin-top: 24px;
   }
   .board {
     display: inline-flex;
@@ -620,6 +712,7 @@ const steps = [
     box-shadow: 0 10px 30px rgba(255, 149, 0, 0.28);
     transition: transform 0.12s ease, background-color 0.12s ease;
   }
+  .board, .home { text-shadow: none; }
   .board:hover { background: color-mix(in srgb, var(--mc-orange) 86%, #fff); transform: translateY(-1px); }
   .board:active { transform: translateY(0) scale(0.98); }
   .board:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
@@ -672,55 +765,95 @@ const steps = [
     box-shadow: none;
   }
   .board.quiet:hover { background: rgba(255, 255, 255, 0.22); }
+  /* Beside the way in where there is room, under it where there is not. */
+  .recent {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex: 1 1 220px;
+    margin: 0;
+    color: var(--ink-2);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+  /* A stroke of the tracks' own magenta, as the map draws them. */
+  .trace {
+    flex: none;
+    width: 18px;
+    height: 3px;
+    border-radius: 2px;
+    background: #ec40d6;
+    box-shadow: 0 0 8px rgba(236, 64, 214, 0.7);
+  }
   .hint {
-    display: none;
     flex-basis: 100%;
     margin: 0;
-    color: var(--ink-3);
-    font-size: 13px;
+    color: var(--ink-2);
+    font-size: 13.5px;
     line-height: 1.4;
   }
-  .hint.grounded { display: block; color: var(--ink-2); font-size: 14px; }
+  .hint.grounded { font-size: 14px; }
 
-  ol {
+  /* Past the way in, and set off from it: read by whoever wants more before they fly. */
+  .brief {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .mission { display: grid; gap: 4px; }
+  .mission p {
+    margin: 0;
+    color: var(--ink-2);
+    font-size: clamp(16px, 1.2vw, 17px);
+    font-size: clamp(16px, 1.2cqw, 17px);
+    line-height: 1.4;
+    text-wrap: balance;
+  }
+  /* The last two lines are the page's offer, and read as one: set a little apart, and brighter. */
+  .mission .now { margin-top: 5px; }
+  .mission :is(.now, .seat) { color: var(--ink); font-weight: 600; }
+  /* Side by side where there is room for two, one under the other on a phone. */
+  .guide {
     display: grid;
-    gap: 16px;
-    margin: 40px 0 0;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 18px 28px;
+    margin-top: 16px;
+  }
+  h2 {
+    margin: 0 0 10px;
+    color: var(--ink-3);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  ul {
+    display: grid;
+    gap: 9px;
+    margin: 0;
     padding: 0;
     list-style: none;
-    counter-reset: step;
   }
   li {
     display: grid;
-    grid-template-columns: 22px minmax(0, 1fr);
-    gap: 0 14px;
+    grid-template-columns: 16px minmax(0, 1fr);
+    gap: 0 10px;
     align-items: start;
-    counter-increment: step;
   }
-  li::before {
-    content: counter(step);
-    grid-row: span 2;
-    display: grid;
-    place-items: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: rgba(255, 149, 0, 0.18);
+  li :global(svg) {
+    width: 14px;
+    height: 14px;
+    margin-top: 3px;
     color: var(--mc-orange);
-    font: 700 12px/1 var(--mc-font);
-  }
-  h2 {
-    margin: 2px 0 0;
-    color: var(--ink);
-    font-size: 15px;
-    font-weight: 650;
   }
   li p {
-    margin: 3px 0 0;
-    color: var(--ink-3);
+    margin: 0;
+    color: var(--ink-2);
     font-size: 13.5px;
     line-height: 1.45;
   }
+  li strong { color: var(--ink); font-weight: 650; }
+  .note.small { margin-top: 12px; }
 
   footer {
     display: flex;
@@ -767,11 +900,6 @@ const steps = [
     cursor: pointer;
   }
 
-  @container mc-frame (max-height: 620px) {
-    .hint { display: block; order: 1; }
-    .go .note { order: 2; }
-    ol { display: none; }
-  }
   /* A narrow window: a page that scrolls. The map at its top, between the
      header and the words, and the words on a sheet of the wash below, which
      scrolls up over the map. The map takes the touches where it shows: the
@@ -808,10 +936,7 @@ const steps = [
     .screen span { display: none; }
     .home.top { display: none; }
     .home.by-board { display: inline-flex; height: 52px; padding: 0 22px 0 18px; font-size: 16px; }
-    /* The steps fit, scrolled to: the hint in their place is not wanted. */
-    .hint { display: none; }
-    .hint.grounded { display: block; }
-    ol { display: grid; margin-top: 30px; }
+    .brief { margin-top: 26px; }
     .eyebrow { margin-bottom: 10px; }
     .lede { margin-top: 12px; }
     .go { margin-top: 22px; }

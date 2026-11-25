@@ -170,6 +170,20 @@ export function resumedPlan(plan: FlightPlan, snapshot: FlightSnapshot, systems:
 }
 
 /**
+ * The plan of a flight flown before, for the reader to change and fly again:
+ * where that one took off, which way it pointed, how high and how fast, seen
+ * and drawn as it was, at its storm where that still stands. A plan like any
+ * other: nothing else of that flight's moment goes into the new one, and its
+ * level and speed are ones a flight starts at.
+ */
+export function againPlan(plan: FlightPlan, snapshot: FlightSnapshot, systems: readonly StormSystem[] = []): FlightPlan {
+  const again = resumedPlan(plan, snapshot, systems);
+  delete again.resume;
+  const altitude = clamp(again.altitude, ALTITUDE_RANGE);
+  return { ...again, altitude, tas: startable(again.tas, altitude) };
+}
+
+/**
  * Starts chosen by hand for a recorded storm the demo replays, so that the
  * first flight anyone takes in it is the good one: a storm system this near
  * `near` (lon, lat) is flown at from `lon`, `lat`, at a level in feet and an

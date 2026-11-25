@@ -53,7 +53,7 @@ import { radarMapHref } from "../../lib/studio/flightPage";
 import { closeStudio } from "../../lib/studio/session";
 import { STUDIO_SUPPORT } from "../../lib/studio/support";
 import {
-  flightPlanAsked, flightRequest, flightStatus, studioAspect, studioFlightOnly, studioFlying, studioPlaying, studioRecording,
+  flightPlanAsked, flightReplan, flightRequest, flightStatus, studioAspect, studioFlightOnly, studioFlying, studioPlaying, studioRecording,
 } from "../../lib/studio/store";
 import type { FlightRequest } from "../../lib/studio/store";
 import { sendLink } from "../../lib/share";
@@ -106,6 +106,14 @@ function plan(): void {
   planning = true;
 }
 
+/** Take off from the plan: a flight flown before, asked for again (`flightReplan`), is recorded onto its own track. */
+function flyPlanned(flightPlan: FlightPlan): void {
+  const again = get(flightReplan);
+  if (again) trackAsked = again.track;
+  flightReplan.set(null);
+  fly(flightPlan);
+}
+
 /** Take off, as planned: at once where everything is loaded, else once it is. */
 function fly(flightPlan: FlightPlan): void {
   planning = false;
@@ -152,6 +160,7 @@ function takeOff(flightPlan: FlightPlan): void {
 /** Put the plan away: back to Studio's tools, or off the flight's own page's map altogether. */
 function cancel(): void {
   planning = false;
+  flightReplan.set(null);
   if (flightAlone) closeStudio();
 }
 
@@ -357,7 +366,7 @@ function keydown(event: KeyboardEvent) {
     </p>
   {:else if planning}
     <!-- On the flight's own page its plan is that page's way in: put away, it is meteocool's map, not the page's words again. -->
-    <Preflight {stage} ontakeoff={(flightPlan) => cut(() => fly(flightPlan), TAKEOFF_HOLD_MS)}
+    <Preflight {stage} ontakeoff={(flightPlan) => cut(() => flyPlanned(flightPlan), TAKEOFF_HOLD_MS)}
       oncancel={$studioFlightOnly ? backToMap : () => cut(cancel)} onback={flightAlone ? backToMap : null} />
   {:else if !flightAlone}
   {#if frame && width && height}

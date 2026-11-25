@@ -85,6 +85,19 @@ export interface FlightRequest {
 export const flightRequest = writable<FlightRequest | null>(null);
 
 /**
+ * A flight flown before, asked for again from its track on the flight's own
+ * page (components/meteoair/Landing.svelte): the plan opens on it, as it was
+ * taken off with, for the reader to change, and says so; taken off from, the
+ * flight is recorded onto that track from its start. Put away once it has
+ * been flown, or the plan left.
+ */
+export interface FlightReplan {
+  start: FlightStart;
+  track: { id: string; from: "start" };
+}
+export const flightReplan = writable<FlightReplan | null>(null);
+
+/**
  * Whether Studio was opened for the flight's plan alone (the 3D map's Fly,
  * `openFlightPlan` in session.ts): the plan comes up at once, a flight comes
  * back to it, and putting it away leaves Studio again, its tools unseen.
