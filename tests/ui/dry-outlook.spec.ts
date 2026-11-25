@@ -47,7 +47,7 @@ async function dryRadar(route: Route): Promise<void> {
   await route.fulfill({ status: 200, json });
 }
 
-const outlook = (page: Page) => page.locator(".strip-dock").filter({ hasText: "No Rain in Sight" });
+const outlook = (page: Page) => page.locator(".strip-dock").filter({ hasText: "No rain in the next 7 days" });
 
 async function openDry(page: Page): Promise<void> {
   await noGeocoder(page);

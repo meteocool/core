@@ -290,14 +290,14 @@ test("in a window the overlays with no past are greyed in Settings, and back wit
   for (const name of [/^Storm cells/, /^Radar sites/]) {
     await expect(page.getByRole("switch", { name })).toBeEnabled();
   }
-  await expect(page.getByText("Not kept in the archive").first()).toBeVisible();
+  await expect(page.getByText("Not in the archive").first()).toBeVisible();
   await page.keyboard.press("Escape");
 
   await windowPill(page).click();
   await expect(page.locator(".live-wrapper")).toHaveText("Latest");
   await page.getByRole("button", { name: "Settings" }).click();
   await expect(page.getByRole("switch", { name: /^Rain motion/ })).toBeEnabled();
-  await expect(page.getByText("Not kept in the archive")).toHaveCount(0);
+  await expect(page.getByText("Not in the archive")).toHaveCount(0);
 });
 
 test("in a window the storms' volumes and the radars are asked for the step on screen", async ({ page }) => {
