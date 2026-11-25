@@ -240,6 +240,37 @@ test("the deck's sound button is the plan's switch", async ({ page }, testInfo) 
   await expect(sound).toHaveAttribute("aria-pressed", muted === "1" ? "true" : "false");
 });
 
+test("on a phone held sideways, the page is a phone's: the map above, the words on a sheet below that scrolls", async ({ page }) => {
+  await page.setViewportSize({ width: 874, height: 402 });
+  await page.goto(`/meteoair.html?${VIEW}`);
+  await expect(landing(page)).toBeVisible({ timeout: 30_000 });
+  await expect(landing(page).locator(".window")).toBeVisible();
+  await expect(landing(page).locator(".sheet")).toHaveCSS("position", "relative");
+});
+
+test("the music is played by Web Audio, by no media element, so the page is not the system's player", async ({ page }) => {
+  await page.addInitScript(() => {
+    const counted = window as unknown as { mediaPlays: number };
+    counted.mediaPlays = 0;
+    const play = HTMLMediaElement.prototype.play;
+    HTMLMediaElement.prototype.play = function (this: HTMLMediaElement) {
+      counted.mediaPlays += 1;
+      return play.call(this);
+    };
+  });
+  await page.goto(`/meteoair.html?${VIEW}`);
+  await expect(board(page)).toBeVisible({ timeout: 30_000 });
+  const decodes = await page.evaluate(async () => typeof AudioDecoder !== "undefined"
+    && Boolean((await AudioDecoder.isConfigSupported({ codec: "mp3", sampleRate: 48000, numberOfChannels: 2 })).supported));
+  test.skip(!decodes, "this browser decodes no MP3 by WebCodecs, so a media element plays it as before");
+  // The first click lets the page play: the menus' piece streams and plays.
+  const music = page.waitForRequest(/\/audio\/menu\.mp3/, { timeout: 20_000 });
+  await page.getByRole("heading", { level: 1 }).click();
+  await music;
+  await page.waitForTimeout(2_000);
+  expect(await page.evaluate(() => (window as unknown as { mediaPlays: number }).mediaPlays)).toBe(0);
+});
+
 test("a link that asks for no flight anyone can fly is the page as ever", async ({ page }) => {
   await page.goto(`/meteoair.html?${VIEW}&fly=here`);
   await expect(landing(page)).toBeVisible({ timeout: 30_000 });

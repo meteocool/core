@@ -347,6 +347,25 @@ test.describe("on a desktop", () => {
     await expect(help(page)).toBeVisible();
   });
 
+  test("the credits are a Licences card, not a line across the view: the flight's own and every data source, closed by its button", async ({ page }) => {
+    test.slow();
+    await page.goto(MAP_3D);
+    await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
+    await expect(panel(page)).toBeVisible({ timeout: 20_000 });
+    await takeOff(page);
+    await expect(deck(page)).toBeVisible();
+    await curtainUp(page);
+    await expect(deck(page)).not.toContainText("izcyk");
+    await deck(page).getByRole("button", { name: "Licences" }).click();
+    const card = page.getByRole("dialog", { name: "Licences" });
+    await expect(card).toContainText("by izcyk, CC BY 4.0");
+    // The imprint's list of the data, the same for every map.
+    await expect(card).toContainText("Deutscher Wetterdienst (DWD)", { timeout: 20_000 });
+    await expect(card.getByRole("link", { name: "MeteoSwiss" })).toHaveAttribute("target", "_blank");
+    await card.getByRole("button", { name: "Close" }).click();
+    await expect(card).toBeHidden();
+  });
+
   test.describe("with a touch screen", () => {
     test.use({ hasTouch: true });
     // A laptop's touch screen beside its trackpad. Chromium's touch emulation
@@ -384,6 +403,52 @@ test.describe("on a desktop", () => {
       const stick = await page.getByLabel("Stick: nose up and down, roll left and right").boundingBox();
       await page.touchscreen.tap(stick!.x + stick!.width / 2, stick!.y + stick!.height / 2);
       await expect(help(page)).toBeHidden();
+    });
+
+    test("a thumb whose lifting was never heard lets the stick go to the next one, and the strip asks before starting again", async ({ page }) => {
+      test.slow();
+      await page.goto(MAP_3D);
+      await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
+      await expect(panel(page)).toBeVisible({ timeout: 20_000 });
+      await takeOff(page);
+      await expect(deck(page)).toBeVisible();
+      await curtainUp(page);
+      await page.touchscreen.tap(700, 120);
+      const controls = page.getByRole("group", { name: "Touch controls" });
+      await expect(controls).toBeVisible();
+      const stick = page.getByLabel("Stick: nose up and down, roll left and right");
+      /** A finger on the stick, `dy` below its middle: down, moved or up. */
+      const finger = (type: string, pointerId: number, dy = 0) => stick.evaluate((element, [kind, id, y]) => {
+        const box = element.getBoundingClientRect();
+        element.dispatchEvent(new PointerEvent(kind as string, {
+          pointerId: id as number, pointerType: "touch", isPrimary: true, bubbles: true, cancelable: true,
+          clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 + (y as number),
+        }));
+      }, [type, pointerId, dy]);
+      // A thumb pulls the stick, and its lifting is lost: the system took the touch for a gesture of its own.
+      await finger("pointerdown", 41);
+      await finger("pointermove", 41, 40);
+      await expect(stick).toHaveClass(/held/);
+      // The next thumb has the stick, and letting go of it lets it go.
+      await finger("pointerdown", 42);
+      await finger("pointerup", 42);
+      await expect(stick).not.toHaveClass(/held/);
+
+      // The rarer buttons: the music is the top row's alone, and starting again or going on is asked first.
+      await controls.getByRole("button", { name: "More controls" }).click();
+      await expect(controls.getByRole("button", { name: "Restart" })).toBeVisible();
+      await expect(controls.getByRole("button", { name: /music/i })).toHaveCount(0);
+      await controls.getByRole("button", { name: "Restart" }).click();
+      const again = page.getByRole("alertdialog", { name: "Start again?" });
+      await expect(again).toBeVisible();
+      await again.getByRole("button", { name: /Keep flying/ }).click();
+      await expect(again).toBeHidden();
+      await controls.getByRole("button", { name: "Next" }).click();
+      const next = page.getByRole("alertdialog", { name: "Fly to the next storm?" });
+      await expect(next).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(next).toBeHidden();
+      await expect(deck(page)).toBeVisible();
     });
   });
 });
