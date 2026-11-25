@@ -29,7 +29,7 @@ import type { NetworkCode } from "../layers/networkHoles";
 import { forgetMaskedTiles, installMaskedProtocol, registerMaskedTiles } from "../layers/maskedTiles";
 import { maskPath } from "../layers/tileMask";
 import { applyTerrain, installTerrainProtocol, isMissingTerrain, VERTICAL_SCALE } from "../layers/terrain";
-import { budgetDrapes, flightFog, lookedAtHeight } from "../layers/flightGround";
+import { budgetDrapes, flightFog, lodCamera, lookedAtHeight } from "../layers/flightGround";
 import type { TileIndex } from "../lib/tileIndex";
 import { darkTheme, lightTheme } from "../layers/base";
 import { volumeCollection, footprintCollection } from "../lib/cellExtrusions";
@@ -234,9 +234,9 @@ const FLIGHT_LOD = { levels: 4, handheldLevels: 5, ratio: 3 } as const;
  * looking level, that height is none, and at `FLIGHT_LOD` every tile out to
  * the far plane went to the sharpest zoom: thousands of tiles a frame, the page
  * held for seconds and, shaken in a storm's rough air, the GPU lost. A storm's
- * updrafts lift the eye that far, and a reader can look up. Cruising, the eye
- * looks three degrees down, so this leaves the ground as sharp as it was.
- * (The far plane is held in too: `FLIGHT_FAR_HEIGHTS`.)
+ * updrafts lift the eye that far, and a reader can look up. (The far plane is
+ * held in too: `FLIGHT_FAR_HEIGHTS`; and the eye is taken to be as high as it
+ * is: layers/flightGround.ts, `lodCamera`.)
  */
 const FLIGHT_LOD_LEAST_DOWN = 2;
 const FLIGHT_LOD_LEAST_RISE = Math.sin((FLIGHT_LOD_LEAST_DOWN * Math.PI) / 180);
@@ -1080,6 +1080,8 @@ export default class Cells3DCapability extends Capability {
 
   /** Which way the flight's camera last looked: the aircraft's own heading, or its eye's. */
   private flightLooking: number | null = null;
+  /** How high a flight's eye is over the ground under it, in the map's own units (the world's width is 1); see `lodCamera`. */
+  private flightOver = 0;
 
   /** The aircraft, drawn while flying, and how it was last asked to be; see `setAircraft`. */
   private aircraftLayer: AircraftLayer | null = null;
@@ -3246,7 +3248,9 @@ export default class Cells3DCapability extends Capability {
     // The map works out how near it draws from afresh, for the far end of what it draws.
     transform?.clearNearFarZOverride?.();
     // What the eye looks at is found on the ground under it, not where the last look left it: layers/flightGround.ts.
-    transform?.setElevation?.(lookedAtHeight(ground, height));
+    const looked = lookedAtHeight(ground, height);
+    transform?.setElevation?.(looked);
+    this.flightOver = this.maplibre?.MercatorCoordinate.fromLngLat([lon, lat], height - looked).z ?? 0;
     gl.jumpTo(gl.calculateCameraOptionsFromCameraLngLatAltRotation(
       [lon, lat], height, looking.heading, 90 + pitch, ROLL_SIGN * looking.roll,
     ));
@@ -4338,10 +4342,13 @@ export default class Cells3DCapability extends Capability {
       const source = gl.getSource(id) as { calculateTileZoom?: TileZoom } | undefined;
       if (this.flight) {
         gl.setSourceTileLodParams(isHandheld() ? FLIGHT_LOD.handheldLevels : FLIGHT_LOD.levels, FLIGHT_LOD.ratio, id);
-        // Never as if looking level or up (`FLIGHT_LOD_LEAST_DOWN`).
+        // Never as if looking level or up (`FLIGHT_LOD_LEAST_DOWN`), nor from lower than the eye is (`lodCamera`).
         const sharp = source?.calculateTileZoom;
         if (source && sharp) {
-          source.calculateTileZoom = (zoom, across, up, away, fov) => sharp(zoom, across, Math.max(up, away * FLIGHT_LOD_LEAST_RISE), away, fov);
+          source.calculateTileZoom = (zoom, across, up, away, fov) => {
+            const camera = lodCamera(zoom, up, away, this.flightOver, FLIGHT_LOD_LEAST_RISE);
+            return sharp(camera.zoom, across, camera.up, camera.away, fov);
+          };
         }
         continue;
       }

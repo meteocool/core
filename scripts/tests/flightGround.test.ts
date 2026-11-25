@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { LEAST_DRAPE_SIZE, LEAST_LOOK_DOWN_M, drapeBytes, drapeSizeWithin, fogDepthRow, fogNear, lookedAtHeight } from "../../src/layers/flightGround.ts";
+import {
+  LEAST_DRAPE_SIZE, LEAST_LOOK_DOWN_M, drapeBytes, drapeSizeWithin, fogDepthRow, fogNear, lodCamera, lookedAtHeight,
+} from "../../src/layers/flightGround.ts";
 
 const MB = 1024 * 1024;
 
@@ -77,4 +79,43 @@ test("a low flight's hundred tiles keep 1024-pixel drapes within a desktop's fli
   const { flightDrapeBytes } = await import("../../src/lib/gpuBudget.ts");
   assert.equal(drapeSizeWithin(100, flightDrapeBytes(false), 1024, 2048), 1024);
   assert.equal(drapeSizeWithin(100, flightDrapeBytes(false), 512, 2048), 1024, "and grow back to it from 512");
+});
+
+const RISE = Math.sin((2 * Math.PI) / 180);
+
+test("an eye looking down at the ground is told of as it is", () => {
+  // 5,500 m up, looking 30 degrees down: the point looked at is on the ground, 11 km off.
+  assert.deepEqual(lodCamera(10, 5500, 11_000, 5500, RISE), { zoom: 10, up: 5500, away: 11_000 });
+});
+
+test("an eye looking nearly level is as high as it is, not as the point 10 km ahead has it", () => {
+  // Three degrees down: the map looks at a point 10 km ahead, 523 m under the eye.
+  const up = 10_000 * Math.sin((3 * Math.PI) / 180);
+  const camera = lodCamera(12, up, 10_000, 5500, RISE);
+  assert.equal(camera.up, 5500);
+  // Looking the same way, at the same size: the same pitch, and the zoom less by as much as the point is further off.
+  assert.ok(Math.abs(camera.up / camera.away - up / 10_000) < 1e-12);
+  assert.ok(Math.abs(camera.zoom + Math.log2(camera.away) - (12 + Math.log2(10_000))) < 1e-12);
+});
+
+test("one tile is as sharp either side of where the map stops looking at the ground", () => {
+  // The same eye a hair either side of the angle the map changes at: on the ground 55 km off, or 10 km ahead in the air.
+  const over = 5500;
+  const down = lodCamera(9.5, over, over / 0.1001, over, RISE);
+  const level = lodCamera(9.5 + Math.log2(over / 0.0999 / 10_000), 10_000 * 0.0999, 10_000, over, RISE);
+  assert.equal(level.up, down.up);
+  assert.ok(Math.abs(level.away - down.away) / down.away < 0.01);
+  assert.ok(Math.abs(level.zoom - down.zoom) < 0.01);
+});
+
+test("level or up, the eye is never taken to look less than the least angle down", () => {
+  const camera = lodCamera(12, 0, 10_000, 5500, RISE);
+  assert.equal(camera.up, 5500);
+  assert.ok(Math.abs(camera.up / camera.away - RISE) < 1e-12);
+  // Low over the ground, that floor is higher than the eye is: left as it was.
+  assert.deepEqual(lodCamera(12, 0, 10_000, 100, RISE), { zoom: 12, up: 10_000 * RISE, away: 10_000 });
+});
+
+test("an eye looking up steeply, further over its point than over the ground, is left as it is", () => {
+  assert.deepEqual(lodCamera(12, 7000, 10_000, 5500, RISE), { zoom: 12, up: 7000, away: 10_000 });
 });

@@ -93,6 +93,34 @@ export function lookedAtHeight(ground: number, eye: number): number {
   return Math.min(ground, eye - LEAST_LOOK_DOWN_M);
 }
 
+/**
+ * The camera as the map's level of detail is told of it: its zoom, how high
+ * the eye is over what it looks at (`up`) and how far from it (`away`), in
+ * one unit, for an eye that is really `over` over the ground.
+ *
+ * Looking down, the map has the eye look at the ground, and `up` is its
+ * height over it. Within six degrees of level it looks at a point 10 km
+ * ahead instead, in the air: `up` is then a few hundred metres, whatever the
+ * altitude, and every tile to the horizon is taken to be seen from that low
+ * and drawn two or three levels sharper than the same tile seen from a
+ * degree further down. From a cockpit, which looks nearly level, that was
+ * 260 tiles of imagery a frame for 40 (November 2026).
+ *
+ * So the eye is said to be as high as it is, looking the same way: the point
+ * looked at further off along the same line, and the zoom less by as much,
+ * which is the same picture. Never steeper than `leastRise` (the sine of the
+ * least angle down), as before; and an eye already taken to be as high as it
+ * is, is left as it was.
+ */
+export function lodCamera(
+  zoom: number, up: number, away: number, over: number, leastRise: number,
+): { zoom: number; up: number; away: number } {
+  const least = Math.max(up, away * leastRise);
+  if (!(over > least) || !(least > 0)) return { zoom, up: least, away };
+  const further = over / least;
+  return { zoom: zoom - Math.log2(further), up: over, away: away * further };
+}
+
 interface Tile {
   rttObjects?: Array<{ size: number } | undefined>;
   releaseRTT(painter: unknown): void;
