@@ -27,7 +27,7 @@ import { fromExtent } from "ol/geom/Polygon";
 import { fetchLightningStats } from "../api";
 import { LightningColors } from "../colormaps";
 import { yTickLabel } from "../lib/lightningChart";
-import { archiveWindow, capTimeIndicator, mapTapped, sharedActiveCap } from "../stores";
+import { archiveStep, mapTapped, sharedActiveCap } from "../stores";
 import { format } from "date-fns";
 import { reverseGeocode, scaleForZoom } from "../lib/reverseGeocode";
 import { onWake } from "../lib/wakeup";
@@ -160,8 +160,8 @@ async function update() {
   const token = ++statsToken;
   try {
     // In a past window, the half hour up to the step on screen (lib/archive.ts).
-    const past = get(archiveWindow);
-    const data = await fetchLightningStats(polygon, undefined, past ? (get(capTimeIndicator) || past.end) : undefined);
+    const step = get(archiveStep);
+    const data = await fetchLightningStats(polygon, undefined, step ?? undefined);
     if (token !== statsToken) return;
     unavailable = false;
     noLightning = data.bins.reduce((total, bin) => total + bin, 0) === 0;
@@ -186,7 +186,7 @@ function axisLabels(t: Translate, until: number | null = null): string[] {
 }
 
 /** The step the counts end at in a past window, or null live. */
-$: countedUntil = $archiveWindow ? ($capTimeIndicator || $archiveWindow.end) : null;
+$: countedUntil = $archiveStep;
 
 // Re-labelled when the language changes, since the chart outlives it.
 $: if (chart) {

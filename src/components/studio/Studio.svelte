@@ -59,6 +59,8 @@ import type { FlightRequest } from "../../lib/studio/store";
 import { sendLink } from "../../lib/share";
 import { holdSideways } from "../../lib/sideways";
 import { curtainDown, lower, throughBlack } from "../../lib/curtain";
+import { reportNotice } from "../../lib/Toast";
+import { archiveWindow } from "../../stores";
 
 /** The 3D map. */
 export let stage: Stage;
@@ -236,6 +238,9 @@ function board(request: FlightRequest): void {
       boardTimer = setTimeout(look, BOARD_POLL_MS);
       return;
     }
+    // A past moment the archive holds no storms for: said, not flown into
+    // empty sky as though the sky had been clear.
+    if (!tiles.length && get(archiveWindow)) reportNotice(get(_)("studio.flight.share.past_empty"));
     const camera = stage.studioCamera();
     const systems = stormSystems(tiles);
     const planned = planHere(

@@ -347,7 +347,8 @@
         "moment": "Share this moment",
         "moment_title": "Copy a link that starts from this exact moment: same place, attitude, speed and aircraft state",
         "moment_note": "It starts from this exact moment, in the same radar clouds, for as long as the archive keeps them.",
-        "past_gone": "The archive no longer keeps the radar clouds this flight was in. You are flying through the live weather instead."
+        "past_gone": "The archive no longer keeps the radar clouds this flight was in. You are flying through the live weather instead.",
+        "past_empty": "The archive has no radar clouds for this moment. You are flying through clear sky."
       },
       "fullscreen": "Full screen (F)",
       "fullscreen_exit": "Leave full screen (F)",

@@ -764,15 +764,15 @@ export function fetchStationObservations(
 }
 
 /**
- * One weather station's ten-minute observations from `since` to now, oldest
- * first: its charts in the station's sheet. A week at most, which the
- * service holds; `optional` for the same reason as the map's.
+ * One weather station's ten-minute observations from `since` to `until` (now
+ * where null), oldest first: its charts in the station's sheet. A week at
+ * most, which the service holds; `optional` for the same reason as the map's.
  */
-export function fetchStationHistory(station: string, since: Date, nanobar?: Progress) {
+export function fetchStationHistory(station: string, since: Date, until: Date | null, nanobar?: Progress) {
+  const query: { since: string; until?: string } = { since: since.toISOString() };
+  if (until) query.until = until.toISOString();
   return request(nanobar, "/stations/{station}/observations", () =>
-    dataClient.GET("/stations/{station}/observations", {
-      params: { path: { station }, query: { since: since.toISOString() } },
-    }), { optional: true });
+    dataClient.GET("/stations/{station}/observations", { params: { path: { station }, query } }), { optional: true });
 }
 
 /**

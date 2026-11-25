@@ -18,6 +18,8 @@
  */
 import { _, locale } from "svelte-i18n";
 import { onDestroy } from "svelte";
+import { get } from "svelte/store";
+import { archiveStep } from "../stores";
 import { fetchStationHistory, quietly } from "../api";
 import { fixedScale, niceTicks, path, verticalScale, type Scale } from "../lib/chartScale";
 import {
@@ -62,10 +64,14 @@ let token = 0;
 async function load(id: string, chosen: HistoryWindow, quiet = false): Promise<void> {
   const mine = ++token;
   if (!quiet) state = "loading";
-  const now = Date.now();
+  // The panels end at the step on screen while a past window is open, else now.
+  const step = get(archiveStep);
+  const now = step === null ? Date.now() : step * 1000;
   const from = windowStart(chosen, now);
   try {
-    const answer = await fetchStationHistory(id, new Date(askSince(chosen, now)), quiet ? quietly : undefined);
+    const answer = await fetchStationHistory(
+      id, new Date(askSince(chosen, now)), step === null ? null : new Date(now), quiet ? quietly : undefined,
+    );
     if (mine !== token) return;
     rows = answer.observations;
     span = { from, to: now };

@@ -23,7 +23,7 @@
 import { get } from "svelte/store";
 import { fetchStorm, fetchStorms, NothingPublished, quietly } from "../api";
 import type { Progress, RadarVolume, Storm, StormDetail } from "../api";
-import { selectedStorm } from "../stores";
+import { archiveStep, selectedStorm } from "../stores";
 import {
   holdsFeature, keepHistory, lookupOf, nearestStorms, positionOf, selectionKey, stormClaiming, volumeOfStorm, withDetail,
   withStorm,
@@ -69,11 +69,17 @@ function attachVolume(selection: StormSelection) {
   ));
 }
 
-/** The storms listed around a point, quietly; none when the backend serves none. */
+/**
+ * The storms listed around a point, quietly; none when the backend serves
+ * none. Those of the last `SEARCH_MINUTES`, or of as long before the step on
+ * screen while a past window is open.
+ */
 async function stormsAround([lon, lat]: [number, number]): Promise<Storm[]> {
+  const step = get(archiveStep);
+  const searched = step === null ? SEARCH_MINUTES : { since: step - SEARCH_MINUTES * 60, until: step };
   try {
     const answer = await fetchStorms(
-      [lon - SEARCH_DEG, lat - SEARCH_DEG, lon + SEARCH_DEG, lat + SEARCH_DEG], SEARCH_MINUTES, quietly,
+      [lon - SEARCH_DEG, lat - SEARCH_DEG, lon + SEARCH_DEG, lat + SEARCH_DEG], searched, quietly,
     );
     return answer.features ?? [];
   } catch {

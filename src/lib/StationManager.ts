@@ -12,6 +12,7 @@ import {
 } from "./stations";
 import type { StationChoice } from "./stations";
 import { whenVisible } from "./wakeup";
+import { windowStep } from "./archive";
 
 /**
  * The weather stations over the radar map, end to end: what to ask for, when,
@@ -69,10 +70,11 @@ export default class StationManager {
     // dozens, and only the one it stops on is worth asking about. Following
     // live is the newest whatever the two say: a new grid moves the newest
     // observation a moment before the player moves onto it, and in between
-    // the frame on screen reads as the past.
+    // the frame on screen reads as the past. In a past window, the window's
+    // step: its end until the player is on one of its frames.
     this.unsubscribers.push(derived(
       [capTimeIndicator, capLatestObservation, live, archiveWindow],
-      ([shown, newest, following, past]) => (past ? stationsAt(shown, newest, true) : following ? null : stationsAt(shown, newest)),
+      ([shown, newest, following, past]) => (past ? stationsAt(windowStep(past, shown), newest, true) : following ? null : stationsAt(shown, newest)),
     )
       .subscribe((at) => {
         clearTimeout(this.scrubTimer);

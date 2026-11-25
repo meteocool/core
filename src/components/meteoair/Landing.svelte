@@ -128,16 +128,25 @@ function reloadWith(weather: "demo" | "live" | null): void {
   window.location.assign(url.href);
 }
 
+/* Loaded again onto or off the recorded storm, from the button or the plan
+   (lib/studio/flight/when.ts): on to the plan, in the past moment asked for
+   where one was, and the address without the errand. */
+const boarding = link ? null : readBoarding(window.location.search);
+
 /**
  * Whether the flight will be a recorded storm: the demo's, where a link put
  * the page on it, or the history's strongest, where the radar has no
  * thunderstorm to fly at now and the history has one (asked once the page
  * is up). Not where the reader has asked for the live weather, nor on the
  * demo's own site, whose weather is its recording, nor for a link's flight,
- * which is the link's.
+ * which is the link's, nor for a plan in a past moment, whose sky is not the
+ * radar's now.
  */
 let toStorm = demoWeather;
-if (historyStormBuild && !demoWeather && offered && !link && weatherChoice(window.location) !== "live") {
+if (
+  historyStormBuild && !demoWeather && offered && !link && boarding?.at == null
+  && weatherChoice(window.location) !== "live"
+) {
   void liveSkyWorthFlying().then(async (worth) => {
     if (worth === false && await findHistoryStorm()) toStorm = true;
   });
@@ -200,20 +209,18 @@ function keepLive(): void {
   else toStorm = false;
 }
 
-/* Loaded again onto or off the recorded storm, from the button or the plan
-   (lib/studio/flight/when.ts): on to the plan, in the past moment asked for
-   where one was, and the address without the errand. */
-const boarding = link ? null : readBoarding(window.location.search);
 if (boarding) {
   const url = new URL(window.location.href);
   url.searchParams.delete(BOARD_KEY);
   history.replaceState(history.state, "", url.href);
 }
+/** The past moment the plan is boarded in, once its window is open (or refused); null where there is none. */
+let boardedPast: Promise<unknown> | null = null;
 if (boarding && offered) {
   const at = boarding.at;
   if (at === null) board();
   else {
-    void openPastAt(at).then((opened) => {
+    boardedPast = openPastAt(at).then((opened) => {
       if (!opened) reportNotice(get(_)("studio.flight.share.past_gone"));
       board();
     });
@@ -295,7 +302,9 @@ async function lookAtRain(): Promise<void> {
   const viewport = map.getViewport();
   viewport.addEventListener("pointerdown", theirs, { once: true });
   viewport.addEventListener("wheel", theirs, { once: true, passive: true });
+  // The rain of the moment the page opens in: the past one's once its window is open.
   await showcaseOpened;
+  await boardedPast;
   const boxes = await rainBoxes(get(archiveStep));
   await tick();
   const region = mapRegion();
