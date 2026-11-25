@@ -75,6 +75,7 @@ import { showsLatestFrame } from "./lib/freshness";
 import { DEFAULT_PRODUCT, parseObservedProduct } from "./lib/observedProduct";
 import { nextSelection } from "./lib/cellSelection";
 import { applyLinkedChoices, openingLink, startUrlState } from "./lib/urlState";
+import { followLinkedFrames } from "./lib/linkedFrame";
 import { exposeShareLink } from "./lib/share";
 import { applyScreenshotLook, isScreenshot, markScreenshotReady, SCREENSHOT_CLASS, whenDrawn } from "./lib/screenshot";
 import { setElementCentre } from "./lib/viewCentre";
@@ -1483,6 +1484,11 @@ const cyclonesLoaded = reloadCyclones();
 /* No WebGL, no radar: layers/webglTile.ts keeps those layers off the map so
    the rest of it still draws, and this says why the rain is missing. */
 if (!screenshot && !webglSupported()) reportNotice($_("notice.no_webgl"));
+
+/* The frame a link names, on a page without the player to take it: a
+   screenshot's, or an embed's without the toolbar. Fixed for the page load,
+   as the toolbar is only ever set by its address. */
+if (radarCap && (get(toolbarVisible) !== "yes" || flightOnly)) onDestroy(followLinkedFrames(radarCap));
 
 if (screenshot && radarCap) {
   const radar = radarCap;

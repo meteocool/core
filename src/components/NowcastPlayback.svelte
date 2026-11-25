@@ -87,7 +87,8 @@ import { outlookSnoozed, snoozeOutlook } from "../lib/outlookDismissal";
 import ChartSkeleton from "./ChartSkeleton.svelte";
 import ArchivePill from "./ArchivePill.svelte";
 import ArchivePicker from "./ArchivePicker.svelte";
-import { frameInWindow, inWindow, nextWindowFrame, sameWindow, windowSteps } from "../lib/archive";
+import { nextWindowFrame, sameWindow } from "../lib/archive";
+import { requestOnWindow, requestedStep } from "../lib/linkedFrame";
 
 export let cap: RadarCapability;
 
@@ -838,22 +839,17 @@ function returnToLive() {
  */
 function takeFrameRequest() {
   const wanted = get(frameRequest);
-  if (wanted === null || !gridConfig) return;
   // Only the grid of the window the map is in (or the live one) can answer:
   // until it lands, the request waits.
-  if (!sameWindow(gridConfig.window, get(archiveWindow))) return;
+  const target = requestedStep(wanted, gridConfig, get(archiveWindow), cap.getMostRecentObservation());
+  if (target === undefined) return;
   frameRequest.set(null);
   if (wanted === "live") {
     returnToLive();
     return;
   }
-  const { window: open } = gridConfig;
-  // In a past window every step is the reader's to open on, its end
-  // included; a missed scan opens on the frame before it.
-  const target = open
-    ? frameInWindow(windowSteps(open), (t) => Boolean(gridConfig?.grid[t]?.url), wanted, cap.getMostRecentObservation())
-    : wanted;
-  if (!open && (!gridConfig.grid[wanted]?.url || wanted === cap.getMostRecentObservation())) return;
+  if (target === null) return;
+  const { window: open } = gridConfig!;
   resumeOnRelease = false;
   if (fsm.state === "playing") fsm.pressPause();
   if (open) oldTimeStep = 0;
@@ -879,10 +875,7 @@ subscriptions.push(archiveWindow.subscribe((next) => {
   resumeOnRelease = false;
   if (fsm.state === "playing") fsm.pressPause();
   liveEdge = null;
-  frameRequest.update((request) => {
-    if (!next) return "live";
-    return typeof request === "number" && inWindow(next, request) ? request : next.end;
-  });
+  frameRequest.update((request) => requestOnWindow(next, request));
 }));
 
 subscriptions.push(frameRequest.subscribe(() => takeFrameRequest()));

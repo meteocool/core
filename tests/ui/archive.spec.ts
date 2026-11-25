@@ -3,7 +3,10 @@ import { expect, test } from "./test";
 import {
   RADAR_VIEW, noGeocoder, openRadar, productControl, servePreviewCard, settled, shareFromMap, timeline,
 } from "./app";
-import { COVERAGE, linkTime, serveArchive } from "./archive";
+import { COVERAGE, linkTime, serveArchive, windowTimeseries } from "./archive";
+
+/** A frame of a window's timeline, by the tile set it is drawn from. */
+interface WindowFrame { tile_id: string; values?: { tile_id: string } | null }
 
 /**
  * A past window (lib/archive.ts): chosen in the player's Archive picker, or
@@ -317,4 +320,28 @@ test("in a window the storms' volumes and the radars are asked for the step on s
   await expect(strip).toHaveAttribute("aria-valuenow", "11");
   await expect.poll(() => askedAt("/cells/volumes")).toContain(iso(END - 300));
   await expect.poll(() => askedAt("/sweeps")).toContain(iso(END - 300));
+});
+
+test("a screenshot of a window is of its frame, every network's, before it says it is ready", async ({ page }) => {
+  await serveArchive(page);
+  const frameAt = END - 4 * 300;
+  // The tile sets the window's timeline names for that frame: DWD's, and each network's.
+  const past = windowTimeseries(START, END) as {
+    frames: Record<number, WindowFrame>; networks: Record<string, Record<number, WindowFrame>>;
+  };
+  const drawn = (frame: WindowFrame) => frame.values?.tile_id ?? frame.tile_id;
+  const dwd = drawn(past.frames[frameAt]);
+  const networks = Object.values(past.networks).map((steps) => drawn(steps[frameAt]));
+  const asked = new Set<string>();
+  page.on("request", (request) => {
+    const set = /^\/tiles\/meteoradar\/([^/]+)\//.exec(new URL(request.url()).pathname)?.[1];
+    if (set) asked.add(set);
+  });
+  await page.goto(`${RADAR_VIEW}&logo=false&layerswitcher=no&toolbar=no&screenshot=yes`
+    + `&from=${linkTime(START)}&to=${linkTime(END)}&t=${linkTime(frameAt)}`);
+  await expect(page.locator("html")).toHaveAttribute("data-screenshot-ready", "rendered", { timeout: 20_000 });
+  const before = [...asked];
+  expect(before).toContain(dwd);
+  expect(before.filter((set) => networks.includes(set)).length).toBeGreaterThan(1);
+  expect(new URL(page.url()).searchParams.get("t")).toBe(linkTime(frameAt));
 });
