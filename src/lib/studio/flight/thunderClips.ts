@@ -21,6 +21,8 @@
  * close 446753 by BlueDelta, near 534023 by Fission9, roll 367702 by
  * BlueDelta, far 1–3 361401 by richwise, far 4 347562 by mikala_oidua.
  */
+import { makeTrack, StreamTrack } from "./streamTrack";
+import type { Track } from "./streamTrack";
 
 const AUDIO = `${import.meta.env?.BASE_URL ?? "/"}audio/`;
 
@@ -80,7 +82,7 @@ export function thunderHeard(distance: number, strength: number): { gain: number
 
 /** One recording's element and its way into the thunder: its low-pass, level and side. */
 interface Clip {
-  element: HTMLAudioElement;
+  element: Track;
   filter: BiquadFilterNode;
   gain: GainNode;
   pan: StereoPannerNode;
@@ -105,18 +107,21 @@ export class ThunderClips {
   constructor(context: AudioContext, into: AudioNode) {
     this.context = context;
     for (const [name, { url }] of Object.entries(THUNDER_CLIPS) as Array<[ThunderClipName, { url: string }]>) {
-      const element = new Audio();
+      // Web Audio's where it can (streamTrack.ts): not the system's player, and beside other sound.
+      const { track: element, output } = makeTrack(context);
       element.preload = EAGER.includes(name) ? "auto" : "metadata";
-      // Pitched as well as slowed by the rate it is played at: a little different each time.
-      element.preservesPitch = false;
-      (element as HTMLAudioElement & { webkitPreservesPitch?: boolean }).webkitPreservesPitch = false;
+      // Pitched as well as slowed by the rate it is played at: a little different each time. A track Web Audio plays always is.
+      if (element instanceof HTMLMediaElement) {
+        element.preservesPitch = false;
+        (element as HTMLAudioElement & { webkitPreservesPitch?: boolean }).webkitPreservesPitch = false;
+      }
       const filter = context.createBiquadFilter();
       filter.type = "lowpass";
       filter.Q.value = 0.6;
       const gain = context.createGain();
       gain.gain.value = 0;
       const pan = context.createStereoPanner();
-      context.createMediaElementSource(element).connect(filter).connect(gain).connect(pan).connect(into);
+      output.connect(filter).connect(gain).connect(pan).connect(into);
       const clip: Clip = { element, filter, gain, pan, failed: false, primed: false, sounding: false };
       element.addEventListener("ended", () => {
         clip.sounding = false;
@@ -137,6 +142,8 @@ export class ThunderClips {
       if (clip.primed || clip.failed || !clip.element.paused) continue;
       clip.primed = true;
       const { element } = clip;
+      // A track Web Audio plays is let play by the context, which the click wakes.
+      if (element instanceof StreamTrack) continue;
       void element.play().then(() => {
         if (clip.sounding) return;
         element.pause();

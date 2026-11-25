@@ -9,9 +9,11 @@
  * played up to it.
  *
  * Streamed, never decoded whole: a piece as floats would be 60 MB and more,
- * far more than a phone should spend on music. A media element plays each
- * file from the server as it comes, and its sound goes into the page's one
- * audio context. Nothing is fetched before it is wanted: the menus' piece
+ * far more than a phone should spend on music. A track (streamTrack.ts)
+ * plays each file from the server as it comes, decoded a few seconds ahead,
+ * into the page's one audio context: Web Audio alone, so that the page is
+ * not the system's player (iOS's lock screen) and other sound plays on
+ * beside it. Where a browser cannot, a media element does as before. Nothing is fetched before it is wanted: the menus' piece
  * once a menu is up, the sound is on and the reader has clicked; the
  * flight's music and the suspenseful piece once the flight starts loading
  * (`streamFlightMusic`), so they buffer across the loading screen without
@@ -40,6 +42,8 @@
  * while the reader reads.
  */
 import { get, writable } from "svelte/store";
+import { makeTrack, StreamTrack } from "./streamTrack";
+import type { Track } from "./streamTrack";
 
 export type PieceName = "menu" | "theme" | "theme2" | "tension";
 
@@ -149,9 +153,9 @@ type AudioSessionNavigator = Navigator & { audioSession?: { type: string } };
  * (`navigator.audioSession`, Safari 16.4 and later), nothing changes.
  *
  * It does not keep the page off the system's player (iOS's lock screen and
- * Control Center): WebKit puts any media element there that holds a file,
- * whatever the session, and the music streams through two of them
- * (`Piece`). Web Audio alone does not put the page there.
+ * Control Center): WebKit puts any media element that holds a file there,
+ * whatever the session. That is why the music is played by Web Audio alone
+ * (streamTrack.ts).
  */
 function ambientSession(): void {
   try {
@@ -183,7 +187,7 @@ type Listener = "menu" | "flight";
 
 /** One of a piece's two elements, the file in it (its place in the piece's rotation), and its share of the piece: the one playing at 1, the one waiting at 0. */
 interface Deck {
-  element: HTMLAudioElement;
+  element: Track;
   gain: GainNode;
   file: number;
 }
@@ -222,12 +226,12 @@ class Piece {
       const out = audio.createGain();
       const opening = this.opening();
       this.decks = [0, 1].map((index) => {
-        const element = new Audio();
+        const { track: element, output } = makeTrack(audio);
         // Nothing fetched until the piece is wanted (`stream`), and the waiting deck's not until its file is due.
         element.preload = "none";
         const gain = audio.createGain();
         gain.gain.value = index === this.front ? 1 : 0;
-        audio.createMediaElementSource(element).connect(gain).connect(out);
+        output.connect(gain).connect(out);
         const deck: Deck = { element, gain, file: -1 };
         element.addEventListener("ended", () => this.ended(index));
         element.addEventListener("error", () => this.failed(deck));
@@ -305,7 +309,8 @@ class Piece {
     if (this.primed) return;
     this.primed = true;
     this.decks.forEach((deck, index) => {
-      if (!deck.element.paused || !deck.element.src) return;
+      // A track Web Audio plays is let play by the context, which the click wakes.
+      if (deck.element instanceof StreamTrack || !deck.element.paused || !deck.element.src) return;
       void deck.element.play().then(() => {
         if (this.sounding(index)) return;
         deck.element.pause();
