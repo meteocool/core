@@ -206,13 +206,15 @@ export interface FlightStatus {
   /** The radar's colours painted on the ground under the storms (O); and the flight held while the reader is asked whether to end it. */
   radarOnGround: boolean;
   leaving: boolean;
+  /** The flight held while the reader is asked whether to start it again or go on to the next storm: a phone's strip asks, a key does not. */
+  asking: "restart" | "next" | null;
 }
 
 export const INITIAL_FLIGHT_STATUS: FlightStatus = {
   view: "cockpit", warnings: [], paused: false, recording: false, keys: true, autopilot: false, warp: false,
   clearSky: false, low: false, inspecting: null, cut: null, peel: null, gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false,
   reverse: false, alphaFloor: false, thrustLocked: false, landing: null, crash: null, lost: [], alarms: [], silenced: [], feat: null,
-  radarOnGround: false, leaving: false,
+  radarOnGround: false, leaving: false, asking: null,
 };
 
 export const flightStatus = writable<FlightStatus>(INITIAL_FLIGHT_STATUS);

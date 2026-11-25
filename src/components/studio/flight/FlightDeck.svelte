@@ -181,6 +181,89 @@ const FLAP_NAMES = ["0", "1", "2", "3"];
 
 let attribution = credits();
 const creditsTimer = setInterval(() => { attribution = credits(); }, 3000);
+/**
+ * The credits, on a card from the small "Licences" under the view, not
+ * written across the view itself: the flight's own (the aircraft, the
+ * thunder's recordings), the map's line as it is now, and the data sources
+ * and their licences as the imprint lists them for every map
+ * (imprint.html#data), read from that page as the card first opens, so the
+ * two never differ. The flight is held while the card is up.
+ */
+let licencesOpen = false;
+let dataLicences: string | null = null;
+let dataLicencesFailed = false;
+let pausedForLicences = false;
+const IMPRINT = `${import.meta.env?.BASE_URL ?? "/"}imprint.html`;
+
+/** The imprint's "Data sources and licences": its heading's section, up to the next heading of its rank, every link opening beside the flight. */
+async function loadDataLicences(): Promise<void> {
+  if (dataLicences !== null) return;
+  dataLicencesFailed = false;
+  try {
+    const response = await fetch(IMPRINT);
+    if (!response.ok) throw new Error(`${response.status}`);
+    const page = new DOMParser().parseFromString(await response.text(), "text/html");
+    const heading = page.getElementById("data");
+    if (!heading) throw new Error("no #data");
+    const section = page.createElement("div");
+    for (let node = heading.nextElementSibling; node && node.tagName !== "H2" && node.tagName !== "HR"; node = node.nextElementSibling) {
+      section.append(node.cloneNode(true));
+    }
+    for (const link of section.querySelectorAll("a")) {
+      const href = link.getAttribute("href") ?? "";
+      if (href.startsWith("#")) link.setAttribute("href", `${IMPRINT}${href}`);
+      link.setAttribute("target", "_blank");
+      link.setAttribute("rel", "noopener");
+    }
+    dataLicences = section.innerHTML;
+  } catch {
+    dataLicencesFailed = true;
+  }
+}
+
+function openLicences(): void {
+  licencesOpen = true;
+  void loadDataLicences();
+  pausedForLicences = !status.paused;
+  if (pausedForLicences) pilot.act("pause");
+}
+
+function closeLicences(): void {
+  licencesOpen = false;
+  if (pausedForLicences && status.paused) pilot.act("pause");
+  pausedForLicences = false;
+}
+
+/*
+ * The top row's buttons and the readout beside them. The readout keeps
+ * clear of however wide the buttons are (`cornerRoom`). Flown by touch on a
+ * phone held on its side whose screen is cut by a notch or an island
+ * (`sides`), the small round buttons go into the strips either side of the
+ * view, beside where the camera is, above it: only the way out stays in the
+ * top row, and the readouts have the room.
+ */
+let deck: HTMLDivElement | null = null;
+let insetProbe: HTMLDivElement | null = null;
+let cornerWidth = 0;
+let outWidth = 0;
+let sides = false;
+/** How wide a strip beside the view has to be to hold a button, CSS pixels: a notch's or an island's, not a rounded corner's. */
+const SIDE_STRIP = 40;
+function measureSides(): void {
+  if (!insetProbe) return;
+  const style = getComputedStyle(insetProbe);
+  sides = parseFloat(style.paddingLeft) >= SIDE_STRIP && parseFloat(style.paddingRight) >= SIDE_STRIP;
+}
+$: cornerRoom = Math.max(cornerWidth, outWidth) + 10;
+let sidesObserver: ResizeObserver | null = null;
+onMount(() => {
+  measureSides();
+  if (typeof ResizeObserver !== "undefined" && deck) {
+    sidesObserver = new ResizeObserver(measureSides);
+    sidesObserver.observe(deck);
+  }
+});
+onDestroy(() => sidesObserver?.disconnect());
 
 $: status = $flightStatus;
 $: hail = $_("studio.flight.mark.hail");
@@ -392,7 +475,10 @@ const WARNINGS = {
 } as const;
 </script>
 
-<div class="flight-deck view-{status.view}" class:inspecting={status.inspecting !== null} class:cutting={(status.cut !== null || status.peel !== null) && status.view !== "clean"} class:touch={$touchControls} aria-label={$_("studio.flight.aria")} role="region">
+<div class="flight-deck view-{status.view}" class:inspecting={status.inspecting !== null} class:cutting={(status.cut !== null || status.peel !== null) && status.view !== "clean"} class:touch={$touchControls} class:sides={sides && $touchControls}
+  style:--corner-room={`${cornerRoom}px`} bind:this={deck} aria-label={$_("studio.flight.aria")} role="region">
+  <!-- Measures the strips a notch or an island cuts off either side (`sides`). -->
+  <div class="inset-probe" aria-hidden="true" bind:this={insetProbe}></div>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
   <div
     class="look"
@@ -525,38 +611,38 @@ const WARNINGS = {
   {/if}
 
   {#if status.view !== "clean"}
-    <div class="corner">
+    <div class="corner" bind:clientWidth={cornerWidth}>
       <!-- The controls, on a card: H is the same; under a finger, the only way to them. -->
-      <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => pilot.act("help")}
+      <button type="button" class="leave full help glass glass-pill" tabindex="-1" on:click={() => pilot.act("help")}
         title={$_("studio.flight.help_title")} aria-label={$_("studio.flight.help")} aria-pressed={status.keys}>
         <Icon icon={faQuestion} />
       </button>
       <!-- What the reader chooses to see while flying, kept for every flight. -->
-      <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => { settingsOpen = !settingsOpen; }}
+      <button type="button" class="leave full settings glass glass-pill" tabindex="-1" on:click={() => { settingsOpen = !settingsOpen; }}
         title={$_("studio.flight.settings.title")} aria-label={$_("studio.flight.settings.title")} aria-pressed={settingsOpen}>
         <Icon icon={faGear} />
       </button>
       <!-- The music on or off, the flight's own sounds staying: M, and the menus' switch, are the same. -->
-      <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => pilot.act("mute")}
+      <button type="button" class="leave full music glass glass-pill" tabindex="-1" on:click={() => pilot.act("mute")}
         title={$_($flightMuted ? "studio.flight.sound.off_title" : "studio.flight.sound.on_title")}
         aria-label={$_("studio.flight.sound.on")} aria-pressed={!$flightMuted}>
         <MusicIcon off={$flightMuted} />
       </button>
       {#if share && $shareAvailable}
         <!-- This moment of the flight as a link: the flight is held while it is sent. -->
-        <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={(event) => share?.(event.currentTarget)}
+        <button type="button" class="leave full share glass glass-pill" tabindex="-1" on:click={(event) => share?.(event.currentTarget)}
           title={$_("studio.flight.share.moment_title")} aria-label={$_("studio.flight.share.moment")}>
           <Icon icon={shareIcon()} />
         </button>
       {/if}
       {#if canFullscreen}
-        <button type="button" class="leave full glass glass-pill" tabindex="-1" on:click={() => pilot.act("fullscreen")}
+        <button type="button" class="leave full screen glass glass-pill" tabindex="-1" on:click={() => pilot.act("fullscreen")}
           title={$_($fullscreen ? "studio.flight.fullscreen_exit" : "studio.flight.fullscreen")}
           aria-label={$_($fullscreen ? "studio.flight.fullscreen_exit" : "studio.flight.fullscreen")} aria-pressed={$fullscreen}>
           <Icon icon={$fullscreen ? faCompress : faExpand} />
         </button>
       {/if}
-      <button type="button" class="leave glass glass-pill" on:click={() => pilot.act("leave")}
+      <button type="button" class="leave out glass glass-pill" bind:clientWidth={outWidth} on:click={() => pilot.act("leave")}
         title={$_(endsOnMap ? "studio.flight.leave_title_map" : $studioFlightOnly ? "studio.flight.leave_title_plan" : "studio.flight.leave_title")}>
         <Icon icon={faRightFromBracket} /> {$_("studio.flight.leave")}
       </button>
@@ -631,7 +717,54 @@ const WARNINGS = {
     </div>
   {/if}
 
-  <p class="credits">{status.view === "clean" ? attribution : `${$_("studio.flight.model_credit")} | ${attribution}`}</p>
+  {#if status.asking}
+    <!-- Asked before a flight starts again or goes on to the next storm, from a phone's strip: a thumb finds those too easily. -->
+    <div class="ask" role="alertdialog" aria-modal="true" aria-labelledby="flight-ask-title">
+      <section class="glass glass-tray">
+        <h2 id="flight-ask-title">{$_(`studio.flight.${status.asking}_ask.title`)}</h2>
+        <p>{$_(`studio.flight.${status.asking}_ask.text`)}</p>
+        <div class="choices">
+          <button type="button" class="glass-pill" on:click={() => pilot.answer(false)}>{$_("studio.flight.leave_ask.stay")} <kbd>Esc</kbd></button>
+          <button type="button" class="glass-pill end" on:click={() => pilot.answer(true)}>{$_(`studio.flight.${status.asking}_ask.go`)} <kbd>↵</kbd></button>
+        </div>
+      </section>
+    </div>
+  {/if}
+
+  <!-- The credits are owed, not read while flying: a small way to them, as the map has. -->
+  <div class="credits">
+    <button type="button" class="licences-link" tabindex="-1" aria-haspopup="dialog" aria-expanded={licencesOpen}
+      on:click={() => (licencesOpen ? closeLicences() : openLicences())}>{$_("studio.flight.licences")}</button>
+  </div>
+  {#if licencesOpen}
+    <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+    <div class="licences-scrim" on:click|self={closeLicences}>
+      <div class="licences glass glass-tray" role="dialog" aria-modal="true" aria-labelledby="flight-licences-title">
+        <header>
+          <h2 id="flight-licences-title">{$_("studio.flight.licences_title")}</h2>
+          <CloseDisc on:click={closeLicences} />
+        </header>
+        <div class="licences-body">
+          <h3>{$_("studio.flight.licences_flight")}</h3>
+          <ul>
+            <li>{$_("studio.flight.model_credit")}</li>
+            <li>{$_("studio.flight.licences_thunder")}</li>
+            {#if attribution}<li>{$_("studio.flight.licences_map")} {attribution}</li>{/if}
+          </ul>
+          <h3>{$_("studio.flight.licences_data")}</h3>
+          {#if dataLicences}
+            <!-- The imprint's own list: this app's page, the same for every map. -->
+            {@html dataLicences}
+          {:else if dataLicencesFailed}
+            <p>{$_("studio.flight.licences_failed")}</p>
+          {:else}
+            <p>{$_("studio.flight.licences_loading")}</p>
+          {/if}
+          <p class="all"><a href={IMPRINT} target="_blank" rel="noopener">{$_("studio.flight.licences_all")}</a></p>
+        </div>
+      </div>
+    </div>
+  {/if}
   <div class="fade" bind:this={fade} aria-hidden="true"></div>
 </div>
 
@@ -1127,16 +1260,73 @@ const WARNINGS = {
   .credits {
     position: absolute;
     right: 8px;
-    bottom: 3px;
-    max-width: 70%;
-    margin: 0;
-    overflow: hidden;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .licences-link {
+    min-height: 24px;
+    padding: 4px 8px;
+    border: 0;
+    background: none;
     color: rgba(255, 255, 255, 0.72);
-    font: 10px/1.3 var(--mc-font);
-    text-align: right;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font: 500 10px/1.3 var(--mc-font);
     text-shadow: 0 0 3px rgba(0, 0, 0, 0.9);
+    cursor: pointer;
+    pointer-events: auto !important;
+  }
+  .licences-link:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: 1px; }
+  /* The licences: a card in the middle, over a scrim that closes it, its list scrolling inside it. */
+  .licences-scrim {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    padding: max(12px, var(--mc-safe-top)) max(16px, var(--mc-safe-right)) max(12px, var(--mc-safe-bottom)) max(16px, var(--mc-safe-left));
+    background: rgba(0, 0, 0, 0.35);
+    pointer-events: auto !important;
+  }
+  .licences {
+    display: flex;
+    flex-direction: column;
+    width: min(560px, 100%);
+    max-height: 100%;
+    min-height: 0;
+    box-sizing: border-box;
+    color: var(--mc-text);
+    pointer-events: auto;
+  }
+  .licences header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 12px 6px 18px; }
+  .licences h2 { margin: 0; font: var(--mc-type-heading); }
+  .licences-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    touch-action: pan-y;
+    overscroll-behavior: contain;
+    padding: 0 18px 16px;
+    font: 12px/1.45 var(--mc-font);
+    color: var(--mc-text-2);
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  .licences-body :global(h3) { margin: 12px 0 4px; color: var(--mc-text); font: 600 13px/1.3 var(--mc-font); }
+  .licences-body :global(ul) { margin: 0; padding-left: 18px; }
+  .licences-body :global(li + li) { margin-top: 4px; }
+  .licences-body :global(p) { margin: 6px 0 0; }
+  .licences-body :global(a) { color: var(--mc-accent); }
+  .licences-body .all { margin-top: 12px; }
+  .inset-probe {
+    position: absolute;
+    visibility: hidden;
+    padding-left: var(--mc-safe-left);
+    padding-right: var(--mc-safe-right);
+    pointer-events: none;
   }
 
   /* Flown by touch (TouchControls.svelte), the foot of the screen is the
@@ -1150,16 +1340,31 @@ const WARNINGS = {
   }
   .flight-deck.touch .corner-nw { top: var(--deck-top); left: var(--deck-left); }
   .flight-deck.touch .corner-sw { top: var(--deck-top); bottom: auto; left: calc(var(--deck-left) + 180px); }
-  .flight-deck.touch .corner-ne { top: var(--deck-top); right: calc(var(--deck-right) + 190px); }
-  .flight-deck.touch .corner-ne.beside-screen { right: calc(var(--deck-right) + 232px); }
+  /* Beside the top row's buttons, however many there are and however wide the way out is said. */
+  .flight-deck.touch .corner-ne, .flight-deck.touch .corner-ne.beside-screen { top: var(--deck-top); right: calc(var(--deck-right) + var(--corner-room)); }
   .flight-deck.touch .corner-se { top: calc(var(--deck-top) + 46px); bottom: auto; right: var(--deck-right); }
   .flight-deck.touch .corner { top: calc(var(--deck-top) - 2px); right: var(--deck-right); }
-  /* The strip's own button says whether the sound is off. */
+  /*
+   * On its side, on a phone whose notch or island cuts a strip off either
+   * side of the view (`sides`): the round buttons in those strips, two a side
+   * from the top, where they stay clear of the screen's rounded corner above
+   * and of the island halfway down whichever side it is on; the way out alone
+   * in the top row.
+   */
+  .flight-deck.touch.sides .corner { display: contents; }
+  .flight-deck.touch.sides .corner > .leave { position: absolute; }
+  .flight-deck.touch.sides .corner > .out { top: calc(var(--deck-top) - 2px); right: var(--deck-right); }
+  .flight-deck.touch.sides .corner > :is(.help, .settings, .screen) { left: max(4px, calc((var(--mc-safe-left) - 36px) / 2)); }
+  .flight-deck.touch.sides .corner > :is(.music, .share) { right: max(4px, calc((var(--mc-safe-right) - 36px) / 2)); }
+  .flight-deck.touch.sides .corner > :is(.help, .music) { top: 22px; }
+  .flight-deck.touch.sides .corner > :is(.settings, .share) { top: 62px; }
+  .flight-deck.touch.sides .corner > .screen { top: 102px; }
+  /* The top row's music button says whether the sound is off. */
   .flight-deck.touch .muted { display: none; }
   /* Over the strip, opened or not. */
   .flight-deck.touch .landing { bottom: calc(max(14px, var(--mc-safe-bottom)) + 112px); }
   /* The credits between the thumbs, under the strip. */
-  .flight-deck.touch .credits { right: auto; left: 50%; max-width: 46%; text-align: center; transform: translateX(-50%); }
+  .flight-deck.touch .credits { right: auto; left: 50%; align-items: center; transform: translateX(-50%); }
   /* The map from outside: under the readouts on the left, over the lever. */
   .flight-deck.touch > :global(.flight-minimap) {
     top: calc(var(--deck-top) + 112px);

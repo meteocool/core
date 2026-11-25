@@ -395,7 +395,7 @@ export class Pilot {
    * to go on when they are ready, not mid-storm the moment it is seen.
    */
   private readonly away = (): void => {
-    if (this.stopped || this.paused || get(flightStatus).leaving) return;
+    if (this.stopped || this.paused || this.held()) return;
     this.act("pause");
   };
   private readonly hidden = (): void => {
@@ -682,6 +682,32 @@ export class Pilot {
     });
   }
 
+  /** Whether the flight is held for a question: whether to end it, start it again or go on. */
+  private held(): boolean {
+    const { leaving, asking } = get(flightStatus);
+    return leaving || asking !== null;
+  }
+
+  /**
+   * Ask before starting the flight again or going on to the next storm: a
+   * tap on a phone's strip is too easily made by a thumb on its way to the
+   * stick. The flight is held while the question is up; `answer` takes it.
+   */
+  ask(action: "restart" | "next"): void {
+    if (this.held()) return;
+    this.status({ asking: action });
+  }
+
+  /** The question `ask` put: done if `go`, and either way the flight goes on. */
+  answer(go: boolean): void {
+    const { asking } = get(flightStatus);
+    if (asking === null) return;
+    this.status({ asking: null });
+    // The frame it resumes on is not as long as the question took.
+    this.last = null;
+    if (go) this.act(asking);
+  }
+
   /** End the flight, as the reader has said to. */
   leave(): void {
     this.options.onLeave();
@@ -728,6 +754,11 @@ export class Pilot {
     if (get(flightStatus).leaving) {
       if (action === "confirm") this.leave();
       else if (action === "leave") this.stay();
+      return;
+    }
+    // Asked whether to start again or go on, Enter does it and Escape flies on.
+    if (get(flightStatus).asking !== null) {
+      if (action === "confirm" || action === "leave") this.answer(action === "confirm");
       return;
     }
     switch (action) {
@@ -1194,7 +1225,7 @@ export class Pilot {
     if (typeof document !== "undefined" && document.hidden) return;
     this.keepUp(elapsed);
     this.dt = dt;
-    if (this.paused || get(flightStatus).leaving) {
+    if (this.paused || this.held()) {
       if (this.recording) this.stage.repaint();
       return;
     }

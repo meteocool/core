@@ -139,12 +139,37 @@ export function soundAvailable(): boolean {
 
 let context: AudioContext | null | undefined;
 
+type AudioSessionNavigator = Navigator & { audioSession?: { type: string } };
+
+/**
+ * A game's sound, not a player's: the page's sound mixes with whatever else
+ * is playing, the reader's own music or a video in picture in picture, and
+ * goes quiet with the phone's silent switch, rather than stopping everything
+ * else that plays. Where the browser has no say over it
+ * (`navigator.audioSession`, Safari 16.4 and later), nothing changes.
+ *
+ * It does not keep the page off the system's player (iOS's lock screen and
+ * Control Center): WebKit puts any media element there that holds a file,
+ * whatever the session, and the music streams through two of them
+ * (`Piece`). Web Audio alone does not put the page there.
+ */
+function ambientSession(): void {
+  try {
+    const session = (navigator as AudioSessionNavigator).audioSession;
+    if (session && session.type !== "ambient") session.type = "ambient";
+  } catch {
+    // A browser that will not be told: its own way, then.
+  }
+}
+
 /**
  * The page's one audio context, made on first asking; null where there is
  * no Web Audio. Made outside a click or a key, it waits, suspended, for one.
  */
 export function pageAudio(): AudioContext | null {
   if (context !== undefined) return context;
+  // Before anything sounds: the session is chosen when the first sound starts.
+  ambientSession();
   try {
     const Context = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
     context = Context ? new Context({ latencyHint: "interactive" }) : null;

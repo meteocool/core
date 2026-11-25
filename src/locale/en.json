@@ -597,7 +597,26 @@
         "end": "End flight",
         "text_plan": "The flight is paused while you decide. Ending it takes you back to the flight plan.",
         "text_map": "The flight is paused while you decide. Ending it takes you back to the map."
-      }
+      },
+      "restart_ask": {
+        "title": "Start again?",
+        "text": "The flight is paused while you decide. Starting again takes the aircraft back to where this flight took off.",
+        "go": "Start again"
+      },
+      "next_ask": {
+        "title": "Fly to the next storm?",
+        "text": "The flight is paused while you decide. The aircraft moves on to the next storm.",
+        "go": "Next storm"
+      },
+      "licences": "Licences",
+      "licences_title": "Licences",
+      "licences_flight": "meteoair",
+      "licences_thunder": "Thunder: recordings from freesound.org by BlueDelta, Fission9, richwise and mikala_oidua, dedicated to the public domain (CC0 1.0).",
+      "licences_map": "Map:",
+      "licences_data": "Data sources and licences",
+      "licences_loading": "Loading the list…",
+      "licences_failed": "The list could not be loaded. It is on the imprint page.",
+      "licences_all": "Imprint, data sources and open-source software"
     }
   },
   "layer_switcher_placeholder": "If you are thankful for meteocool, give something back to someone in need.",

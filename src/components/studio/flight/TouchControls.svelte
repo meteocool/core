@@ -47,8 +47,6 @@ import { masterLights } from "../../../lib/studio/flight/alarms";
 import type { FlightAction } from "../../../lib/studio/flight/controls";
 import { FLAPS_MOST } from "../../../lib/studio/flight/physics";
 import type { Pilot, Telemetry } from "../../../lib/studio/flight/pilot";
-import { flightMuted } from "../../../lib/studio/flight/sound";
-import MusicIcon from "./MusicIcon.svelte";
 import {
   axisInput, LEVER_IDLE, LEVER_IDLE_REST, LEVER_REVERSE, leverAt, leverRate, leverShare, pinchSteps, stickInput, tiltInput, tiltOf,
   touchCapable, touchControls, touchFirst,
@@ -112,7 +110,8 @@ let knob: HTMLElement | null = null;
 let stickFinger: { id: number; x: number; y: number } | null = null;
 
 function stickDown(event: PointerEvent): void {
-  if (stickFinger) return;
+  // A finger already on it that a new one comes down beside is one whose lifting was never heard (see `letGo`): the new one has it.
+  if (stickFinger?.id === event.pointerId) return;
   take(event);
   pilot.takeControls();
   const [x, y] = framePoint(event);
@@ -142,7 +141,7 @@ let rudderKnob: HTMLElement | null = null;
 let rudderFinger: { id: number; x: number } | null = null;
 
 function rudderDown(event: PointerEvent): void {
-  if (rudderFinger) return;
+  if (rudderFinger?.id === event.pointerId) return;
   take(event);
   pilot.takeControls();
   rudderFinger = { id: event.pointerId, x: framePoint(event)[0] };
@@ -205,7 +204,7 @@ function leverTo(share: number): void {
   send();
 }
 function leverDown(event: PointerEvent): void {
-  if (leverFinger) return;
+  if (leverFinger?.id === event.pointerId) return;
   take(event);
   pilot.takeControls();
   const at = shareAt(event);
@@ -239,6 +238,37 @@ function hold(which: "brake" | "warp", on: boolean, event: PointerEvent): void {
   if (which === "brake") brake = on;
   else warp = on;
   send();
+}
+
+/*
+ * Every finger let go of at once. A finger's lifting is sometimes never
+ * heard: the page goes out of sight under it, the system takes the touch for
+ * a gesture of its own, or the browser drops the capture. A control that
+ * still thought itself held would fly its last deflection for good and turn
+ * every new finger away, through the next flight and the next. So the
+ * controls let go when the page is hidden or loses the focus, and when the
+ * capture on them is lost; and a new finger on a control takes it from one
+ * it still thinks is there.
+ */
+function letGo(): void {
+  stickFinger = null;
+  stick = { roll: 0, pitch: 0 };
+  if (knob) knob.style.transform = "";
+  rudderFinger = null;
+  yaw = 0;
+  if (rudderKnob) rudderKnob.style.transform = "";
+  if (leverFinger) {
+    leverFinger = null;
+    reversing = false;
+    rate = lever === null ? 0 : leverRate(lever, throttle);
+  }
+  brake = false;
+  warp = false;
+  drawLever();
+  send();
+}
+function hidden(): void {
+  if (document.hidden) letGo();
 }
 
 /* ---- every frame ---- */
@@ -428,6 +458,7 @@ onMount(() => {
     );
   }
   listeners.push([window, "orientationchange", turnedOver, false]);
+  listeners.push([document, "visibilitychange", hidden, false], [window, "blur", letGo, false], [window, "pagehide", letGo, false]);
   for (const [target, type, listener, capture] of listeners) target.addEventListener(type, listener, capture);
   portraitQuery = window.matchMedia?.("(orientation: portrait)") ?? null;
   portraitQuery?.addEventListener("change", turnedPortrait);
@@ -458,7 +489,7 @@ onDestroy(() => {
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div class="lever" class:held={leverFinger !== null} class:reverse={status.reverse} bind:this={leverElement}
         aria-label={$_("studio.flight.touch.throttle")}
-        on:pointerdown={leverDown} on:pointermove={leverMove} on:pointerup={leverUp} on:pointercancel={leverUp}>
+        on:pointerdown={leverDown} on:pointermove={leverMove} on:pointerup={leverUp} on:pointercancel={leverUp} on:lostpointercapture={leverUp}>
         <i class="fill" bind:this={fill}></i>
         <i class="notch" style:bottom={`${LEVER_IDLE_REST * 100}%`}></i>
         <span class="idle" style:bottom={`${LEVER_IDLE_REST * 100}%`}>{$_("studio.flight.touch.idle")}</span>
@@ -469,19 +500,19 @@ onDestroy(() => {
         <button type="button" class="hold" class:held={warp} tabindex="-1" title={$_("studio.flight.touch.warp_title")}
           aria-label={$_("studio.flight.touch.warp_title")} aria-pressed={warp}
           on:pointerdown={(event) => hold("warp", true, event)} on:pointerup={(event) => hold("warp", false, event)}
-          on:pointercancel={(event) => hold("warp", false, event)}>
+          on:pointercancel={(event) => hold("warp", false, event)} on:lostpointercapture={(event) => hold("warp", false, event)}>
           <Icon icon={faForward} /><span>4×</span>
         </button>
         <button type="button" class="hold brake" class:held={brake} tabindex="-1" title={$_("studio.flight.touch.brake_title")}
           aria-label={$_("studio.flight.touch.brake_title")} aria-pressed={brake}
           on:pointerdown={(event) => hold("brake", true, event)} on:pointerup={(event) => hold("brake", false, event)}
-          on:pointercancel={(event) => hold("brake", false, event)}>
+          on:pointercancel={(event) => hold("brake", false, event)} on:lostpointercapture={(event) => hold("brake", false, event)}>
           <span>{$_("studio.flight.touch.brake")}</span>
         </button>
       </div>
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div class="rudder" class:held={rudderFinger !== null} bind:this={rudderElement} aria-label={$_("studio.flight.touch.rudder")}
-        on:pointerdown={rudderDown} on:pointermove={rudderMove} on:pointerup={rudderUp} on:pointercancel={rudderUp}>
+        on:pointerdown={rudderDown} on:pointermove={rudderMove} on:pointerup={rudderUp} on:pointercancel={rudderUp} on:lostpointercapture={rudderUp}>
         <b class="knob" bind:this={rudderKnob}>{$_("studio.flight.touch.rudder_short")}</b>
       </div>
     </div>
@@ -489,11 +520,11 @@ onDestroy(() => {
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="stick" class:held={stickFinger !== null} class:tilting bind:this={stickElement}
       aria-label={$_("studio.flight.touch.stick")}
-      on:pointerdown={stickDown} on:pointermove={stickMove} on:pointerup={stickUp} on:pointercancel={stickUp}>
+      on:pointerdown={stickDown} on:pointermove={stickMove} on:pointerup={stickUp} on:pointercancel={stickUp} on:lostpointercapture={stickUp}>
       <b class="knob" bind:this={knob}></b>
     </div>
 
-    {#if status.paused && !status.leaving}
+    {#if status.paused && !status.leaving && !status.asking}
       <!-- Paused, from the strip's rarer buttons or by the page going out of sight: the way on, in the middle where it is found, in every view. -->
       <button type="button" class="said resume" tabindex="-1" on:click={act("pause")}>
         <Icon icon={faPlay} /> {$_("studio.flight.touch.paused_resume")}
@@ -510,10 +541,11 @@ onDestroy(() => {
       <div class="strip glass glass-tray">
         {#if more}
           <div class="row rare">
-            <button type="button" class="key" tabindex="-1" on:click={act("next")}>
+            <!-- Asked first (`Pilot.ask`): a thumb on its way to the stick finds these too easily. -->
+            <button type="button" class="key" tabindex="-1" on:click={() => pilot.ask("next")}>
               <Icon icon={faCloudBolt} /><span>{$_("studio.flight.touch.next")}</span>
             </button>
-            <button type="button" class="key" tabindex="-1" on:click={act("restart")}>
+            <button type="button" class="key" tabindex="-1" on:click={() => pilot.ask("restart")}>
               <Icon icon={faRotateLeft} /><span>{$_("studio.flight.touch.restart")}</span>
             </button>
             <button type="button" class="key" class:lit={status.paused} tabindex="-1" aria-pressed={status.paused} on:click={act("pause")}>
@@ -522,9 +554,6 @@ onDestroy(() => {
             </button>
             <button type="button" class="key" class:lit={status.inspecting !== null} tabindex="-1" on:click={act("inspect")}>
               <Icon icon={faLayerGroup} /><span>{$_("studio.flight.touch.inspect")}</span>
-            </button>
-            <button type="button" class="key" class:lit={$flightMuted} tabindex="-1" aria-pressed={$flightMuted} on:click={act("mute")}>
-              <MusicIcon off={$flightMuted} /><span>{$_("studio.flight.touch.sound")}</span>
             </button>
             <button type="button" class="key" class:lit={tilting} tabindex="-1" aria-pressed={tilting}
               title={$_("studio.flight.touch.tilt_title")} on:click={toggleTilt}>

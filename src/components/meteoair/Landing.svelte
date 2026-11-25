@@ -924,8 +924,10 @@ const guides = [
      header and the words, and the words on a sheet of the wash below, which
      scrolls up over the map. The map takes the touches where it shows: the
      page scrolls from the sheet. The page's own size, which is not the
-     screen's where it is drawn on its side (lib/sideways.ts). */
-  @container mc-frame (max-width: 760px) {
+     screen's where it is drawn on its side (lib/sideways.ts). A phone on its
+     side is wide enough for the desk's page but far too low for it: that is
+     the phone's page too. */
+  @container mc-frame (max-width: 760px) or (max-height: 500px) {
     .landing {
       display: block;
       padding: 0;
