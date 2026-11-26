@@ -3,7 +3,8 @@
  * The flight's settings, as a card under the deck's buttons: what the
  * reader chooses to see while flying, kept for every flight after
  * (lib/studio/flight/settings.ts). Each a switch, with a line saying what
- * it shows.
+ * it shows; and how loud the music and the flight's sounds are, a slider
+ * each.
  *
  * A switch gives its focus back as soon as it is flipped: while an input
  * has it, the flight's keys are the input's (controls.ts), and Space would
@@ -18,13 +19,22 @@ import Icon from "../../Icon.svelte";
 /** Put the card away, as its button on the deck does. */
 export let close: () => void;
 
-/** The settings in the order the card lists them. */
-const SETTINGS: Array<keyof FlightSettings> = ["radarBeams"];
+type Switch = { [Name in keyof FlightSettings]: FlightSettings[Name] extends boolean ? Name : never }[keyof FlightSettings];
+type Level = { [Name in keyof FlightSettings]: FlightSettings[Name] extends number ? Name : never }[keyof FlightSettings];
 
-function flip(name: keyof FlightSettings, event: Event): void {
+/** The settings in the order the card lists them. */
+const SETTINGS: Switch[] = ["radarBeams"];
+const LEVELS: Level[] = ["musicVolume", "soundVolume"];
+
+function flip(name: Switch, event: Event): void {
   const input = event.currentTarget as HTMLInputElement;
   setFlightSetting(name, input.checked);
   input.blur();
+}
+
+/** A level as it is slid, in percent; the focus given back once it is let go. */
+function slide(name: Level, event: Event): void {
+  setFlightSetting(name, Number((event.currentTarget as HTMLInputElement).value) / 100);
 }
 </script>
 
@@ -35,6 +45,16 @@ function flip(name: keyof FlightSettings, event: Event): void {
     <Icon icon={faXmark} />
   </button>
   <ul>
+    {#each LEVELS as name (name)}
+      <li class="level">
+        <label>
+          <span class="name">{$_(`studio.flight.settings.${name}`)}</span>
+          <output>{Math.round($flightSettings[name] * 100)}%</output>
+          <input type="range" min="0" max="100" step="5" tabindex="-1" value={Math.round($flightSettings[name] * 100)}
+            on:input={(event) => slide(name, event)} on:change={(event) => event.currentTarget.blur()} />
+        </label>
+      </li>
+    {/each}
     {#each SETTINGS as name (name)}
       <li>
         <label>
@@ -136,4 +156,18 @@ function flip(name: keyof FlightSettings, event: Event): void {
   }
   .switch:checked { background: var(--mc-accent); }
   .switch:checked::after { transform: translateX(18px); }
+  /* A level: its name and how much, the slider the card's width under them. */
+  .level output {
+    color: var(--mc-text-2);
+    font: 600 12px/1 var(--mc-font);
+    font-variant-numeric: tabular-nums;
+  }
+  .level input {
+    grid-column: 1 / -1;
+    width: 100%;
+    height: 28px;
+    margin: 0;
+    accent-color: var(--mc-orange);
+    cursor: pointer;
+  }
 </style>

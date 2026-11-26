@@ -24,7 +24,8 @@ import { coresOf, flatOffset, markAltitude, marksNear } from "../../src/lib/stud
 import { BASE_RANGE_KM, cloudBase, condensationLevel } from "../../src/lib/studio/flight/cloudBase.ts";
 import { parseModel, VERTEX_BYTES } from "../../src/lib/studio/flight/model.ts";
 import {
-  ALTITUDE_RANGE, approachOf, atMach, briefing, flightLevel, headed, highGround, levelled, machRange, movedTo, planFrom, position,
+  ALTITUDE_RANGE, approachOf, atKnots, briefing, flightLevel, headed, highGround, knotsRange, levelled, machRange, movedTo, planFrom, position,
+  startedAt,
   retargeted, weatherOf,
 } from "../../src/lib/studio/flight/plan.ts";
 
@@ -841,19 +842,47 @@ test("a start moved keeps its nose on the storm, until the reader turns it; hand
   near(back.heading, bearingDeg(1.0, 43.0, systems[0].lon, systems[0].lat), 1e-9);
 });
 
-test("another level keeps the Mach number, and both stay in what a flight starts at", () => {
+test("another level keeps the indicated speed, and both stay in what a flight starts at", () => {
+  const KT = 1.943844;
+  const knotsOf = (plan: { tas: number; altitude: number }) => indicatedFromTrue(plan.tas, plan.altitude) * KT;
   const systems = rankSystems(stormSystems(planTiles), 4.2, 43.4);
-  const plan = atMach(planFrom(approachTo(systems[0], planTiles), "sky"), 0.7);
-  near(machOf(plan.tas, plan.altitude), 0.7, 1e-9);
-  const high = levelled(plan, 11_000);
-  near(machOf(high.tas, high.altitude), 0.7, 1e-9);
-  assert.ok(high.tas < plan.tas);
+  const plan = atKnots(levelled(planFrom(approachTo(systems[0], planTiles), "sky"), 3000), 280);
+  near(knotsOf(plan), 280, 1e-6);
+  const higher = levelled(plan, 7000);
+  near(knotsOf(higher), 280, 1e-6);
+  assert.ok(higher.tas > plan.tas);
   assert.equal(levelled(plan, 50_000).altitude, ALTITUDE_RANGE[1]);
-  near(machOf(atMach(plan, 2).tas, plan.altitude), machRange(plan.altitude)[1], 1e-9);
-  // A Mach number too slow for the level it is taken to is raised to the slowest that is not.
-  const slowLow = atMach(levelled(plan, 1600), 0);
-  const slowHigh = levelled(slowLow, ALTITUDE_RANGE[1]);
-  near(machOf(slowHigh.tas, slowHigh.altitude), machRange(ALTITUDE_RANGE[1])[0], 1e-9);
+  near(knotsOf(atKnots(plan, 900)), knotsRange(plan.altitude)[1], 1e-6);
+  near(knotsOf(atKnots(plan, 0)), knotsRange(plan.altitude)[0], 1e-6);
+  // As fast as the level allows, taken up high, is held to Mach 0.80 there.
+  const fastHigh = levelled(atKnots(plan, 340), ALTITUDE_RANGE[1]);
+  assert.ok(machOf(fastHigh.tas, fastHigh.altitude) <= 0.8 + 1e-9);
+  near(knotsOf(fastHigh), knotsRange(ALTITUDE_RANGE[1])[1], 1e-6);
+  // Every speed the slider offers is one the Mach range allows.
+  for (const altitude of [ALTITUDE_RANGE[0], 6000, ALTITUDE_RANGE[1]]) {
+    for (const knots of knotsRange(altitude)) {
+      const mach = machOf(atKnots({ ...plan, altitude }, knots).tas, altitude);
+      const [low, high] = machRange(altitude);
+      assert.ok(mach >= low - 1e-9 && mach <= high + 1e-9, `${altitude} m ${knots} kt M${mach.toFixed(3)}`);
+    }
+  }
+});
+
+test("a start put on the chart flies at the storm the nose points most nearly at", () => {
+  const systems = rankSystems(stormSystems(planTiles), 4.2, 43.4);
+  const plan = planFrom(approachTo(systems[0], planTiles), "sky");
+  const from = { lon: 2.0, lat: 42.0 };
+  const turn = (system: (typeof systems)[number], heading: number) => Math.abs(((bearingDeg(from.lon, from.lat, system.lon, system.lat) - heading + 540) % 360) - 180);
+  for (const heading of [0, 90, 180, 270]) {
+    const started = startedAt({ ...plan, heading }, from.lon, from.lat, systems);
+    const best = systems.reduce((a, b) => (turn(b, heading) < turn(a, heading) ? b : a));
+    assert.equal(started.target, best);
+    assert.equal(started.aimed, true);
+    near(started.heading, bearingDeg(from.lon, from.lat, best.lon, best.lat), 1e-9);
+    assert.equal(started.lon, from.lon);
+  }
+  const clear = startedAt({ ...plan, heading: 123 }, from.lon, from.lat, []);
+  assert.equal(clear.heading, 123);
 });
 
 test("every level and speed the plan allows is flown as it was set: no stall, no overspeed, the height held", () => {

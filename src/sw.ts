@@ -98,5 +98,38 @@ registerRoute(
   }),
 );
 
-self.skipWaiting();
+// A new build takes over at once, as it always has, unless a page holds it
+// back (src/lib/updateHold.ts: a flight, its plan or its loading). Taking
+// over drops the old build's chunks from the precache and reloads the
+// pages, which would cut a flight off or leave it unable to load. So the
+// worker asks each page as it installs; a page that holds says so, and lets
+// it in itself once it no longer does. A page that does not answer (one of
+// a build from before this question) is taken over as before.
+const ASK_UPDATE = "MAY_UPDATE";
+const ANSWER_MS = 1500;
+
+function asked(client: Client): Promise<boolean> {
+  return new Promise((resolve) => {
+    const channel = new MessageChannel();
+    const timer = setTimeout(() => resolve(false), ANSWER_MS);
+    channel.port1.onmessage = (event) => {
+      clearTimeout(timer);
+      resolve(Boolean(event.data?.hold));
+    };
+    client.postMessage({ type: ASK_UPDATE }, [channel.port2]);
+  });
+}
+
+self.addEventListener("install", (event) => {
+  event.waitUntil((async () => {
+    const pages = await self.clients.matchAll({ type: "window", includeUncontrolled: true });
+    const holds = await Promise.all(pages.map(asked));
+    if (!holds.includes(true)) await self.skipWaiting();
+  })());
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") void self.skipWaiting();
+});
+
 clientsClaim();

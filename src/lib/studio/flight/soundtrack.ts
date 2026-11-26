@@ -43,6 +43,7 @@
  */
 import { get, writable } from "svelte/store";
 import { makeTrack, StreamTrack } from "./streamTrack";
+import { flightSettings } from "./settings";
 import type { Track } from "./streamTrack";
 
 export type PieceName = "menu" | "theme" | "theme2" | "tension";
@@ -484,7 +485,12 @@ class Music {
     if (!audio || !piece) return null;
     this.menu = audio.createGain();
     this.menu.gain.value = 0;
-    piece.connect(this.menu).connect(audio.destination);
+    // As loud as the reader has set the music (settings.ts), as the flight's is in its own sound (soundGraph.ts).
+    const level = audio.createGain();
+    flightSettings.subscribe(({ musicVolume }) => {
+      level.gain.setTargetAtTime(musicVolume, audio.currentTime, 0.05);
+    });
+    piece.connect(this.menu).connect(level).connect(audio.destination);
     return this.menu;
   }
 

@@ -64,6 +64,7 @@ import { archiveWindow } from "../../stores";
 import { demoWeather } from "../../weatherSource";
 import { boardFlight, boardSitekey } from "../../lib/studio/flight/board/config";
 import type { BoardDeck } from "./flight/board/meteoairBoard";
+import { holdUpdates } from "../../lib/updateHold";
 
 /** The 3D map. */
 export let stage: Stage;
@@ -336,6 +337,16 @@ $: if (!aboard && releaseSideways) {
   releaseSideways = null;
 }
 onDestroy(() => releaseSideways?.());
+
+/* Aboard, no new build comes in: it would reload the page under the flight,
+   or take away the chunks a flight still loading needs (lib/updateHold.ts). */
+let releaseUpdates: (() => void) | null = null;
+$: if (aboard && !releaseUpdates) releaseUpdates = holdUpdates();
+$: if (!aboard && releaseUpdates) {
+  releaseUpdates();
+  releaseUpdates = null;
+}
+onDestroy(() => releaseUpdates?.());
 
 onDestroy(() => {
   if (boardTimer !== null) clearTimeout(boardTimer);

@@ -478,7 +478,7 @@ const WARNINGS = {
 } as const;
 </script>
 
-<div class="flight-deck view-{status.view}" class:inspecting={status.inspecting !== null} class:cutting={(status.cut !== null || status.peel !== null) && status.view !== "clean"} class:touch={$touchControls} class:sides={sides && $touchControls}
+<div class="flight-deck view-{status.view}" class:inspecting={status.inspecting !== null} class:cutting={(status.cut !== null || status.peel !== null) && status.view !== "clean"} class:touch={$touchControls} class:sides={sides && $touchControls} class:fullscreen-able={canFullscreen}
   style:--corner-room={`${cornerRoom}px`} bind:this={deck} aria-label={$_("studio.flight.aria")} role="region">
   <!-- Measures the strips a notch or an island cuts off either side (`sides`). -->
   <div class="inset-probe" aria-hidden="true" bind:this={insetProbe}></div>
@@ -576,6 +576,9 @@ const WARNINGS = {
       <p class="note caution">{$_("studio.flight.alpha_floor")}</p>
     {:else if status.thrustLocked && status.view !== "clean"}
       <p class="note caution">{$_($touchControls ? "studio.flight.touch.thrust_locked" : "studio.flight.thrust_locked")}</p>
+    {:else if status.speedHint && status.view !== "clean"}
+      <!-- Near the speed limits: how to come off them, before the overspeed sounds or once it has. -->
+      <p class="note caution">{$_(`studio.flight.speed_hint.${status.speedHint}${$touchControls ? "_touch" : ""}`)}</p>
     {/if}
     {#if status.clearSky && status.view !== "clean"}
       <p class="note">{$_("studio.flight.clear_sky")}</p>
@@ -595,7 +598,8 @@ const WARNINGS = {
     {/if}
   </div>
 
-  {#if status.keys && status.view !== "clean"}
+  {#if status.keys && status.view !== "clean" && !$touchControls}
+    <!-- Under a finger, shown on the controls themselves instead (TouchControls.svelte). -->
     <FlightKeys close={() => pilot.act("help")} />
   {:else if status.view === "outside"}
     <!-- Where the keys' card stands while that is up. -->
@@ -632,6 +636,11 @@ const WARNINGS = {
         title={$_("studio.flight.settings.title")} aria-label={$_("studio.flight.settings.title")} aria-pressed={settingsOpen}>
         <Icon icon={faGear} />
       </button>
+      {#if $touchControls}
+        <!-- Under a finger the foot of the screen is the thumbs': the credits' way in is up here, under the settings. -->
+        <button type="button" class="licences-link in-corner" tabindex="-1" aria-haspopup="dialog" aria-expanded={licencesOpen}
+          on:click={() => (licencesOpen ? closeLicences() : openLicences())}>{$_("studio.flight.licences")}</button>
+      {/if}
       <!-- The music on or off, the flight's own sounds staying: M, and the menus' switch, are the same. -->
       <button type="button" class="leave full music glass glass-pill" tabindex="-1" on:click={() => pilot.act("mute")}
         title={$_($flightMuted ? "studio.flight.sound.off_title" : "studio.flight.sound.on_title")}
@@ -746,10 +755,12 @@ const WARNINGS = {
   {/if}
 
   <!-- The credits are owed, not read while flying: a small way to them, as the map has. -->
-  <div class="credits">
-    <button type="button" class="licences-link" tabindex="-1" aria-haspopup="dialog" aria-expanded={licencesOpen}
-      on:click={() => (licencesOpen ? closeLicences() : openLicences())}>{$_("studio.flight.licences")}</button>
-  </div>
+  {#if !$touchControls}
+    <div class="credits">
+      <button type="button" class="licences-link" tabindex="-1" aria-haspopup="dialog" aria-expanded={licencesOpen}
+        on:click={() => (licencesOpen ? closeLicences() : openLicences())}>{$_("studio.flight.licences")}</button>
+    </div>
+  {/if}
   {#if licencesOpen}
     <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
     <div class="licences-scrim" on:click|self={closeLicences}>
@@ -1374,12 +1385,42 @@ const WARNINGS = {
   .flight-deck.touch.sides .corner > :is(.help, .music) { top: 22px; }
   .flight-deck.touch.sides .corner > :is(.settings, .share) { top: 62px; }
   .flight-deck.touch.sides .corner > .screen { top: 102px; }
+  /* The credits' way in under the settings button, out of the row, which it would widen into the readouts beside it;
+     on its side, under the settings in the strip on the left. */
+  .flight-deck.touch .corner > .licences-link {
+    position: absolute;
+    top: calc(100% + 2px);
+    /* The middle of the second button: the help button and the row's gap before it, and half of it (36px under a finger). */
+    left: calc(36px + 8px + 18px);
+    white-space: nowrap;
+    transform: translateX(-50%);
+  }
+  .flight-deck.touch.sides .corner > .licences-link {
+    position: absolute;
+    top: 102px;
+    transform: none;
+    white-space: normal;
+    left: max(0px, calc((var(--mc-safe-left) - 52px) / 2));
+    width: 52px;
+    padding: 4px 0;
+    text-align: center;
+  }
+  .flight-deck.touch.sides.fullscreen-able .corner > .licences-link { top: 142px; }
   /* The top row's music button says whether the sound is off. */
   .flight-deck.touch .muted { display: none; }
   /* Over the strip, opened or not. */
   .flight-deck.touch .landing { bottom: calc(max(14px, var(--mc-safe-bottom)) + 112px); }
-  /* The credits between the thumbs, under the strip. */
-  .flight-deck.touch .credits { right: auto; left: 50%; align-items: center; transform: translateX(-50%); }
+  /* The settings' card between the thumbs, clear of the stick and of the map and the horizon on the left, and scrolled
+     where the screen is too low for all of it above the strip. */
+  .flight-deck.touch > :global(section.settings) {
+    top: calc(var(--deck-top) + 46px);
+    right: auto;
+    left: 50%;
+    max-height: calc(100% - var(--deck-top) - 46px - 76px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transform: translateX(-50%);
+  }
   /* The map from outside: under the readouts on the left, over the lever. */
   .flight-deck.touch > :global(.flight-minimap) {
     top: calc(var(--deck-top) + 112px);
@@ -1412,6 +1453,11 @@ const WARNINGS = {
   }
   /* On its side there is no room left between the top row's readouts. */
   @container mc-frame (max-height: 520px) {
+    /* The map and the horizon under the readouts on the left, not over them, and clear of the lever under both:
+       the best score is the desk's to read, and the two a little smaller. */
+    .flight-deck.touch .corner-nw :is(dt, dd):nth-of-type(3) { display: none; }
+    .flight-deck.touch { --flight-minimap-size: 88px; --flight-horizon-size: 68px; }
+    .flight-deck.touch > :global(:is(.flight-minimap, .flight-horizon)) { top: calc(var(--deck-top) + 52px); }
     .flight-deck.touch .warning { padding: 5px 12px; font-size: 16px; }
     .flight-deck.touch .landing { padding: 8px 12px 9px; }
     .flight-deck.touch .landing p { gap: 10px; font-size: 12px; }

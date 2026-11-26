@@ -23,7 +23,8 @@
  * how far along it is (FlightLoading.svelte).
  */
 import logo from "../../../assets/logo.svg";
-import { onDestroy, onMount } from "svelte";
+import { onDestroy, onMount, tick } from "svelte";
+import { fade } from "svelte/transition";
 import { _ } from "svelte-i18n";
 import { get } from "svelte/store";
 import OlMap from "ol/Map";
@@ -51,8 +52,8 @@ import { cloudBaseAt } from "../../../lib/studio/flight/stationAir";
 import { destination, distanceM } from "../../../lib/studio/flight/geo";
 import { FLIGHT_STYLE } from "../../../lib/studio/flight/pilot";
 import {
-  AIRCRAFT, ALTITUDE_RANGE, atMach, briefing, flightLevel, headed, levelled, machRange, movedTo, planFrom, retargeted,
-  showcasePlan, STRIKE_WINDOW_MIN,
+  AIRCRAFT, ALTITUDE_RANGE, atKnots, briefing, flightLevel, headed, knotsRange, levelled, planFrom, retargeted,
+  showcasePlan, startedAt, STRIKE_WINDOW_MIN,
 } from "../../../lib/studio/flight/plan";
 import type { FlightPlan } from "../../../lib/studio/flight/plan";
 import {
@@ -144,11 +145,19 @@ const flownAgain = (): FlightPlan | null => {
 let plan: FlightPlan = flownAgain() ?? proposed();
 /** Whether the reader has changed the plan: from then on it is theirs, whatever the radar lists next. A flight flown again is theirs from the start. */
 let touched = again !== null;
+/**
+ * Whether the start is the reader's own, put on the chart (`startedAt`):
+ * from then on its heading is theirs to turn. Until then the plan flies at
+ * the storm chosen, from the approach chosen for it, nose on it; choosing
+ * another storm makes it so again. A flight flown again starts where it did.
+ */
+let manual = again !== null;
 /** A new flight after all: the plan the radar proposes, and nothing of the one flown before. */
 function fresh(): void {
   again = null;
   flightReplan.set(null);
   touched = false;
+  manual = false;
   plan = proposed();
   viewed = false;
   frame();
@@ -210,7 +219,7 @@ function askBase(lon: number, lat: number): void {
 $: askBase(plan.lon, plan.lat);
 $: lines = briefing(plan, systems, $cloudsTime.newest, base);
 $: mach = machOf(plan.tas, plan.altitude);
-$: speeds = machRange(plan.altitude);
+$: speeds = knotsRange(plan.altitude);
 $: level = Math.round((plan.altitude * FEET) / 1000) * 10;
 $: target = plan.target ? systems.indexOf(plan.target) : -1;
 $: feet = Math.round((plan.altitude * FEET) / 100) * 100;
@@ -229,6 +238,7 @@ function setTarget(event: Event): void {
   if (!system) return;
   // The demo's storm from where it was chosen by hand to be flown at, however it was picked.
   change((demoBackend ? showcasePlan(system, plan.style) : null) ?? retargeted(plan, system, tiles));
+  manual = false;
   frame();
 }
 
@@ -294,6 +304,36 @@ function setClock(event: Event): void {
 
 /* The chart. */
 let chartElement: HTMLDivElement | null = null;
+
+/*
+ * On a phone the chart in the plan is too small to plan on: a look at it,
+ * which a tap opens over the whole screen, and only there are the storm
+ * chosen and the heading set. The one chart, moved into the larger frame
+ * and back. Its first tap opens it; a tap on it open is where the flight
+ * starts.
+ */
+let width = 0;
+let height = 0;
+$: phone = width > 0 && (width <= 480 || height <= 560);
+let full = false;
+let fullElement: HTMLDivElement | null = null;
+async function openChart(): Promise<void> {
+  full = true;
+  await tick();
+  if (!full || !chart || !fullElement) return;
+  chart.setTarget(fullElement);
+  if (!viewed) frame();
+}
+async function closeChart(): Promise<void> {
+  if (!full) return;
+  chart?.setTarget(chartElement ?? undefined);
+  full = false;
+  await tick();
+  chart?.updateSize();
+  frame();
+  viewed = false;
+}
+$: if (!phone && full) void closeChart();
 /** Whether the reader has moved or zoomed the chart: the plan's own framing leaves it where they put it from then on. */
 let viewed = false;
 let chart: OlMap | null = null;
@@ -347,7 +387,8 @@ function frame(): void {
   const points = [fromLonLat([plan.lon, plan.lat])];
   if (plan.target) points.push(fromLonLat([plan.target.lon, plan.target.lat]));
   else points.push(fromLonLat(destination(plan.lon, plan.lat, plan.heading, 120_000)));
-  view.fit(boundingExtent(points), { padding: [70, 70, 70, 70], maxZoom: 9 });
+  // Full screen, clear of the controls over its foot and the button over its top.
+  view.fit(boundingExtent(points), { padding: full ? [80, 50, 150, 50] : [70, 70, 70, 70], maxZoom: 9 });
 }
 
 const HEAVY_EDGE = new Stroke({ color: "rgba(255, 255, 255, 0.9)", width: 1.25 });
@@ -419,10 +460,11 @@ onMount(() => {
   });
   // Read in the picture as drawn, on its side in the apps (lib/sideways.ts).
   followSideways(chart);
-  // A click is where the flight starts.
+  // A click is where the flight starts, nose on the storm most nearly ahead; the plan the reader's from then on.
   chart.on("singleclick", (event) => {
     const [lon, lat] = toLonLat(event.coordinate);
-    change(movedTo(plan, lon, lat));
+    manual = true;
+    change(startedAt(plan, lon, lat, systems.slice(0, OFFERED)));
   });
   frame();
   // Up from the black it was come to through (lib/curtain.ts).
@@ -440,7 +482,8 @@ function keydown(event: KeyboardEvent): void {
   if (get(shareDialog)) return;
   if (event.key === "Escape") {
     event.stopPropagation();
-    oncancel();
+    if (full) void closeChart();
+    else oncancel();
   } else if (event.key === "Enter" && !(event.target as HTMLElement | null)?.closest("select, button, a")) {
     event.preventDefault();
     ontakeoff(plan);
@@ -450,7 +493,7 @@ function keydown(event: KeyboardEvent): void {
 
 <svelte:window on:keydown|capture={keydown} />
 
-<section class="preflight" aria-label={$_("studio.flight.plan.title")}>
+<section class="preflight" aria-label={$_("studio.flight.plan.title")} bind:clientWidth={width} bind:clientHeight={height}>
   <video class="sky" src={still ? undefined : `${SKY}.mp4`} poster={`${SKY}.jpg`} autoplay muted loop playsinline
     disablepictureinpicture aria-hidden="true" tabindex="-1"></video>
   <header>
@@ -468,7 +511,13 @@ function keydown(event: KeyboardEvent): void {
       <div class="pane chart glass glass-tray">
         <div class="map" bind:this={chartElement} aria-label={$_("studio.flight.plan.chart")} role="application"
           on:pointerdown={() => { viewed = true; }} on:wheel={() => { viewed = true; }}></div>
-        <p class="hint">{$_("studio.flight.plan.chart_hint")}</p>
+        {#if phone}
+          <!-- On a phone, a look at the chart: the whole of it a way into the larger one. -->
+          <button type="button" class="open-chart" on:click={openChart} aria-label={$_("studio.flight.plan.chart_open")}></button>
+          <p class="hint">{plan.target ? named(plan.target) : $_("studio.flight.plan.chart_open")}</p>
+        {:else}
+          <p class="hint">{$_("studio.flight.plan.chart_hint")}</p>
+        {/if}
       </div>
       {#if whenOffered}
         <div class="field when glass glass-tray">
@@ -490,18 +539,9 @@ function keydown(event: KeyboardEvent): void {
           </div>
         </div>
       {/if}
-      <div class="field storm glass glass-tray">
-        <label for="preflight-target">{$_("studio.flight.plan.target")}</label>
-        {#if systems.length}
-          <select id="preflight-target" value={String(target)} on:change={setTarget}>
-            {#each systems.slice(0, OFFERED) as system, i (i)}
-              <option value={String(i)}>{named(system)}</option>
-            {/each}
-          </select>
-        {:else}
-          <span class="value">{$_("studio.flight.clear_sky")}</span>
-        {/if}
-      </div>
+      {#if !phone}
+        {@render stormField("preflight-target")}
+      {/if}
     </div>
 
     <div class="pane aircraft glass glass-tray">
@@ -539,29 +579,20 @@ function keydown(event: KeyboardEvent): void {
       <div class="field glass glass-tray">
         <label for="preflight-speed">{$_("studio.flight.plan.speed")}</label>
         <div class="slider">
-          <!-- Only the speeds the level allows: never one that stalls the wing or tears the surfaces off it. -->
-          <input id="preflight-speed" type="range" min={speeds[0].toFixed(3)} max={speeds[1].toFixed(3)} step="0.005" value={mach.toFixed(3)}
-            on:input={(event) => change(atMach(plan, Number(event.currentTarget.value)))} />
+          <!-- Indicated knots, as a crew sets it, which a new level keeps; only the speeds the level allows:
+               never one that stalls the wing or tears the surfaces off it. -->
+          <input id="preflight-speed" type="range" min={Math.round(speeds[0])} max={Math.round(speeds[1])} step="5" value={knots}
+            on:input={(event) => change(atKnots(plan, Number(event.currentTarget.value)))} />
           <output for="preflight-speed">
-            <b>M{mach.toFixed(2).slice(1)}</b>
-            <small>{knots} kt · {Math.round((knots / KNOTS) * KMH)} km/h</small>
+            <b>{knots} kt</b>
+            <small>M{mach.toFixed(2).slice(1)} · {Math.round((plan.tas * KMH))} km/h</small>
           </output>
         </div>
       </div>
 
-      <div class="field glass glass-tray">
-        <label for="preflight-heading">{$_("studio.flight.plan.heading")}</label>
-        <div class="slider">
-          <input id="preflight-heading" type="range" min="0" max="359" step="1" value={Math.round(plan.heading) % 360}
-            on:input={(event) => change(headed(plan, Number(event.currentTarget.value)))} />
-          <output for="preflight-heading">{String(Math.round(plan.heading) % 360).padStart(3, "0")}°</output>
-          {#if plan.target}
-            <button type="button" class="chip" disabled={plan.aimed} on:click={() => change(headed(plan, null))}>
-              {$_("studio.flight.plan.aim")}
-            </button>
-          {/if}
-        </div>
-      </div>
+      {#if !phone}
+        {@render headingField("preflight-heading")}
+      {/if}
     </div>
 
     <div class="pane briefing glass glass-tray">
@@ -577,6 +608,58 @@ function keydown(event: KeyboardEvent): void {
       <p class="credit">{$_("studio.flight.model_credit")}</p>
     </div>
   </div>
+
+  {#snippet stormField(id: string)}
+    <div class="field storm glass glass-tray">
+      <label for={id}>{$_("studio.flight.plan.target")}</label>
+      {#if systems.length}
+        <select {id} value={String(target)} on:change={setTarget}>
+          {#each systems.slice(0, OFFERED) as system, i (i)}
+            <option value={String(i)}>{named(system)}</option>
+          {/each}
+        </select>
+      {:else}
+        <span class="value">{$_("studio.flight.clear_sky")}</span>
+      {/if}
+    </div>
+  {/snippet}
+
+  {#snippet headingField(id: string)}
+    <!-- Turned by the reader only once the start is theirs (`manual`): until then the nose is on the storm. -->
+    <div class="field glass glass-tray" class:auto={!manual}>
+      <label for={id}>{$_("studio.flight.plan.heading")}</label>
+      <div class="slider">
+        <input {id} type="range" min="0" max="359" step="1" value={Math.round(plan.heading) % 360} disabled={!manual}
+          title={manual ? undefined : $_("studio.flight.plan.heading_auto")}
+          on:input={(event) => change(headed(plan, Number(event.currentTarget.value)))} />
+        <output for={id}>{String(Math.round(plan.heading) % 360).padStart(3, "0")}°</output>
+        {#if manual && plan.target}
+          <button type="button" class="chip" disabled={plan.aimed} on:click={() => change(headed(plan, null))}>
+            {$_("studio.flight.plan.aim")}
+          </button>
+        {/if}
+      </div>
+      {#if !manual}
+        <p class="field-note">{$_(phone ? "studio.flight.plan.heading_auto_touch" : "studio.flight.plan.heading_auto")}</p>
+      {/if}
+    </div>
+  {/snippet}
+
+  {#if full}
+    <!-- The chart over the whole screen, on a phone: where the flight starts, at which storm, which way. -->
+    <div class="chart-full" transition:fade={{ duration: 160 }}>
+      <div class="map" bind:this={fullElement} aria-label={$_("studio.flight.plan.chart")} role="application"
+        on:pointerdown={() => { viewed = true; }}></div>
+      <div class="full-top">
+        <p class="hint">{$_("studio.flight.plan.chart_hint_touch")}</p>
+        <button type="button" class="chip go" on:click={closeChart}>{$_("studio.flight.plan.chart_done")}</button>
+      </div>
+      <div class="full-controls">
+        {@render stormField("preflight-target-full")}
+        {@render headingField("preflight-heading-full")}
+      </div>
+    </div>
+  {/if}
 
   <footer>
     {#if again}
@@ -666,7 +749,10 @@ function keydown(event: KeyboardEvent): void {
     --mc-glass-ring-lg: var(--mc-glass-highlight), 0 10px 30px rgba(0, 0, 0, 0.4);
     --mc-glass-backdrop: blur(14px) saturate(1.2);
   }
-  /* The storm: under everything, darkened a little and only just softened, so it is seen but not read. */
+  /* The storm: under everything, darkened a little and only just softened,
+     so it is seen but not read; drawn in close on the cloud, which stands a
+     little right of the loop's middle and above it, the sea and the sky
+     round it mostly out of the picture. */
   .sky {
     position: absolute;
     inset: 0;
@@ -674,8 +760,10 @@ function keydown(event: KeyboardEvent): void {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    filter: blur(3px) brightness(0.62) saturate(0.9);
-    transform: scale(1.03);
+    object-position: 53% 46%;
+    filter: blur(2px) brightness(0.62) saturate(0.9);
+    transform: scale(1.45);
+    transform-origin: 53% 46%;
     pointer-events: none;
   }
   .preflight { isolation: isolate; }
@@ -769,6 +857,58 @@ function keydown(event: KeyboardEvent): void {
     pointer-events: none;
   }
 
+  /* On a phone, the look at the chart is one button into the larger one. */
+  .open-chart {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+  }
+  .open-chart:focus-visible { outline: 2px solid var(--mc-accent); outline-offset: -2px; }
+  /* The chart over the whole plan, its controls over its foot, clear of a phone's notch and corners. */
+  .chart-full {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    background: #10151b;
+  }
+  .chart-full .map { cursor: crosshair; }
+  .full-top {
+    position: absolute;
+    top: max(10px, calc(var(--mc-safe-top, 0px) + 6px));
+    left: max(10px, calc(var(--mc-safe-left, 0px) + 8px));
+    right: max(10px, calc(var(--mc-safe-right, 0px) + 8px));
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    pointer-events: none;
+  }
+  .full-top .hint { position: static; font-size: 12px; padding: 6px 11px; }
+  .full-top .chip { pointer-events: auto; height: 40px; padding: 0 22px; font-size: 13px; }
+  .full-controls {
+    position: absolute;
+    left: max(10px, calc(var(--mc-safe-left, 0px) + 8px));
+    right: max(10px, calc(var(--mc-safe-right, 0px) + 8px));
+    bottom: max(10px, calc(var(--mc-safe-bottom, 0px) + 8px));
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 8px;
+  }
+  .full-controls .field { background: rgba(10, 14, 20, 0.82); }
+  /* The heading while the nose is on the storm: shown, not turned, with how to make it the reader's. */
+  .field-note {
+    grid-column: 1 / -1;
+    margin: 0;
+    color: var(--mc-text-2);
+    font-size: 11.5px;
+    line-height: 1.35;
+  }
+  .field.auto .slider input { opacity: 0.45; }
+
   .aircraft {
     grid-area: aircraft;
     display: grid;
@@ -836,7 +976,8 @@ function keydown(event: KeyboardEvent): void {
     gap: 10px;
     min-width: 0;
   }
-  .slider input { flex: 1; min-width: 60px; accent-color: var(--mc-orange); }
+  /* A height of its own: the page's stylesheet takes every range's away (global.css), which leaves the thumb with no track. */
+  .slider input { flex: 1; min-width: 60px; height: 24px; accent-color: var(--mc-orange); }
   .slider output {
     display: grid;
     justify-items: end;

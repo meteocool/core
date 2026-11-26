@@ -4,12 +4,16 @@
  * (lib/studio/flight/preload.ts), and how far along. Up only while
  * something is still to come; the flight starts the moment it is all there.
  * The menus' music fades out across it, the flight's own comes up as the
- * flight begins. A failure says so, with another try and the way back.
+ * flight begins. A failure says so, with another try where one can help,
+ * and a restart: the page loaded afresh, the 3D map and all, which is what
+ * gets past a build that changed under the page.
  */
 import { _ } from "svelte-i18n";
 import { faPlaneDeparture } from "@fortawesome/free-solid-svg-icons/faPlaneDeparture";
 import Icon from "../../Icon.svelte";
 import { flightLoad, shareOf } from "../../../lib/studio/flight/preload";
+import { restartPage } from "../../../lib/studio/flightPage";
+import { lower } from "../../../lib/curtain";
 
 export let onretry: () => void;
 export let onback: () => void;
@@ -17,6 +21,11 @@ export let onback: () => void;
 const MB = 1024 * 1024;
 $: percent = Math.floor(shareOf($flightLoad) * 100);
 $: failed = $flightLoad.state === "failed";
+
+/** Through black, as every change of scene: the page loaded afresh. */
+function restart(): void {
+  void lower().then(restartPage);
+}
 
 function keydown(event: KeyboardEvent): void {
   if (event.key !== "Escape") return;
@@ -33,8 +42,10 @@ function keydown(event: KeyboardEvent): void {
     {#if failed}
       <p class="failed" role="alert">{$_("studio.flight.loading.failed")}</p>
       <div class="actions">
-        <button type="button" class="chip" on:click={onback}>{$_("studio.flight.loading.back")}</button>
-        <button type="button" class="chip go" on:click={onretry}>{$_("studio.flight.loading.retry")}</button>
+        <button type="button" class="chip" class:go={$flightLoad.stuck} on:click={restart}>{$_("studio.flight.loading.restart")}</button>
+        {#if !$flightLoad.stuck}
+          <button type="button" class="chip go" on:click={onretry}>{$_("studio.flight.loading.retry")}</button>
+        {/if}
       </div>
     {:else}
       <p class="what">{$_("studio.flight.loading.what")}</p>

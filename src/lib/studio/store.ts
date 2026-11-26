@@ -188,6 +188,12 @@ export interface FlightStatus {
   reverse: boolean;
   alphaFloor: boolean;
   thrustLocked: boolean;
+  /**
+   * Near the speed limits, how to come off them before the overspeed sounds
+   * (or once it has): the thrust back, out of a dive, and if it is still too
+   * fast after a few seconds of that, the speed brake. Null away from them.
+   */
+  speedHint: "thrust" | "pitch" | "speedbrake" | null;
   /** The last landing, until the aircraft flies again; and why the flight just ended, for a moment after it has. */
   landing: FlightLanding | null;
   crash: FlightCrash | null;
@@ -213,7 +219,7 @@ export interface FlightStatus {
 export const INITIAL_FLIGHT_STATUS: FlightStatus = {
   view: "cockpit", warnings: [], paused: false, recording: false, keys: true, autopilot: false, warp: false,
   clearSky: false, low: false, inspecting: null, cut: null, peel: null, gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false,
-  reverse: false, alphaFloor: false, thrustLocked: false, landing: null, crash: null, lost: [], alarms: [], silenced: [], feat: null,
+  reverse: false, alphaFloor: false, thrustLocked: false, speedHint: null, landing: null, crash: null, lost: [], alarms: [], silenced: [], feat: null,
   radarOnGround: false, leaving: false, asking: null,
 };
 

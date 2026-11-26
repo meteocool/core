@@ -25,7 +25,9 @@ import type { FlightCrash, FlightStatus, FlightView, FlightWarning } from "../st
 import { indicatedFromTrue, machOf } from "./atmosphere";
 import { Keys } from "./controls";
 import type { FlightAction } from "./controls";
-import { FLAPS_MOST, levelFlight, MAX_DT, moveGear, overspeed, PITCH_RATE, ROLL_RATE, SPEEDBRAKE, step, terrainAhead } from "./physics";
+import {
+  FLAPS_MOST, levelFlight, MAX_DT, MMO, moveGear, overspeed, PITCH_RATE, ROLL_RATE, SPEEDBRAKE, speedsFor, step, terrainAhead,
+} from "./physics";
 import type { AircraftState, Environment } from "./physics";
 import { approachOf, cruiseSpeed, snapshotPart } from "./plan";
 import type { FlightPlan } from "./plan";
@@ -185,6 +187,15 @@ const GEAR_WARNING = { below: 150, slower: 98 };
 const SINK_WARNING_MS = 9;
 /** Banked steeper than this in the air, degrees, it says so. */
 const BANK_WARNING = 45;
+/** How near the limits the speed hints come up: within this of the Mach limit, and of the indicated one, m/s (about 14 kt). */
+const NEAR_MACH = 0.025;
+const NEAR_IAS_MS = 7;
+/** Coming down faster than this, m/s (about 1,600 ft a minute), the aircraft is diving: out of that first. */
+const DIVING_MS = -8;
+/** The lever at or under this is at idle. */
+const IDLE_THROTTLE = 0.05;
+/** Near the limits this long, seconds, with the thrust back and out of the dive: the speed brake. */
+const STILL_FAST_S = 4;
 /**
  * Seen from the cockpit, something about to come off the aircraft is shown
  * from outside, as a film cuts to it: out to the usual outside view this
@@ -475,6 +486,8 @@ export class Pilot {
   private sound: FlightSound | null = null;
   /** The alarms the reader has silenced (alarms.ts), from frame to frame. */
   private alarms: AlarmMemory = NO_ALARMS;
+  /** How long the aircraft has been near its speed limits, seconds: past `STILL_FAST_S`, the speed brake is hinted. */
+  private fastFor = 0;
 
   constructor(
     private readonly stage: Stage,
@@ -1382,7 +1395,28 @@ export class Pilot {
     // The alarms: the surfaces lost and the warnings, each heard until it clears or the reader silences it.
     const alarms = alarmsOf(warnings, ended ? [] : get(flightStatus).lost);
     this.alarms = alarmStep(this.alarms, alarms, dt);
-    this.status({ warnings, alarms, silenced: silencedOf(this.alarms, alarms), warp: warp > 1, low: telemetry.radarAltitude < LOW_M });
+    const speedHint = ended || state.onGround ? null : this.speedHintOf(state, telemetry.ias, telemetry.gear, dt);
+    this.status({
+      warnings, alarms, silenced: silencedOf(this.alarms, alarms), warp: warp > 1, low: telemetry.radarAltitude < LOW_M, speedHint,
+    });
+  }
+
+  /**
+   * How to come off the speed limits, near them (`FlightStatus.speedHint`):
+   * out of a dive first, which is what gains speed fastest; else the thrust
+   * back; and still near them after a few seconds, or at idle already, the
+   * speed brake, unless it is out.
+   */
+  private speedHintOf(state: AircraftState, ias: number, gear: number, dt: number): FlightStatus["speedHint"] {
+    const near = machOf(state.tas, state.altitude) > MMO - NEAR_MACH || ias > speedsFor(state.flaps, 0, gear).limit - NEAR_IAS_MS;
+    this.fastFor = near ? this.fastFor + dt : 0;
+    if (!near) return null;
+    const idle = state.throttle <= IDLE_THROTTLE;
+    const braking = state.spoilers > 0.3;
+    if (state.verticalSpeed < DIVING_MS && this.fastFor <= STILL_FAST_S) return "pitch";
+    if (!idle && this.fastFor <= STILL_FAST_S) return "thrust";
+    if (!braking) return "speedbrake";
+    return state.verticalSpeed < DIVING_MS ? "pitch" : idle ? null : "thrust";
   }
 
   /**
@@ -1642,7 +1676,7 @@ export class Pilot {
       this.featUntil = -Infinity;
       this.status({ feat: null });
       this.status({
-        gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false, reverse: false, alphaFloor: false, thrustLocked: false, landing: null,
+        gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false, reverse: false, alphaFloor: false, thrustLocked: false, speedHint: null, landing: null,
       });
       this.alarms = NO_ALARMS;
       this.status({ autopilot: false, warnings: [], alarms: [], silenced: [], clearSky: this.approach.target === null });

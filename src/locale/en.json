@@ -241,7 +241,10 @@
       "plan": {
         "title": "Flight plan",
         "chart": "Chart of your start, heading and route to the storm",
-        "chart_hint": "Click the chart to move your starting point",
+        "chart_hint": "Click the chart to start from there, nose on the storm ahead",
+        "chart_hint_touch": "Tap where the flight starts",
+        "chart_open": "Tap to open the chart",
+        "chart_done": "Done",
         "aircraft": "Aircraft",
         "preview": "{name}, turning",
         "specs": "{length} m long · {span} m span · cruises M{mach} · ceiling FL{ceiling}",
@@ -256,6 +259,8 @@
         "speed": "Speed",
         "heading": "Heading",
         "aim": "Aim at the storm",
+        "heading_auto": "Aimed at the storm. Click the chart to choose your own start and heading.",
+        "heading_auto_touch": "Aimed at the storm. Tap the chart to choose your own start and heading.",
         "briefing": "Briefing",
         "brief": {
           "route": "ROUTE",
@@ -286,6 +291,8 @@
       "settings": {
         "title": "Settings",
         "close": "Close the settings",
+        "musicVolume": "Music volume",
+        "soundVolume": "Aircraft sound volume",
         "radarBeams": "Radar beams",
         "radarBeams_hint": "While you look into a storm, a beam from each radar that saw it, brighter the lower that radar saw into it."
       },
@@ -328,8 +335,9 @@
         "title": "Preparing the flight",
         "what": "The aircraft and its cockpit",
         "progress": "{loaded} of {total} MB",
-        "failed": "The flight did not load. Check your connection and try again.",
+        "failed": "The flight did not load. Check your connection and try again, or restart meteoair.",
         "retry": "Try again",
+        "restart": "Restart meteoair",
         "back": "Back"
       },
       "sound": {
@@ -579,6 +587,14 @@
       "sink": "SINK RATE",
       "help": "Controls",
       "help_title": "Show or hide the controls · H",
+      "speed_hint": {
+        "thrust": "Near the speed limit · thrust back (S)",
+        "thrust_touch": "Near the speed limit · pull the throttle back",
+        "pitch": "Near the speed limit · pull out of the dive",
+        "pitch_touch": "Near the speed limit · pull out of the dive",
+        "speedbrake": "Still too fast · speed brake out (B)",
+        "speedbrake_touch": "Still too fast · tap Spd brk"
+      },
       "bank": "BANK ANGLE",
       "lost": {
         "title": "LOST: {parts}",

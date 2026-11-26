@@ -423,6 +423,8 @@ export class SoundGraph {
   private readonly brown: AudioBuffer;
   private readonly hailTicks: AudioBuffer[];
   private readonly volume: GainNode;
+  private readonly userSounds: GainNode;
+  private readonly userMusic: GainNode;
   private readonly scene: GainNode;
   private readonly ui: GainNode;
   private readonly busses: Record<"engine" | "wind" | "thunder" | "thump" | "cabin" | "alerts" | "hail" | "crash", GainNode>;
@@ -501,8 +503,11 @@ export class SoundGraph {
     const clip = context.createWaveShaper();
     clip.curve = softClip();
     limiter.connect(this.volume).connect(clip).connect(destination);
-    this.scene = gain(0, limiter);
-    this.ui = gain(TRIM.ui, limiter);
+    // The reader's own levels (settings.ts): the flight's sounds before the limiter, its music after.
+    this.userSounds = gain(1, limiter);
+    this.userMusic = gain(1, this.volume);
+    this.scene = gain(0, this.userSounds);
+    this.ui = gain(TRIM.ui, this.userSounds);
 
     const buffers = buffersFor(context);
     this.white = buffers.white;
@@ -511,7 +516,7 @@ export class SoundGraph {
     this.hailTicks = buffers.hailTicks;
 
     // The soundtrack, past the limiter: the theme thinned as the suspenseful piece comes up, then both as the view hears them.
-    const musicGain = gain(0, this.volume);
+    const musicGain = gain(0, this.userMusic);
     const hold = gain(1, musicGain);
     const dim = filter("lowpass", 20000, 0.5, hold);
     const band = filter("lowpass", 20000, 0.6, dim);
@@ -685,6 +690,13 @@ export class SoundGraph {
   }
 
   /** Where the soundtrack's two pieces go in (soundtrack.ts). */
+  /** As loud as the reader has set the music and the flight's sounds, each 0 to 1. */
+  setUserLevels(music: number, sounds: number): void {
+    const at = this.context.currentTime;
+    this.userMusic.gain.setTargetAtTime(music, at, 0.05);
+    this.userSounds.gain.setTargetAtTime(sounds, at, 0.05);
+  }
+
   musicInputs(): { theme: AudioNode; tension: AudioNode } {
     return { theme: this.music.theme, tension: this.music.tension };
   }

@@ -12,17 +12,22 @@ import { writable } from "svelte/store";
 export interface FlightSettings {
   /** Beams from the radars that saw a storm to its mark while it is looked into (radarRays.ts). */
   radarBeams: boolean;
+  /** How loud the music plays, the menus' and the flight's, 0 to 1 of as loud as it is mixed (soundtrack.ts). */
+  musicVolume: number;
+  /** How loud the aircraft and the weather sound, the cockpit's alerts and calls with them, 0 to 1 (sound.ts). */
+  soundVolume: number;
 }
 
 /** As a first flight has them. */
-export const DEFAULT_SETTINGS: FlightSettings = { radarBeams: false };
+export const DEFAULT_SETTINGS: FlightSettings = { radarBeams: false, musicVolume: 1, soundVolume: 1 };
 
 /** What the settings are kept under. */
 export const SETTINGS_KEY = "meteoairSettings";
 
 /**
  * The settings as they were kept: each one that was kept as it should be,
- * the rest as a first flight has them. A setting added since is off, and
+ * the rest as a first flight has them. A setting added since is as a first
+ * flight has it, a volume out of range is held to it, and
  * one that has been taken out is forgotten.
  */
 export function readSettings(kept: string | null): FlightSettings {
@@ -36,7 +41,11 @@ export function readSettings(kept: string | null): FlightSettings {
   if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) return settings;
   for (const name of Object.keys(DEFAULT_SETTINGS) as Array<keyof FlightSettings>) {
     const value = (parsed as Record<string, unknown>)[name];
-    if (typeof value === "boolean") settings[name] = value;
+    const wanted = typeof DEFAULT_SETTINGS[name];
+    if (wanted === "boolean" && typeof value === "boolean") (settings[name] as boolean) = value;
+    else if (wanted === "number" && typeof value === "number" && Number.isFinite(value)) {
+      (settings[name] as number) = Math.min(1, Math.max(0, value));
+    }
   }
   return settings;
 }

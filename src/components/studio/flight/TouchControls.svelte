@@ -23,12 +23,19 @@
  * moves are taken before they reach it, and its presses and releases left
  * alone.
  *
+ * How to fly it is shown, not written: while the keys' card would be up (on
+ * entry until the aircraft is first flown, and from the help button), a
+ * finger dragging the view to look round, then arrows on the stick and the
+ * lever, turn and turn about. The rarer controls are left to be found.
+ *
  * Shown from the start where the pointer is a finger, and from the first
  * touch on a laptop with a touch screen. In the clean view nothing of it is
  * drawn but a small way back out; the stick and the lever still fly where
  * they were, and show faintly under a thumb.
  */
 import { onDestroy, onMount } from "svelte";
+import { fade } from "svelte/transition";
+import { faHandPointer } from "@fortawesome/free-solid-svg-icons/faHandPointer";
 import { _ } from "svelte-i18n";
 import { faChevronDown } from "@fortawesome/free-solid-svg-icons/faChevronDown";
 import { faChevronUp } from "@fortawesome/free-solid-svg-icons/faChevronUp";
@@ -63,6 +70,26 @@ $: clean = status.view === "clean";
 $: lights = masterLights(status.alarms, status.silenced);
 
 let root: HTMLDivElement | null = null;
+
+/* ---- what to do, shown ---- */
+
+/** How long each of the two hints is shown before the other, ms. */
+const HINT_MS = 3200;
+/** 0: a finger dragging the view; 1: the stick's and the lever's arrows. */
+let hintPhase = 0;
+let hintTimer: ReturnType<typeof setInterval> | null = null;
+$: hinting = status.keys && !clean && !status.paused && !status.leaving && !status.asking;
+function runHints(on: boolean): void {
+  if (on && !hintTimer) {
+    hintPhase = 0;
+    hintTimer = setInterval(() => { hintPhase = 1 - hintPhase; }, HINT_MS);
+  } else if (!on && hintTimer) {
+    clearInterval(hintTimer);
+    hintTimer = null;
+  }
+}
+$: runHints(hinting);
+onDestroy(() => { if (hintTimer) clearInterval(hintTimer); });
 
 /* ---- what is held ---- */
 
@@ -495,6 +522,9 @@ onDestroy(() => {
         <span class="idle" style:bottom={`${LEVER_IDLE_REST * 100}%`}>{$_("studio.flight.touch.idle")}</span>
         <span class="rev">{$_("studio.flight.touch.reverse")}</span>
         <b class="grip" bind:this={grip}>{$_("studio.flight.touch.throttle_short")}</b>
+        {#if hinting && hintPhase === 1}
+          <span class="lever-hint" aria-hidden="true" transition:fade={{ duration: 200 }}><i></i><i></i></span>
+        {/if}
       </div>
       <div class="holds">
         <button type="button" class="hold" class:held={warp} tabindex="-1" title={$_("studio.flight.touch.warp_title")}
@@ -522,7 +552,20 @@ onDestroy(() => {
       aria-label={$_("studio.flight.touch.stick")}
       on:pointerdown={stickDown} on:pointermove={stickMove} on:pointerup={stickUp} on:pointercancel={stickUp} on:lostpointercapture={stickUp}>
       <b class="knob" bind:this={knob}></b>
+      {#if hinting && hintPhase === 1}
+        <span class="pad-hint" aria-hidden="true" transition:fade={{ duration: 200 }}>
+          <i class="up"></i><i class="right"></i><i class="down"></i><i class="left"></i>
+        </span>
+      {/if}
     </div>
+
+    {#if hinting && hintPhase === 0}
+      <!-- A finger dragged left and right across the view: it looks round. -->
+      <div class="pan-hint" aria-hidden="true" transition:fade={{ duration: 200 }}>
+        <i class="track"></i>
+        <span class="finger"><Icon icon={faHandPointer} /></span>
+      </div>
+    {/if}
 
     {#if status.paused && !status.leaving && !status.asking}
       <!-- Paused, from the strip's rarer buttons or by the page going out of sight: the way on, in the middle where it is found, in every view. -->
@@ -581,7 +624,7 @@ onDestroy(() => {
             <button type="button" class="key word" tabindex="-1" aria-label={$_("studio.flight.touch.flaps_out")}
               on:click={act("flapsOut")}><b>+</b></button>
           </span>
-          <button type="button" class="key word" class:lit={status.spoilers !== "in"} tabindex="-1"
+          <button type="button" class="key word" class:lit={status.spoilers !== "in"} class:nudge={status.speedHint === "speedbrake"} tabindex="-1"
             aria-label={$_("studio.flight.keys.speedbrake")} on:click={act("speedbrake")}>
             <b>{$_("studio.flight.touch.speedbrake")}</b>
           </button>
@@ -804,12 +847,109 @@ onDestroy(() => {
   .stick.held .knob { background: #fff; }
   .stick.tilting { border-color: var(--mc-orange); }
 
-  /* What the other keys do: low in the middle, between the thumbs. */
+  /* The speed brake, asked for (`speedHint`): its button pulses in the caution's amber until it is out. */
+  .key.nudge { animation: nudge 0.8s ease-in-out infinite alternate; }
+  @keyframes nudge {
+    from { box-shadow: 0 0 0 0 rgba(255, 179, 64, 0); }
+    to { box-shadow: 0 0 0 3px rgba(255, 179, 64, 0.95); background: rgba(255, 179, 64, 0.3); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .key.nudge { animation: none; box-shadow: 0 0 0 3px rgba(255, 179, 64, 0.95); }
+  }
+  /* What to do, shown: arrows round the stick, the four ways it goes, breathing outwards. */
+  .pad-hint { position: absolute; inset: 0; pointer-events: none; }
+  .pad-hint i {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 14px;
+    height: 14px;
+    margin: -7px 0 0 -7px;
+    border: solid var(--mc-orange);
+    border-width: 4px 4px 0 0;
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+    animation: pad-out 1.1s ease-in-out infinite alternate;
+  }
+  .pad-hint .up { --turn: -45deg; --near: translate(0, -44px); --out: translate(0, -56px); }
+  .pad-hint .right { --turn: 45deg; --near: translate(44px, 0); --out: translate(56px, 0); }
+  .pad-hint .down { --turn: 135deg; --near: translate(0, 44px); --out: translate(0, 56px); }
+  .pad-hint .left { --turn: 225deg; --near: translate(-44px, 0); --out: translate(-56px, 0); }
+  @keyframes pad-out {
+    from { transform: var(--near) rotate(var(--turn)); opacity: 0.55; }
+    to { transform: var(--out) rotate(var(--turn)); opacity: 1; }
+  }
+  /* And up the lever: more thrust that way. */
+  .lever-hint {
+    position: absolute;
+    left: 50%;
+    top: 14px;
+    display: grid;
+    gap: 2px;
+    transform: translateX(-50%);
+    pointer-events: none;
+    animation: lever-up 1.1s ease-in-out infinite;
+  }
+  .lever-hint i {
+    width: 14px;
+    height: 14px;
+    border: solid var(--mc-orange);
+    border-width: 4px 4px 0 0;
+    transform: rotate(-45deg);
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.6));
+  }
+  .lever-hint i + i { opacity: 0.55; }
+  @keyframes lever-up {
+    from { transform: translate(-50%, 10px); opacity: 0.4; }
+    to { transform: translate(-50%, -2px); opacity: 1; }
+  }
+  /* A finger dragged left and right over the view, along a faint track. */
+  .pan-hint {
+    position: absolute;
+    left: 50%;
+    top: 42%;
+    width: 180px;
+    height: 56px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .pan-hint .track {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    top: 8px;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+  }
+  .pan-hint .finger {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 40px;
+    height: 40px;
+    margin-left: -14px;
+    color: #fff;
+    filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.7));
+    animation: pan-drag 2.2s ease-in-out infinite;
+  }
+  .pan-hint .finger :global(svg) { width: 34px; height: 34px; }
+  @keyframes pan-drag {
+    0%, 100% { transform: translateX(-62px); }
+    50% { transform: translateX(62px); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .pad-hint i, .lever-hint, .pan-hint .finger { animation: none; }
+    .pad-hint i { transform: var(--out) rotate(var(--turn)); }
+  }
+
+  /* What the other keys do: low in the middle, between the thumbs, down to
+     the foot of the screen (nothing under it now: the credits are up top),
+     clear of the bar a phone is swiped home by only as far as a press needs. */
   .strip {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: var(--edge-bottom);
+    bottom: max(6px, calc(var(--mc-safe-bottom) - 10px));
     display: grid;
     gap: 2px;
     width: max-content;

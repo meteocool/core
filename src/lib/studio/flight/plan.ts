@@ -88,6 +88,12 @@ const LEAST_KNOTS = 220;
 const MOST_KNOTS = 340;
 const MOST_MACH = 0.8;
 
+/** The indicated speeds a flight starts at, at a level, knots: what the speeds above leave of 220 to 340 there. */
+export function knotsRange(altitude: number): [number, number] {
+  const mostMach = indicatedFromTrue(MOST_MACH * speedOfSound(altitude), altitude) * KNOTS;
+  return [LEAST_KNOTS, Math.max(LEAST_KNOTS, Math.min(MOST_KNOTS, mostMach))];
+}
+
 /** The Mach numbers a flight starts at, at a level: what the speeds above make of it there. */
 export function machRange(altitude: number): [number, number] {
   const machAt = (knots: number) => machOf(trueFromIndicated(knots / KNOTS, altitude), altitude);
@@ -240,13 +246,30 @@ export function headed(plan: FlightPlan, heading: number | null): FlightPlan {
  * that Mach number is too fast or too slow at the new level, the nearest one
  * that is not.
  */
+/**
+ * At another level, at the same indicated speed: the speed a crew sets, and
+ * what the plan's speed is set in, so the one does not move as the other
+ * does. Where that speed is past Mach 0.80 up high, as fast as that allows.
+ */
 export function levelled(plan: FlightPlan, altitude: number): FlightPlan {
   const level = clamp(altitude, ALTITUDE_RANGE);
-  return { ...plan, altitude: level, tas: startable(machOf(plan.tas, plan.altitude) * speedOfSound(level), level) };
+  return atKnots({ ...plan, altitude: level }, indicatedFromTrue(plan.tas, plan.altitude) * KNOTS);
 }
 
-export function atMach(plan: FlightPlan, mach: number): FlightPlan {
-  return { ...plan, tas: clamp(mach, machRange(plan.altitude)) * speedOfSound(plan.altitude) };
+export function atKnots(plan: FlightPlan, knots: number): FlightPlan {
+  return { ...plan, tas: trueFromIndicated(clamp(knots, knotsRange(plan.altitude)) / KNOTS, plan.altitude) };
+}
+
+/**
+ * A start put where the reader asked, the plan from then on theirs: flown
+ * at the storm the nose already points most nearly at, of those offered, and
+ * turned onto it; where there is none, the way it pointed.
+ */
+export function startedAt(plan: FlightPlan, lon: number, lat: number, systems: readonly StormSystem[]): FlightPlan {
+  const turn = (system: StormSystem) => Math.abs(wrap180(bearingDeg(lon, lat, system.lon, system.lat) - plan.heading));
+  const ahead = systems.reduce<StormSystem | null>((best, system) => (!best || turn(system) < turn(best) ? system : best), null);
+  if (!ahead) return { ...plan, lon, lat };
+  return { ...plan, lon, lat, target: ahead, aimed: true, heading: bearingDeg(lon, lat, ahead.lon, ahead.lat) };
 }
 
 /* A flight from a place, chosen for the reader: from a point on the map

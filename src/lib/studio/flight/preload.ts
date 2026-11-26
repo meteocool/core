@@ -18,7 +18,9 @@
  *
  * Progress is counted in bytes where they are known: the files' own, and an
  * estimate for the code, whose chunks say nothing of their size. What fails
- * says so; asking again tries again from where it failed.
+ * says so; asking again tries again from where it failed, but for the
+ * code, which the browser never fetches again once an import of it has
+ * failed: that failure says the page has to be loaded afresh (`stuck`).
  *
  * Small, and free of the flight's code, which it loads: the meteoair page
  * loads it at once.
@@ -32,6 +34,8 @@ export interface FlightLoad {
   state: "idle" | "loading" | "ready" | "failed";
   loaded: number;
   total: number;
+  /** Failed for its code: a module the browser will not fetch again (it keeps a failed import's failure), so only loading the page afresh helps. */
+  stuck?: boolean;
 }
 
 export const flightLoad = writable<FlightLoad>({ state: "idle", loaded: 0, total: 0 });
@@ -61,6 +65,7 @@ export function preloadFlight(): Promise<void> {
   };
   // Once this try has failed, what of it still comes in says nothing more: the failure stands until the next.
   let over = false;
+  let stuck = false;
   const report = (state: FlightLoad["state"]) => {
     if (over) return;
     let [loaded, total] = [0, 0];
@@ -68,7 +73,7 @@ export function preloadFlight(): Promise<void> {
       loaded += Math.min(got, of);
       total += of;
     }
-    flightLoad.set({ state, loaded, total });
+    flightLoad.set({ state, loaded, total, stuck: state === "failed" && stuck });
   };
   const counted = (part: string) => (got: number, of: number) => {
     parts[part] = [got, Math.max(of, got)];
@@ -82,12 +87,16 @@ export function preloadFlight(): Promise<void> {
     promise,
     new Promise<never>((_, reject) => setTimeout(() => reject(new Error("the flight's code did not come")), ms)),
   ]);
-  const code = within(import("../../../components/studio/Studio.svelte"), CODE_MOST_MS).then(() => {
+  const failedCode = (error: unknown) => {
+    stuck = true;
+    throw error;
+  };
+  const code = within(import("../../../components/studio/Studio.svelte").catch(failedCode), CODE_MOST_MS).then(() => {
     parts.code = [CODE_BYTES, CODE_BYTES];
     report("loading");
   });
   const model = fetchAsset(`${AIRCRAFT_FILES}${AIRCRAFT_MODEL}`, AIRCRAFT_BYTES, counted("model"));
-  const aircraft = within(import("./warm"), CODE_MOST_MS).then(({ warmFlight }) => warmFlight((got, of, known) => {
+  const aircraft = within(import("./warm").catch(failedCode), CODE_MOST_MS).then(({ warmFlight }) => warmFlight((got, of, known) => {
     parts.textures = [got, known ? of : Math.max(of, TEXTURE_BYTES)];
     report("loading");
   }));

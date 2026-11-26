@@ -35,6 +35,7 @@ import { CalloutQueue, initialMemory, mixSound, VOLUME } from "./soundMix";
 import type { Callout, SoundInput, SoundMemory, Spoken } from "./soundMix";
 import { flightMuted, musicAvailable, pageAudio, plugMusic, setFlightMuted, wantMusic } from "./soundtrack";
 import { ThunderClips } from "./thunderClips";
+import { flightSettings } from "./settings";
 
 /** Whether the flight's sound is off, the music's with it (soundtrack.ts); the deck shows it. */
 export { flightMuted };
@@ -88,6 +89,9 @@ export class FlightSound {
   private saying = false;
   /** Takes the soundtrack out of the graph again. */
   private unplug: (() => void) | null = null;
+  private unlevel: (() => void) | null = null;
+  /** How loud the calls are said, of their own loudness: the reader's level for the flight's sounds. */
+  private voiceVolume = 1;
   private voiceless = typeof speechSynthesis === "undefined";
   private readonly listeners: Array<[EventTarget, string, EventListener, boolean]> = [];
 
@@ -100,6 +104,12 @@ export class FlightSound {
       this.out.connect(this.context.destination);
       this.graph = new SoundGraph(this.context, this.out);
       this.unplug = plugMusic(this.graph.musicInputs());
+      // As loud as the reader has set it, from the first sound on.
+      const graph = this.graph;
+      this.unlevel = flightSettings.subscribe(({ musicVolume, soundVolume }) => {
+        graph.setUserLevels(musicVolume, soundVolume);
+        this.voiceVolume = soundVolume;
+      });
     } catch {
       this.out?.disconnect();
       this.context = null;
@@ -262,6 +272,8 @@ export class FlightSound {
     for (const [target, type, listener, capture] of this.listeners) target.removeEventListener(type, listener, capture);
     this.listeners.length = 0;
     this.silence();
+    this.unlevel?.();
+    this.unlevel = null;
     if (this.suspendTimer !== null) clearTimeout(this.suspendTimer);
     wantMusic(false);
     const { context, graph, out } = this;
@@ -359,7 +371,7 @@ export class FlightSound {
         utterance.lang = "en-US";
         utterance.rate = 1.2;
         utterance.pitch = 0.8;
-        utterance.volume = 0.6;
+        utterance.volume = 0.6 * this.voiceVolume;
         utterance.onend = () => {
           if (this.utterance !== utterance) return;
           this.utterance = null;

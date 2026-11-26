@@ -11,7 +11,7 @@
 import { mount } from "svelte";
 import type { LayerManager } from "../LayerManager";
 import { studioFlightOnly } from "./store";
-import { readFlightLink } from "./flightLink";
+import { readFlightLink, withoutFlightLink } from "./flightLink";
 import { holdSideways } from "../sideways";
 
 export const FLIGHT_PAGE_HASH = "#meteoair";
@@ -32,6 +32,20 @@ export function radarMapHref(): string {
   url.hash = "";
   if (url.searchParams.has("layer")) url.searchParams.set("layer", "radar");
   return url.href;
+}
+
+/**
+ * The page loaded afresh, as a way out of a flight that will not load: the
+ * 3D map and everything of the flight gone with it, and on the flight's own
+ * page its words again. Without a flight's link or the plan's errand in the
+ * address, which would only board the same flight again. A new build waiting
+ * comes in with it (lib/updateHold.ts).
+ */
+export function restartPage(): void {
+  const url = new URL(window.location.href);
+  url.search = withoutFlightLink(url.search);
+  url.searchParams.delete("board");
+  window.location.replace(url.href);
 }
 
 /** Whether a location's hash asks for the flight's page, in whatever case it was typed. */
