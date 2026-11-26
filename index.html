@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html prefix="og: https://ogp.me/ns#">
+<html lang="en" prefix="og: https://ogp.me/ns#">
   <head>
-    <title>meteocool Storm Tracking &amp; Rain Radar</title>
+    <meta charset="utf-8" />
+    <title>meteocool – Live Rain Radar, Lightning &amp; Storm Tracking</title>
 
-    <meta charset="utf8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
     <!-- The hosts the map talks to, warmed before the bundle asks for them. -->
     <link rel="preconnect" href="https://map.meteocool.com" />
@@ -22,11 +22,50 @@
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
     <link rel="icon" type="image/png" href="favicon.ico" />
     <meta name="apple-itunes-app" content="app-id=1438364623">
+    <!-- What a search engine shows of the app; the description, canonical link and
+         OpenGraph tags are the Worker's (worker/index.ts), per request. -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebApplication",
+        "name": "meteocool",
+        "url": "https://meteocool.com/",
+        "description": "Free 3D rain radar for Europe with live rain, lightning and storm cell tracking, plus super-accurate push notifications, column maximum, VIL, Echo Tops and much more. Open source since 2018, for iOS, Android and the web. Chase it or avoid it.",
+        "applicationCategory": "WeatherApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "browserRequirements": "Requires JavaScript and WebGL.",
+        "isAccessibleForFree": true,
+        "offers": { "@type": "Offer", "price": "0", "priceCurrency": "EUR" },
+        "image": "https://meteocool.com/assets/logo.png",
+        "sameAs": [
+          "https://apps.apple.com/app/id1438364623",
+          "https://play.google.com/store/apps/details?id=com.meteocool",
+          "https://f-droid.org/packages/com.meteocool/",
+          "https://github.com/meteocool"
+        ]
+      }
+    </script>
 
   </head>
 
   <body>
+    <!-- For a reader, or a crawler, that runs no script: what the map is, and the pages it links. -->
+    <noscript>
+      <h1>meteocool – live rain radar, lightning &amp; storm tracking</h1>
+      <p>
+        meteocool has been a free, open-source weather map since 2018, now for all of Europe. It brings radar, lightning and
+        nowcasts together, tracks storm cells as they move and shows them as 3D clouds, with a
+        focus on severe weather. The map needs JavaScript.
+      </p>
+      <ul>
+        <li><a href="https://apps.apple.com/app/id1438364623">meteocool for iPhone and iPad</a></li>
+        <li><a href="https://play.google.com/store/apps/details?id=com.meteocool">meteocool on Google Play</a></li>
+        <li><a href="https://f-droid.org/packages/com.meteocool/">meteocool on F-Droid</a></li>
+        <li><a href="/meteoair.html">meteoair: fly through live clouds</a></li>
+        <li><a href="/imprint.html">Imprint and data licences</a></li>
+        <li><a href="/privacy.html">Privacy policy</a></li>
+      </ul>
+    </noscript>
     <script type="module" src="/src/entrypoints/main.ts"></script>
   </body>
-  <!-- better -->
 </html>

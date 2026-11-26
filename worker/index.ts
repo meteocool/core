@@ -15,8 +15,8 @@
  *
  * It also forwards the native apps' API calls to this environment's backend
  * (api.ts), answers the files that open shared links in the apps
- * (appLinks.ts), and the byte ranges a streamed soundtrack asks for
- * (ranges.ts).
+ * (appLinks.ts), the byte ranges a streamed soundtrack asks for
+ * (ranges.ts), and what search engines are told about each page (seo.ts).
  */
 
 import {
@@ -30,6 +30,7 @@ import {
 } from "./api";
 import { appLinksResponse } from "./appLinks";
 import { isStreamedPath, withByteRange } from "./ranges";
+import { aliasRedirect, canonicalUrl, seoFileResponse } from "./seo";
 import { PREVIEW_HEIGHT, PREVIEW_WIDTH, previewPathOf } from "../src/lib/sharePreview";
 
 interface Env {
@@ -62,6 +63,12 @@ interface Env {
   DATA_ORIGIN?: string;
   /** Origin of this environment's asset host, where storm volumes live. */
   ASSET_ORIGIN?: string;
+  /**
+   * The one origin whose pages are indexed, which every hostname of this
+   * environment names as its pages' canonical URL (seo.ts). Production's
+   * alone: unset, as on next and demo, every page is noindexed.
+   */
+  CANONICAL_ORIGIN?: string;
 }
 
 const DEFAULT_PREVIEW_ORIGIN = "https://api.meteocool.com";
@@ -70,16 +77,16 @@ const COPY = {
   de: {
     locale: "de_DE",
     alternate: "en_US",
-    title: "meteocool Regenradar & Lightning Tracking",
+    title: "meteocool – Regenradar, Blitze & Unwetter live",
     description:
-      "Kostenfreie Open-Source Echtzeit Regenradar & Storm Tracking App für iOS, Android und das Web.",
+      "Freies 3D-Regenradar für Europa mit Regen, Blitzen und Unwetterzellen-Tracking in Echtzeit, dazu supergenaue Push-Benachrichtigungen, Säulenmaximum, VIL, Echotops und vieles mehr. Seit 2018 kostenlos und Open Source, für iOS, Android und das Web. Chase it or avoid it.",
   },
   en: {
     locale: "en_US",
     alternate: "de_DE",
-    title: "meteocool Open Radar & Lightning Tracking",
+    title: "meteocool – Live Rain Radar, Lightning & Storm Tracking",
     description:
-      "Free & open-source real-time storm tracking for iOS, Android and the web. Currently available for Central Europe (DWD).",
+      "Free 3D rain radar for Europe with live rain, lightning and storm cell tracking, plus super-accurate push notifications, column maximum, VIL, Echo Tops and much more. Open source since 2018, for iOS, Android and the web. Chase it or avoid it.",
   },
 } as const;
 
@@ -129,12 +136,40 @@ class MetaTagHandler {
   }
 }
 
+/**
+ * An HTML page as search engines should see it, with `tags` added to its
+ * head: an indexed page on production's hostnames with its canonical link,
+ * and any other noindexed. Anything but HTML passes through untouched.
+ */
+function forSearch(response: Response, url: URL, env: Env, tags = ""): Response {
+  if (!(response.headers.get("Content-Type") ?? "").includes("text/html")) return response;
+
+  const canonical = env.CANONICAL_ORIGIN ? canonicalUrl(url.pathname, env.CANONICAL_ORIGIN) : null;
+  const head = `${tags}${canonical ? `<link rel="canonical" href="${escapeAttribute(canonical)}" />\n` : ""}`;
+  const page = head ? new HTMLRewriter().on("head", new MetaTagHandler(head)).transform(response) : response;
+  // A page without one URL to fold into: next's and demo's, and the apps' wrappers.
+  return canonical ? page : withHeader(page, "X-Robots-Tag", "noindex");
+}
+
+function withHeader(response: Response, name: string, value: string): Response {
+  const copy = new Response(response.body, response);
+  copy.headers.set(name, value);
+  return copy;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
-    const { searchParams, pathname } = new URL(request.url);
+    const url = new URL(request.url);
+    const { searchParams, pathname } = url;
 
     const appLinks = appLinksResponse(pathname);
     if (appLinks) return appLinks;
+    const seoFile = seoFileResponse(url, env.CANONICAL_ORIGIN);
+    if (seoFile) return seoFile;
+    if (request.method === "GET" || request.method === "HEAD") {
+      const redirect = aliasRedirect(url);
+      if (redirect) return redirect;
+    }
 
     if (env.API_ORIGIN && (isAppApiPath(pathname) || isAppApiRead(request.method, pathname))) {
       return fetch(appApiRequest(request, env.API_ORIGIN));
@@ -155,8 +190,8 @@ export default {
       whole.headers.delete("Range");
       return withByteRange(request, await env.ASSETS.fetch(whole));
     }
-    if (pathname !== "/" && pathname !== "/index.html") {
-      return env.ASSETS.fetch(request);
+    if (pathname !== "/") {
+      return forSearch(await env.ASSETS.fetch(request), url, env);
     }
 
     // `html_handling: "none"` in wrangler.jsonc keeps /ios.html and
@@ -166,17 +201,12 @@ export default {
     const assetUrl = new URL(request.url);
     assetUrl.pathname = "/index.html";
     const response = await env.ASSETS.fetch(new Request(assetUrl, request));
-    const contentType = response.headers.get("Content-Type") ?? "";
-    if (!contentType.includes("text/html")) {
-      return response;
-    }
-
     const tags = metaTags(
       request.url,
       searchParams,
       searchParams.get("share_lang"),
       env.PREVIEW_ORIGIN ?? DEFAULT_PREVIEW_ORIGIN,
     );
-    return new HTMLRewriter().on("head", new MetaTagHandler(tags)).transform(response);
+    return forSearch(response, url, env, tags);
   },
 };

@@ -60,6 +60,9 @@
         "traces": { "enabled": true },
       },
       "vars": {
+        // The only environment search engines index (worker/seo.ts); next and
+        // demo set none and are noindexed.
+        "CANONICAL_ORIGIN": "https://meteocool.com",
         "PREVIEW_ORIGIN": "https://api.meteocool.com",
         "API_ORIGIN": "https://api.meteocool.com",
         "DATA_ORIGIN": "https://data.meteocool.com",
