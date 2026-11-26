@@ -168,15 +168,16 @@ html.mc-aboard * {
 }
 /* Except the page's own words, while it is a page to read and not yet the
    plan or the flight: they sit on their wash, away from the map. Their
-   buttons and links stay presses. */
+   buttons and links stay presses, and the map a map where a small screen
+   has it in among them. */
 html.mc-flight-page:not(.mc-aboard) .mc-selectable,
 html.mc-flight-page:not(.mc-aboard) .mc-selectable * {
   -webkit-user-select: text !important;
   user-select: text !important;
   -webkit-touch-callout: default !important;
 }
-html.mc-flight-page:not(.mc-aboard) .mc-selectable :is(a, button, [role="button"], svg, img),
-html.mc-flight-page:not(.mc-aboard) .mc-selectable :is(a, button, [role="button"], svg, img) * {
+html.mc-flight-page:not(.mc-aboard) .mc-selectable :is(a, button, [role="button"], svg, img, #map),
+html.mc-flight-page:not(.mc-aboard) .mc-selectable :is(a, button, [role="button"], svg, img, #map) * {
   -webkit-user-select: none !important;
   user-select: none !important;
   -webkit-touch-callout: none !important;

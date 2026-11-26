@@ -92,6 +92,10 @@ import { radarMapHref } from "../../lib/studio/flightPage";
 import { claimMenuMusic } from "../../lib/studio/flight/soundtrack";
 import { curtainDown, lift, lower } from "../../lib/curtain";
 import { rainBoxes, rainView } from "../../lib/studio/flight/rainView";
+import DragPan from "ol/interaction/DragPan";
+import { noModifierKeys, primaryAction } from "ol/events/condition";
+import type OlMap from "ol/Map";
+import type MapBrowserEvent from "ol/MapBrowserEvent";
 
 export let layerManager: LayerManager;
 
@@ -165,8 +169,20 @@ const metered = connection?.type !== undefined || connection?.saveData
   : byTouch;
 const megabytes = Math.round(FLIGHT_BYTES / 1e6);
 
+/**
+ * Where the app keeps its map element while the page has it in among its
+ * words (`placeMap`); null while it is home. Declared before `board`, which
+ * a link's flight calls as the page is made.
+ */
+let mapHome: { parent: Node; next: Node | null } | null = null;
+/** The map's own pans while it is in among the words, and the two-finger one in their place (`cooperate`). Declared here for the same reason. */
+let cooperating: { map: OlMap; pans: DragPan[]; mine: DragPan } | null = null;
+
 function board(): void {
-  if (offered) layerManager.setTarget("cells3d", MAP_TARGET);
+  if (!offered) return;
+  // Full screen again before the 3D map is made in it, at the size it flies at.
+  homeMap();
+  layerManager.setTarget("cells3d", MAP_TARGET);
 }
 
 // The 3D map did not come up: no plan will lift the black, so its veil is shown at once.
@@ -274,15 +290,115 @@ let mainElement: HTMLElement | undefined;
 let windowElement: HTMLElement | undefined;
 
 /**
- * The part of the screen the map shows beside the words, px: on a narrow
- * window the gap above them, on a wide one everything right of them.
+ * On a small screen the map is not behind the words but in among them: the
+ * app's own map element, moved into its place on the page (`.window`, under
+ * the way in) and scrolled with the rest, and back where the app keeps it,
+ * filling the screen, for the 3D map and the flight, on a wide window, and
+ * once the page goes. In among the words one finger scrolls the page,
+ * over the map as anywhere, and two move the map (`cooperate`).
+ */
+function mapElement(): HTMLElement | null {
+  return document.getElementById(MAP_TARGET);
+}
+
+/**
+ * The map in among the words pans under two fingers only, as a map set in a
+ * page does: its pan swapped for one that lets a single finger go, which
+ * OpenLayers then leaves to the browser to scroll the page with (the
+ * viewport's `touch-action: pan-x pan-y`). A mouse drags it as ever. A
+ * pinch zooms it as ever; a second finger is what makes the pan the map's.
+ */
+function cooperate(): void {
+  if (cooperating) return;
+  const element = mapElement();
+  const map = layerManager.maps.find((candidate) => candidate.getTargetElement() === element);
+  if (!map) return;
+  const pans = map.getInteractions().getArray().filter((interaction): interaction is DragPan => interaction instanceof DragPan);
+  const mine: DragPan = new DragPan({
+    condition: (event: MapBrowserEvent) => (event.originalEvent as PointerEvent).pointerType === "touch"
+      ? mine.getPointerCount() > 1
+      : noModifierKeys(event) && primaryAction(event),
+  });
+  for (const pan of pans) map.removeInteraction(pan);
+  map.addInteraction(mine);
+  cooperating = { map, pans, mine };
+}
+
+function stopCooperating(): void {
+  if (!cooperating) return;
+  const { map, pans, mine } = cooperating;
+  cooperating = null;
+  map.removeInteraction(mine);
+  for (const pan of pans) map.addInteraction(pan);
+}
+
+/** Said over the map for a moment when one finger is dragged across it, which scrolls the page instead. */
+let twoFingers = false;
+let twoFingersTimer: ReturnType<typeof setTimeout> | null = null;
+function oneFinger(event: TouchEvent): void {
+  if (event.touches.length !== 1) {
+    twoFingers = false;
+    return;
+  }
+  twoFingers = true;
+  if (twoFingersTimer !== null) clearTimeout(twoFingersTimer);
+  twoFingersTimer = setTimeout(() => { twoFingers = false; }, 1400);
+}
+onDestroy(() => { if (twoFingersTimer !== null) clearTimeout(twoFingersTimer); });
+
+/** The map back where the app keeps it. */
+function homeMap(): void {
+  stopCooperating();
+  const map = mapElement();
+  if (!map || !mapHome) return;
+  const { parent, next } = mapHome;
+  mapHome = null;
+  parent.insertBefore(map, next?.parentNode === parent ? next : null);
+}
+
+/** The map into the page where the page has a place for it (a small screen) and is up; home otherwise. */
+function placeMap(): void {
+  const map = mapElement();
+  const wanted = Boolean(windowElement && !aloft && windowElement.getClientRects().length > 0);
+  if (!map || !windowElement || !wanted) {
+    homeMap();
+    return;
+  }
+  if (map.parentNode !== windowElement) {
+    if (!mapHome && map.parentNode) mapHome = { parent: map.parentNode, next: map.nextSibling };
+    windowElement.appendChild(map);
+  }
+  cooperate();
+}
+
+/** The map's place on the page: followed as the page goes from wide to small and back. */
+function mapWindow(node: HTMLElement) {
+  windowElement = node;
+  const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(placeMap);
+  observer?.observe(node);
+  node.addEventListener("touchmove", oneFinger, { passive: true });
+  placeMap();
+  return {
+    destroy() {
+      observer?.disconnect();
+      node.removeEventListener("touchmove", oneFinger);
+      windowElement = undefined;
+      homeMap();
+    },
+  };
+}
+onDestroy(homeMap);
+
+/**
+ * The part of the screen the map shows beside the words, px: on a small
+ * screen its own place on the page, on a wide one everything right of them.
  */
 function mapRegion(): { left: number; top: number; right: number; bottom: number } | null {
   if (!landingElement || !mainElement) return null;
   const frame = landingElement.getBoundingClientRect();
   if (windowElement && windowElement.offsetHeight > 0) {
-    const gap = windowElement.getBoundingClientRect();
-    return { left: frame.left, top: gap.top, right: frame.right, bottom: gap.bottom };
+    const place = windowElement.getBoundingClientRect();
+    return { left: place.left, top: place.top, right: place.right, bottom: place.bottom };
   }
   const words = mainElement.getBoundingClientRect();
   return { left: Math.min(words.right + 24, frame.right - 160), top: frame.top, right: frame.right, bottom: frame.bottom };
@@ -360,6 +476,8 @@ onDestroy(studioFlying.subscribe((flying) => {
 }));
 
 $: aloft = $sharedActiveCap === "cells3d" || linked;
+// Before the page goes for the 3D map: the map is home before its place on the page is.
+$: if (aloft) homeMap();
 
 /* The theme plays while the page is a menu: its words, or the plan over the 3D map; not under a flight, nor while a link's flight boards. */
 let release: (() => void) | null = null;
@@ -415,9 +533,6 @@ const guides = [
       </div>
     </header>
 
-    <!-- On a narrow window, the map seen between the page's top and its words, which scroll up over it. -->
-    <div class="window" bind:this={windowElement}></div>
-
     <div class="sheet">
     <main class="mc-selectable" bind:this={mainElement}>
       <p class="eyebrow">
@@ -459,6 +574,13 @@ const guides = [
           <button type="button" class="link" on:click={keepLive}>{$_("studio.flight.page.replay_live")}</button>
         </p>
       {/if}
+
+      <!-- On a small screen, the map: in among the words, under the way in, and scrolled with them. -->
+      <div class="window" use:mapWindow>
+        {#if twoFingers}
+          <p class="two-fingers" transition:fade={{ duration: 160 }}>{$_("studio.flight.page.two_fingers")}</p>
+        {/if}
+      </div>
 
       {#if offered}
         <!-- Below the way in: what the flight is for, what to try in it and how to fly it. -->
@@ -920,38 +1042,65 @@ const guides = [
     cursor: pointer;
   }
 
-  /* A narrow window: a page that scrolls. The map at its top, between the
-     header and the words, and the words on a sheet of the wash below, which
-     scrolls up over the map. The map takes the touches where it shows: the
-     page scrolls from the sheet. The page's own size, which is not the
-     screen's where it is drawn on its side (lib/sideways.ts). A phone on its
-     side is wide enough for the desk's page but far too low for it: that is
-     the phone's page too. */
+  /* A small screen: a page that scrolls, the map in among its words. The
+     header, the words and the way in first; the map under them, in a frame
+     of its own on the page (`.window`, which the app's map element is moved
+     into), and the rest of the words below it. The whole page takes the
+     touches and scrolls from anywhere but the map, which pans. The page's
+     own size, which is not the screen's where it is drawn on its side
+     (lib/sideways.ts). A phone on its side is wide enough for the desk's
+     page but far too low for it: that is the phone's page too. */
   @container mc-frame (max-width: 760px) or (max-height: 500px) {
     .landing {
       display: block;
       padding: 0;
-      background: none;
+      background: #070b11;
+      text-shadow: none;
+      pointer-events: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .landing::before { display: none; }
     header {
-      padding: max(14px, calc(var(--mc-safe-top) + 8px)) max(18px, calc(var(--mc-safe-right) + 12px)) 12px max(18px, calc(var(--mc-safe-left) + 12px));
-      background: linear-gradient(180deg, rgba(7, 11, 17, 0.78) 0%, rgba(7, 11, 17, 0) 100%);
+      padding: max(14px, calc(var(--mc-safe-top) + 8px)) max(18px, calc(var(--mc-safe-right) + 12px)) 4px max(18px, calc(var(--mc-safe-left) + 12px));
     }
-    /* Enough of the map to see the weather on, and the way in still on the first screen below it. */
-    .window { display: block; height: clamp(150px, 34svh, 420px); }
-    .sheet {
+    /* The map set into the page, edge to edge, fading in out of the page's
+       dark at its top and out again at its bottom. Enough of it to see the
+       weather on, never so much of the screen that the page cannot be
+       scrolled past it. */
+    .window {
       display: block;
       position: relative;
-      min-height: 50svh;
-      padding: 24px max(18px, calc(var(--mc-safe-right) + 12px)) calc(22px + var(--mc-safe-bottom)) max(18px, calc(var(--mc-safe-left) + 12px));
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 22px 22px 0 0;
-      background: rgba(7, 11, 17, 0.9);
-      -webkit-backdrop-filter: blur(14px);
-      backdrop-filter: blur(14px);
-      box-shadow: 0 -18px 40px rgba(0, 0, 0, 0.35);
-      pointer-events: auto;
+      height: clamp(220px, 72svh, 520px);
+      height: clamp(220px, 72cqh, 520px);
+      margin: 10px calc(-1 * var(--sheet-right)) 0 calc(-1 * var(--sheet-left));
+      overflow: hidden;
+      --fade: clamp(36px, 16%, 90px);
+      -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 var(--fade), #000 calc(100% - var(--fade)), transparent 100%);
+      mask-image: linear-gradient(180deg, transparent 0, #000 var(--fade), #000 calc(100% - var(--fade)), transparent 100%);
+    }
+    /* The map's credits stand clear of the fades. */
+    .window :global(.ol-attribution) { bottom: var(--fade) !important; max-height: calc(100% - 2 * var(--fade)); }
+    .two-fingers {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      display: grid;
+      place-items: center;
+      margin: 0;
+      padding: 0 24px;
+      background: rgba(7, 11, 17, 0.55);
+      color: var(--ink);
+      font-size: 17px;
+      font-weight: 600;
+      text-align: center;
+      text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+      pointer-events: none;
+    }
+    .sheet {
+      --sheet-left: max(18px, calc(var(--mc-safe-left) + 12px));
+      --sheet-right: max(18px, calc(var(--mc-safe-right) + 12px));
+      display: block;
+      padding: 18px var(--sheet-right) calc(22px + var(--mc-safe-bottom)) var(--sheet-left);
     }
     main { width: 100%; }
     .screen { width: 38px; padding: 0; justify-content: center; }

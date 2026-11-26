@@ -44,15 +44,23 @@ const boxOf = (page: Page, selector: string) => page.evaluate((query) => {
   return { x: rect.left, y: rect.top, width: rect.width, height: rect.height };
 }, selector);
 
-/** A finger put down and moved along points of the picture, still down at the end; the function returned lifts it. */
-async function drag(page: Page, cdp: CDPSession, points: Array<[number, number]>): Promise<() => Promise<void>> {
+/**
+ * A finger put down and moved along points of the picture, still down at the
+ * end; the function returned lifts it. With `beside`, a second finger as
+ * far from the first in the picture, moving with it.
+ */
+async function drag(page: Page, cdp: CDPSession, points: Array<[number, number]>, beside?: [number, number]): Promise<() => Promise<void>> {
   const turn = await turnOf(page);
-  const [[x, y], ...rest] = points.map((point) => onScreen(point, turn));
-  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: [{ x, y, id: 1 }] });
-  for (const [nextX, nextY] of rest) {
+  const fingers = ([x, y]: [number, number]) => [
+    { x: onScreen([x, y], turn)[0], y: onScreen([x, y], turn)[1], id: 1 },
+    ...(beside ? [{ x: onScreen([x + beside[0], y + beside[1]], turn)[0], y: onScreen([x + beside[0], y + beside[1]], turn)[1], id: 2 }] : []),
+  ];
+  const [first, ...rest] = points;
+  await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: fingers(first) });
+  for (const point of rest) {
     // A finger's moves come a frame or two apart.
     await page.waitForTimeout(30);
-    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: [{ x: nextX, y: nextY, id: 1 }] });
+    await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: fingers(point) });
   }
   // The browser hands a move to the page with the next frame: read on before that, it is the move before.
   await page.evaluate(() => new Promise((done) => requestAnimationFrame(() => requestAnimationFrame(done))));
@@ -84,12 +92,19 @@ test.describe("a phone held upright, the page forced on its side", () => {
     await expect(landing(page)).toBeVisible({ timeout: 30_000 });
     expect(await turnOf(page)).toBe(90);
     expect(await page.evaluate(() => [document.body.clientWidth, document.body.clientHeight])).toEqual([PHONE.height, PHONE.width]);
-    // The radar map is laid out at the picture's size too, and moves the way the finger goes across the picture.
-    await expect.poll(() => page.evaluate(() => (window as any).lm.maps[0].getSize())).toEqual([PHONE.height, PHONE.width]);
+    // The radar map is in its place among the page's words, scrolled to, and moves the way the finger goes across the picture.
+    await page.evaluate(() => document.querySelector(".landing .window")!.scrollIntoView({ block: "center" }));
+    await expect.poll(() => page.evaluate(() => {
+      const map = document.getElementById("map")!;
+      return JSON.stringify((window as any).lm.maps[0].getSize()) === JSON.stringify([map.clientWidth, map.clientHeight]);
+    })).toBe(true);
     await page.evaluate(() => new Promise((resolve) => { (window as any).lm.maps[0].once("rendercomplete", resolve); (window as any).lm.maps[0].render(); }));
     const center = () => page.evaluate(() => (window as any).lm.maps[0].getView().getCenter() as number[]);
     const before = await center();
-    const lift = await drag(page, cdp, [[600, 200], [620, 200], [660, 200], [700, 200]]);
+    const map = await boxOf(page, "#map");
+    const across = (share: number): [number, number] => [map.x + map.width * share, map.y + map.height / 2 - 30];
+    // Set into the page, the map moves under two fingers, which go across the picture together.
+    const lift = await drag(page, cdp, [across(0.3), across(0.35), across(0.45), across(0.55)], [0, 60]);
     await lift();
     const after = await center();
     // Dragged east across the picture, the map shows what is to the west: its centre goes west, not north or south.

@@ -214,6 +214,7 @@
         "fly_control": "Stay in control.",
         "fly_control_text": "The storm pushes back. Hold your speed and height.",
         "tracks": "Or choose one of your recent flights on the map to fly it again.",
+        "two_fingers": "Use two fingers to move the map",
         "controls": "Fly with a keyboard or gamepad.",
         "controls_touch": "Turn your phone sideways to fly.",
         "unavailable": "meteoair needs meteocool's 3D map, and this page does not have it.",

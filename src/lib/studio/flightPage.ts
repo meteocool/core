@@ -49,7 +49,9 @@ export function enterFlightPage(): void {
   document.addEventListener("selectstart", (event) => {
     const node = event.target instanceof Node ? event.target : null;
     const element = node instanceof Element ? node : node?.parentElement;
-    const words = element?.closest(".mc-selectable") && !document.documentElement.classList.contains("mc-aboard");
+    // The nearest of the two: the map, which a small screen's page has in among its words, is not words.
+    const words = element?.closest(".mc-selectable, #map")?.classList.contains("mc-selectable")
+      && !document.documentElement.classList.contains("mc-aboard");
     if (!words) event.preventDefault();
   });
 }

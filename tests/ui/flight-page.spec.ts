@@ -240,12 +240,70 @@ test("the deck's sound button is the plan's switch", async ({ page }, testInfo) 
   await expect(sound).toHaveAttribute("aria-pressed", muted === "1" ? "true" : "false");
 });
 
-test("on a phone held sideways, the page is a phone's: the map above, the words on a sheet below that scrolls", async ({ page }) => {
+test("on a phone held sideways, the page is a phone's: one that scrolls, the map in among its words", async ({ page }) => {
   await page.setViewportSize({ width: 874, height: 402 });
   await page.goto(`/meteoair.html?${VIEW}`);
   await expect(landing(page)).toBeVisible({ timeout: 30_000 });
-  await expect(landing(page).locator(".window")).toBeVisible();
-  await expect(landing(page).locator(".sheet")).toHaveCSS("position", "relative");
+  // The map under the way in, in its place on the page, and the page taller than the screen, scrolled from anywhere.
+  await expect(landing(page).locator(".window #map")).toBeVisible();
+  await expect(landing(page)).toHaveCSS("pointer-events", "auto");
+  const [map, button] = await Promise.all([
+    landing(page).locator(".window").boundingBox(), board(page).boundingBox(),
+  ]);
+  expect(map!.y).toBeGreaterThan(button!.y + button!.height);
+  expect(await landing(page).evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
+  await landing(page).evaluate((element) => { element.scrollTop = element.scrollHeight; });
+  await expect(page.getByRole("heading", { level: 2 }).first()).toBeInViewport();
+  // On a wide window the map is the whole screen behind the words again.
+  await page.setViewportSize({ width: 1280, height: 800 });
+  await expect.poll(() => page.evaluate(() => document.getElementById("map")?.parentElement === document.body)).toBe(true);
+});
+
+test.describe("on a phone, the map set into the page", () => {
+  test.use({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+
+  test("one finger scrolls the page over the map as anywhere, two move the map", async ({ page }, testInfo) => {
+    test.skip(testInfo.project.name !== "desktop", "the phone is Chromium's, for its touches");
+    const cdp = await page.context().newCDPSession(page);
+    await page.goto(`/meteoair.html?${VIEW}`);
+    await expect(landing(page).locator(".window #map")).toBeVisible({ timeout: 30_000 });
+    await landing(page).locator(".window").evaluate((element) => element.scrollIntoView({ block: "center" }));
+    // The page's own look at the rain over, and the map drawn.
+    await page.waitForTimeout(1_500);
+    await expect.poll(() => page.evaluate(() => (window as any).lm.maps[0].getView().getAnimating()), { timeout: 15_000 }).toBe(false);
+    const box = (await landing(page).locator(".window").boundingBox())!;
+    const [x, y] = [box.x + box.width / 2, box.y + box.height / 2];
+    const center = () => page.evaluate(() => (window as any).lm.maps[0].getView().getCenter() as number[]);
+    const scrolled = () => landing(page).evaluate((element) => element.scrollTop);
+    const settle = () => page.waitForTimeout(700);
+    const touch = async (moves: Array<Array<[number, number]>>) => {
+      const points = (at: Array<[number, number]>) => at.map(([px, py], id) => ({ x: px, y: py, id }));
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchStart", touchPoints: points(moves[0]) });
+      for (const at of moves.slice(1)) {
+        await page.waitForTimeout(30);
+        await cdp.send("Input.dispatchTouchEvent", { type: "touchMove", touchPoints: points(at) });
+      }
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchEnd", touchPoints: [] });
+    };
+    const steps = (from: number, to: number) => Array.from({ length: 7 }, (_, i) => from + ((to - from) * i) / 6);
+
+    // One finger up across the map: the page scrolls, the map stays where it is, and says how it moves.
+    let [before, top] = [await center(), await scrolled()];
+    await touch(steps(y, y - 140).map((at) => [[x, at]]));
+    await expect(landing(page).locator(".two-fingers")).toBeVisible();
+    await settle();
+    expect(await scrolled()).toBeGreaterThan(top + 60);
+    expect(await center()).toEqual(before);
+
+    // Two fingers sideways across it: the map moves, the page does not.
+    [before, top] = [await center(), await scrolled()];
+    const now = (await landing(page).locator(".window").boundingBox())!;
+    const mid = now.y + now.height / 2;
+    await touch(steps(x - 40, x + 80).map((at) => [[at - 50, mid - 30], [at + 50, mid + 30]]));
+    await settle();
+    expect(await scrolled()).toBe(top);
+    expect((await center())[0]).toBeLessThan(before[0]);
+  });
 });
 
 test("the music is played by Web Audio, by no media element, so the page is not the system's player", async ({ page }) => {
