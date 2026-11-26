@@ -30,6 +30,7 @@ import {
 } from "./api";
 import { appLinksResponse } from "./appLinks";
 import { isStreamedPath, withByteRange } from "./ranges";
+import { alternateLocales, previewCopy } from "./previewCopy";
 import { aliasRedirect, canonicalUrl, seoFileResponse } from "./seo";
 import { PREVIEW_HEIGHT, PREVIEW_WIDTH, previewPathOf } from "../src/lib/sharePreview";
 
@@ -73,23 +74,6 @@ interface Env {
 
 const DEFAULT_PREVIEW_ORIGIN = "https://api.meteocool.com";
 
-const COPY = {
-  de: {
-    locale: "de_DE",
-    alternate: "en_US",
-    title: "meteocool – Regenradar, Blitze & Unwetter live",
-    description:
-      "Freies 3D-Regenradar für Europa mit Regen, Blitzen und Unwetterzellen-Tracking in Echtzeit, dazu supergenaue Push-Benachrichtigungen, Säulenmaximum, VIL, Echotops und vieles mehr. Seit 2018 kostenlos und Open Source, für iOS, Android und das Web. Chase it or avoid it.",
-  },
-  en: {
-    locale: "en_US",
-    alternate: "de_DE",
-    title: "meteocool – Live Rain Radar, Lightning & Storm Tracking",
-    description:
-      "Free 3D rain radar for Europe with live rain, lightning and storm cell tracking, plus super-accurate push notifications, column maximum, VIL, Echo Tops and much more. Open source since 2018, for iOS, Android and the web. Chase it or avoid it.",
-  },
-} as const;
-
 function escapeAttribute(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -104,7 +88,10 @@ function metaTags(
   lang: string | null,
   previewOrigin: string,
 ): string {
-  const copy = lang === "de" ? COPY.de : COPY.en;
+  const copy = previewCopy(lang);
+  const alternates = alternateLocales(copy)
+    .map((locale) => `<meta property="og:locale:alternate" content="${locale}" />`)
+    .join("\n      ");
   // The same card the share dialog shows the sender (src/lib/sharePreview.ts):
   // the link's view, at the moment it shows.
   const preview = `${previewOrigin}${previewPathOf(params)}`;
@@ -113,7 +100,7 @@ function metaTags(
       <meta property="og:title" content="${escapeAttribute(copy.title)}" />
       <meta property="og:description" content="${escapeAttribute(copy.description)}" />
       <meta property="og:locale" content="${copy.locale}" />
-      <meta property="og:locale:alternate" content="${copy.alternate}" />
+      ${alternates}
       <meta property="og:type" content="website" />
       <meta property="og:url" content="${escapeAttribute(url)}" />
       <meta property="og:image" content="${escapeAttribute(preview)}" />

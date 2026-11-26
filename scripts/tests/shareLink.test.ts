@@ -28,9 +28,12 @@ test("a link from an app's page leaves the page for the site's root", () => {
   assert.equal(url, `https://app.meteocool.com/?layer=cells3d&cell=${CELL}&shared=20261006T1234Z`);
 });
 
-test("the preview is asked for in German for a German sender, and in English otherwise", () => {
+test("the preview is asked for in the sender's language, and in English otherwise", () => {
   assert.match(shareUrl("https://next.meteocool.com", { layer: "radar" }, NOW, "de-AT"), /^https:\/\/next\.meteocool\.com\/\?share_lang=de&layer=radar&/);
-  assert.doesNotMatch(shareUrl("https://next.meteocool.com", { layer: "radar" }, NOW, "fr"), /share_lang/);
+  assert.match(shareUrl("https://next.meteocool.com", { layer: "radar" }, NOW, "fr-FR"), /\?share_lang=fr&/);
+  assert.match(shareUrl("https://next.meteocool.com", { layer: "radar" }, NOW, "no"), /\?share_lang=nb&/);
+  assert.doesNotMatch(shareUrl("https://next.meteocool.com", { layer: "radar" }, NOW, "ja"), /share_lang/);
+  assert.doesNotMatch(shareUrl("https://next.meteocool.com", { layer: "radar" }, NOW, "en-GB"), /share_lang/);
   assert.doesNotMatch(shareUrl("https://next.meteocool.com", { layer: "radar" }, NOW, null), /share_lang/);
 });
 

@@ -18,6 +18,7 @@
  */
 import { linkSearch } from "./deepLink";
 import type { LinkState } from "./deepLink";
+import { normaliseLocale } from "../locale/choose";
 
 /**
  * How old a link gets before its receiver is told. The radar steps every five
@@ -32,9 +33,6 @@ export const STALE_AFTER_S = 15 * 60;
  */
 const SKEW_S = 5 * 60;
 
-/** The languages the Worker's link preview is written in, besides English. */
-const PREVIEW_LANGUAGES = ["de"];
-
 /**
  * The URL to send for `state`, stamped `now` (unix seconds).
  *
@@ -43,8 +41,9 @@ const PREVIEW_LANGUAGES = ["de"];
  * default and not written.
  */
 export function shareUrl(origin: string, state: LinkState, now: number, language?: string | null): string {
-  const lang = (language ?? "").slice(0, 2).toLowerCase();
-  const foreign = PREVIEW_LANGUAGES.includes(lang) ? `share_lang=${lang}` : "";
+  // The Worker's preview is written in every language the app speaks (worker/previewCopy.ts).
+  const lang = normaliseLocale(language);
+  const foreign = lang && lang !== "en" ? `share_lang=${lang}` : "";
   const search = linkSearch(foreign, { ...state, shared: Math.floor(now / 60) * 60 });
   return `${origin.replace(/\/+$/, "")}/${search}`;
 }
