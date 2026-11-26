@@ -5,6 +5,7 @@ import {
   fixtureFile, fulfilBlankTile, isApi, isLocal, isStormGroups, isTile, quietLightningSocket, readRecording,
   type RecordedResponse,
 } from "./offline";
+import { standInBoard } from "./board";
 
 /**
  * `test` for the UI specs: every page offline and on the recording's clock.
@@ -88,6 +89,8 @@ async function offline(page: Page, unrecorded: string[]): Promise<void> {
     unrecorded.push(`${request.method()} ${url.host}${url.pathname}`);
     return route.abort("blockedbyclient");
   });
+  // meteoair's board and Turnstile, scripted rather than recorded (board.ts): after the catch-all, so they answer first.
+  await standInBoard(page);
 }
 
 export { expect };

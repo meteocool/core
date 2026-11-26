@@ -61,6 +61,9 @@ import { holdSideways } from "../../lib/sideways";
 import { curtainDown, lower, throughBlack } from "../../lib/curtain";
 import { reportNotice } from "../../lib/Toast";
 import { archiveWindow } from "../../stores";
+import { demoWeather } from "../../weatherSource";
+import { boardFlight, boardSitekey } from "../../lib/studio/flight/board/config";
+import type { BoardDeck } from "./flight/board/meteoairBoard";
 
 /** The 3D map. */
 export let stage: Stage;
@@ -157,6 +160,29 @@ function takeOff(flightPlan: FlightPlan): void {
   pilot.start();
   stopRecording = recordTrack(pilot, trackAsked);
   trackAsked = null;
+  joinBoard(pilot);
+}
+
+/**
+ * The flight on meteoair's board, where it goes on one: a flight in this
+ * site's own weather as it is now, never one through a past moment. Its
+ * code, and Turnstile's, are loaded only now (flight/board/meteoairBoard.ts).
+ */
+let scoreboard: BoardDeck | null = null;
+const boardKey = boardSitekey({ mode: import.meta.env.MODE, dev: import.meta.env.DEV, demoWeather });
+
+function joinBoard(flying: Pilot): void {
+  if (!boardFlight({ sitekey: boardKey, pastWindow: get(archiveWindow) !== null, showcase: import.meta.env.MODE === "demo" })) return;
+  import("./flight/board/meteoairBoard").then(({ joinBoard: join }) => {
+    // Landed while it loaded: no board for a flight that is over.
+    if (pilot !== flying || !boardKey) return;
+    scoreboard = join(flying, boardKey);
+  }, () => undefined);
+}
+
+function leaveBoard(): void {
+  scoreboard?.leave();
+  scoreboard = null;
 }
 
 /** Put the plan away: back to Studio's tools, or off the flight's own page's map altogether. */
@@ -185,6 +211,7 @@ function backToMap(): void {
 function land(): void {
   const flying = pilot;
   pilot = null;
+  leaveBoard();
   // Written down before the flight lets go of what it ended as.
   stopRecording?.();
   stopRecording = null;
@@ -361,7 +388,7 @@ function keydown(event: KeyboardEvent) {
 
 <div class="studio" class:flying={$studioFlying} class:planning bind:clientWidth={width} bind:clientHeight={height}>
   {#if $studioFlying && pilot}
-    <FlightDeck {pilot} {credits} {share} endsOnMap={back !== null} />
+    <FlightDeck {pilot} {credits} {share} board={scoreboard} endsOnMap={back !== null} />
   {:else if loading}
     <FlightLoading onretry={retry} onback={() => cut(unload)} />
   {:else if boarding}

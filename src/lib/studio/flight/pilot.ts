@@ -322,6 +322,14 @@ export interface Telemetry {
   best: number;
   /** Seconds flown. */
   time: number;
+  /**
+   * Which of this take-off's flights it is (a new one after every start
+   * again, next storm, or crash), and the seconds of flight flown in it:
+   * what its score counts, faster under warp and still while it is paused
+   * or out of sight.
+   */
+  flight: number;
+  flown: number;
 }
 
 /** How long a bonus earned is said, seconds. */
@@ -491,7 +499,7 @@ export class Pilot {
       state: this.startState(), ias: 0, mach: 0, ground: null, radarAltitude: null, target: null, dbz: null,
       cloud: 0, rain: 0, turbulence: 0, severity: 0, hail: 0, ice: 0, frost: 0, wet: 0, charge: 0, sun: 1, sky: 1, draft: 0, temperature: 0, fps: 60, quality: 1,
       storms: stage.stormTiles(), marks: [], rays: null, cut: null, chart: { storms: [], target: null }, fade: 0, flash: 0, brake: false, time: 0,
-      gear: 0, flapLever: 0, rolled: 0, score: NO_SCORE, best: bestScore(),
+      gear: 0, flapLever: 0, rolled: 0, score: NO_SCORE, best: bestScore(), flight: 1, flown: 0,
     };
   }
 
@@ -1277,6 +1285,7 @@ export class Pilot {
        flat, as the same bank and climb unwarped. */
     const flown = dt * warp;
     this.airTime += flown;
+    telemetry.flown += flown;
     // The rough air, and what the damage adds to it: a surface's jolt as it goes, and the buffet of what is left.
     const rough = roughAir(this.airTime, turbulence, air.draft, severity);
     const shaken = shudder(this.damage);
@@ -1603,6 +1612,8 @@ export class Pilot {
       this.telemetry.charge = 0;
       // A new aircraft: whole, with no ice on it, and nothing of the last one's end left to watch.
       this.flights += 1;
+      this.telemetry.flight = this.flights;
+      this.telemetry.flown = 0;
       this.damage = intact(this.flights);
       this.status({ lost: [] });
       // And no hand on its controls: a key, or the mouse on the stick, held from the last one only by a lost release.

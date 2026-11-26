@@ -25,6 +25,10 @@ const here = (file: string) => fileURLToPath(new URL(file, import.meta.url));
  *   MC_API=https://api.meteocool.com MC_SOCKET=https://api.ng.meteocool.com \
  *   MC_DATA=https://data.meteocool.com MC_TILES=https://tiles-a.meteocool.com \
  *   npm run dev
+ *
+ * The meteoair board API (`/v3/air`, its socket included) goes where the
+ * rest of the API does, or to MC_AIR: a board running locally, say, which
+ * alone takes the dev server's Turnstile test key.
  */
 function proxyTargets(mode: string) {
   const localStack = mode === "localstack";
@@ -33,6 +37,7 @@ function proxyTargets(mode: string) {
   return {
     API,
     SOCKET: process.env.MC_SOCKET ?? API,
+    AIR: process.env.MC_AIR ?? API,
     DATA: process.env.MC_DATA
       ?? (localStack ? "http://127.0.0.1:5002" : "https://data-staging.meteocool.com"),
     TILES: process.env.MC_TILES
@@ -83,7 +88,7 @@ if (process.env.CF_PAGES && !process.env.MC_ALLOW_PAGES_BUILD) {
 }
 
 export default defineConfig(({ mode }) => {
-  const { API, SOCKET, DATA, TILES, GEOCODING } = proxyTargets(mode);
+  const { API, SOCKET, AIR, DATA, TILES, GEOCODING } = proxyTargets(mode);
 
   return {
     plugins: [
@@ -134,6 +139,9 @@ export default defineConfig(({ mode }) => {
             // by few and only from #meetyoucool; it brings
             // every country's texts above, also left to first use.
             "**/MeetYouCool-*",
+            // meteoair's board and its card, loaded when a flight goes on the
+            // board (components/studio/Studio.svelte): left to first use.
+            "**/meteoairBoard-*",
           ],
         },
       }),
@@ -183,6 +191,8 @@ export default defineConfig(({ mode }) => {
       port: 8080,
       proxy: {
         "/socket.io": { target: SOCKET, ws: true, changeOrigin: true },
+        // Before /v3, which would take it otherwise.
+        "/v3/air": { target: AIR, ws: true, changeOrigin: true },
         "/v3": { target: API, changeOrigin: true },
         "/lightning_cache": { target: DATA, changeOrigin: true },
         "/cells": { target: DATA, changeOrigin: true },

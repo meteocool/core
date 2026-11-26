@@ -56,6 +56,7 @@ import { flightMuted } from "../../../lib/studio/flight/sound";
 import MusicIcon from "./MusicIcon.svelte";
 import { touchCapable, touchControls } from "../../../lib/studio/flight/touch";
 import { frameDelta, pointWithin } from "../../../lib/sideways";
+import type { BoardDeck } from "./board/meteoairBoard";
 
 export let pilot: Pilot;
 /** The credits the map shows, which the deck shows in its place. */
@@ -64,6 +65,8 @@ export let credits: () => string;
 export let share: ((anchor: Element | null) => void) | null = null;
 /** Whether ending the flight goes back to the map it was asked from ("Fly from here"), not to Studio or the plan. */
 export let endsOnMap = false;
+/** The flight on meteoair's board, for a flight that is on one (board/meteoairBoard.ts): its parts of the deck come with it. */
+export let board: BoardDeck | null = null;
 
 /* The cockpit's screens and lights: never in the page, only on the model. */
 const cockpit = new CockpitScreens();
@@ -508,11 +511,15 @@ const WARNINGS = {
       {/each}
     </div>
     <dl class="readouts">
-      <div class="corner-nw">
+      <div class="corner-nw" class:boarded={board !== null}>
         <dt>{$_("studio.flight.readout.speed")}</dt><dd bind:this={readouts.speed}></dd>
         <!-- The score: earned in a storm's cloud, faster the stronger its echo, and lit while it is; and the best flown here. -->
         <dt>{$_("studio.flight.readout.score")}</dt><dd class="score" bind:this={readouts.score}></dd>
-        <dt>{$_("studio.flight.readout.best")}</dt><dd bind:this={readouts.best}></dd>
+        {#if board}
+          <!-- Beside it, the board's, which counts. -->
+          <svelte:component this={board.Readout} {board} />
+        {/if}
+        <dt class="best">{$_("studio.flight.readout.best")}</dt><dd class="best" bind:this={readouts.best}></dd>
       </div>
       <div class="corner-ne" class:beside-screen={canFullscreen}>
         <dt>{$_("studio.flight.readout.altitude")}</dt><dd bind:this={readouts.altitude}></dd>
@@ -582,6 +589,9 @@ const WARNINGS = {
     {/if}
     {#if status.paused && !$touchControls}
       <p class="note">{$_("studio.flight.paused")}</p>
+    {/if}
+    {#if board && status.view !== "clean"}
+      <svelte:component this={board.Note} {board} />
     {/if}
   </div>
 
@@ -696,6 +706,10 @@ const WARNINGS = {
   {#if touchCapable()}
     <!-- A phone's stick, lever and buttons: over the readouts, under the question below. -->
     <TouchControls {pilot} />
+  {/if}
+  {#if board && status.view !== "clean"}
+    <!-- The day's board, on a card from the board's readout. -->
+    <svelte:component this={board.Card} {board} />
   {/if}
   {#if status.leaving}
     <!-- Asked before a flight ends: Escape alone does not end one. -->
@@ -827,8 +841,9 @@ const WARNINGS = {
     background: rgba(5, 7, 10, 0.55);
     font-variant-numeric: tabular-nums;
   }
-  .readouts dt { color: #9aa3ad; font: 600 11px/1.4 var(--mc-font); text-transform: uppercase; letter-spacing: 0.05em; }
-  .readouts dd { margin: 0; font: 700 14px/1.3 var(--mc-font); }
+  /* Global within the readouts: the board's (board/BoardReadout.svelte) are drawn among them. */
+  .readouts :global(dt) { color: #9aa3ad; font: 600 11px/1.4 var(--mc-font); text-transform: uppercase; letter-spacing: 0.05em; }
+  .readouts :global(dd) { margin: 0; font: 700 14px/1.3 var(--mc-font); }
   .readouts .throttle { color: inherit; font: inherit; }
   .readouts .gear { display: flex; align-items: center; gap: 4px; }
   .gear i {
@@ -1385,8 +1400,10 @@ const WARNINGS = {
   /* A phone: less of everything, and only what a flight is flown by. */
   @container mc-frame (max-height: 520px) or (max-width: 560px) {
     .flight-deck.touch .readouts > div { gap: 1px 8px; padding: 5px 9px; }
-    .flight-deck.touch .readouts dt { font-size: 10px; }
-    .flight-deck.touch .readouts dd { font-size: 13px; }
+    .flight-deck.touch .readouts :global(dt) { font-size: 10px; }
+    .flight-deck.touch .readouts :global(dd) { font-size: 13px; }
+    /* With the board's score among them, it takes the place of the best flown here. */
+    .flight-deck.touch .corner-nw.boarded .best { display: none; }
     /* The heading stays; the air outside and the frames a second are a desk's to read. */
     .flight-deck.touch .corner-sw :is(dt, dd):nth-of-type(n + 2) { display: none; }
     .flight-deck.touch .corner-sw { left: calc(var(--deck-left) + 160px); }

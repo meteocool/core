@@ -388,6 +388,36 @@
         "landed": "Landed",
         "butter": "Butter landing"
       },
+      "board": {
+        "label": "Board",
+        "title": "This flight on today's board: the score that counts",
+        "off": "Off",
+        "heading": "Today's board",
+        "close": "Close today's board",
+        "callsign": "You fly as",
+        "counts": "Board · counts",
+        "cockpit": "Cockpit",
+        "joining": "Getting this flight on the board…",
+        "unreachable": "Can't reach the board just now. Trying again; the flight goes on.",
+        "unranked": "Not in today's top hundred yet.",
+        "unavailable": "No board for this flight: the cockpit's score only",
+        "stopped": "The board stopped counting this flight: {reason}",
+        "reason": {
+          "refused": "track refused",
+          "time": "time's up",
+          "idle": "idle",
+          "replaced": "replaced"
+        },
+        "differ": "The board works the score out again from the same radar, so it can come out a little different from the cockpit's.",
+        "feats": "This flight's feats",
+        "feat_board": "On the board",
+        "feat_cockpit": "Cockpit only",
+        "feat_checking": "Checking",
+        "top": "Today's top twenty",
+        "you": "You",
+        "flying": "In the air",
+        "empty": "Nobody on the board yet today."
+      },
       "keys": {
         "title": "Flying",
         "throttle": "Throttle up / down · on the ground, hold S at idle to reverse",
