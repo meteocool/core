@@ -443,6 +443,8 @@
       "path_body": "Kur ji buvo. Blunka, kai nebematoma.",
       "join": "Susiliejimas ar skilimas",
       "join_body": "Taškuota: audra susiliejo su kita arba nuo jos atskilo.",
+      "system": "Audrų sistema",
+      "system_body": "Kartu priklausančios audros, apvestos vienu kontūru. Brūkšninė: kontūras iš kito skenavimo nei radaro vaizdas.",
       "hail": "Kruša",
       "hail_body": "Raudonas kraštas ir ✦: DWD aptinka krušą.",
       "rotation": "Sukimasis",

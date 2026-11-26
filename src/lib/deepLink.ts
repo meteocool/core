@@ -68,7 +68,7 @@ export type OverlayStates = Partial<Record<Overlay, boolean>>;
 /** The storm marks the map key can put away (`StormMarkToggle`), in the order a link lists them. */
 export const STORM_MARKS = [
   "dwd", "meteocool", "weak", "moderate", "strong", "extreme",
-  "live", "path", "join", "hail", "rotation", "forecast", "volume",
+  "live", "path", "join", "hail", "rotation", "forecast", "volume", "system",
 ] as const satisfies readonly StormMarkToggle[];
 // Every toggle the key has, or a new one would never reach a link.
 const ALL_MARKS: Exclude<StormMarkToggle, (typeof STORM_MARKS)[number]> extends never ? true : never = true;

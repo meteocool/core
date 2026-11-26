@@ -229,7 +229,7 @@ export const cellLayerVisible = writable<boolean>(true);
  * `hiddenStormMarks` setting; lib/stormMarks.ts applies it.
  */
 export type StormMarkToggle = "dwd" | "meteocool" | "weak" | "moderate" | "strong" | "extreme"
-  | "live" | "path" | "join" | "hail" | "rotation" | "forecast" | "volume";
+  | "live" | "path" | "join" | "system" | "hail" | "rotation" | "forecast" | "volume";
 export const hiddenStormMarks = writable<ReadonlySet<StormMarkToggle>>(new Set());
 /**
  * Whether the 3D map draws KONRAD3D's cells as extruded tiers. Off unless the

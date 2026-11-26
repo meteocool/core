@@ -443,6 +443,8 @@
       "path_body": "Kudy prošla. Bledne, jakmile už není vidět.",
       "join": "Spojení nebo rozdělení",
       "join_body": "Tečkovaně: bouřka splynula s jinou nebo se od ní oddělila.",
+      "system": "Bouřkový systém",
+      "system_body": "Bouřky, které k sobě patří, obkreslené jako celek. Čárkovaně: obrys pochází z jiného snímání než radarový obraz.",
       "hail": "Kroupy",
       "hail_body": "Červený okraj a ✦: DWD detekuje kroupy.",
       "rotation": "Rotace",

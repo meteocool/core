@@ -19,7 +19,8 @@ import { DARK_CASING, LIGHT_CASING, isDarkBasemap, watchBasemap } from "./casing
  *
  * Under the storm marks and the lightning, over the radar and the radar's
  * sweeps: it says which of the echoes belong together, and nothing on it is
- * tapped. Hidden with the storm marks, which it belongs to.
+ * tapped. Hidden with the storm marks, which it belongs to, and on its own
+ * from the map key (StormKey, `system`).
  *
  * An outline that is not the radar frame's on screen (a newer scan than its
  * systems on the live step, or a frame earlier than it while playing back)

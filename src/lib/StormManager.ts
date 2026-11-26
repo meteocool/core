@@ -351,8 +351,9 @@ export default class StormManager {
     const now = liveReference(this.at, this.newestScan, Date.now());
     const { storms, groups } = this.answer;
     const reference = now;
+    const hidden = get(hiddenStormMarks);
     const { marks, links, pings, live } = drawStorms(storms, {
-      now, reference, selection: get(selectedStorm), at: this.at, hidden: get(hiddenStormMarks),
+      now, reference, selection: get(selectedStorm), at: this.at, hidden,
     });
     this.live = live;
 
@@ -368,7 +369,9 @@ export default class StormManager {
     );
 
     if (this.groupSource) {
-      const easings = transition(this.outlines, groupOutlines(groups, now).map(drawnOutline));
+      // Switched off in the map key: the systems' outlines fade out with the rest of a change.
+      const outlines = hidden.has("system") ? [] : groupOutlines(groups, now);
+      const easings = transition(this.outlines, outlines.map(drawnOutline));
       const features = easings.map(outlineFeature);
       this.outlines = { easings, moving: movingOf(easings, features) };
       this.groupSource.clear(true);

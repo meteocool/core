@@ -443,6 +443,8 @@
       "path_body": "Hvor det har vært. Blekner når det ikke lenger sees.",
       "join": "Sammenslåing eller deling",
       "join_body": "Prikket: et uvær gikk sammen med et annet eller brøt ut fra det.",
+      "system": "Uværssystem",
+      "system_body": "Uvær som hører sammen, omrisset som ett. Stiplet: omrisset er fra en annen skanning enn radarbildet.",
       "hail": "Hagl",
       "hail_body": "Rød kant og ✦: DWD registrerer hagl.",
       "rotation": "Rotasjon",

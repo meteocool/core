@@ -6,8 +6,8 @@
  * KONRAD3D, with a forecast, hail and rotation, and meteocool's own, which
  * has none of those and covers every network. Their shapes tell them apart
  * (layers/cells.ts), and nothing on screen said so; nor what the colours,
- * rings, dotted joins, badges and "3D" tags are. This says it, once, where
- * the radar's own colour scale already is.
+ * rings, dotted joins, systems' outlines, badges and "3D" tags are. This
+ * says it, once, where the radar's own colour scale already is.
  *
  * The swatches are drawn from the constants the map paints with, so the key
  * cannot drift from the marks it explains. A popover rather than a card that
@@ -266,6 +266,22 @@ $: lightningKept = shownIn($archiveWindow, "lightning");
         </div>
         {@render toggle("join")}
       </li>
+      <!-- The outline round the storms that are one system (layers/stormGroups.ts): solid on the radar's
+           frame, dashed where the shape is another scan's. -->
+      <li class:off={$hiddenStormMarks.has("system")}>
+        <svg class="swatch system" viewBox="0 0 32 24" aria-hidden="true">
+          <path class="wash" d="M4 13 C4 6 11 3 17 4 C24 5 29 8 28 13 C27 19 20 21 14 20 C8 19 4 18 4 13Z" />
+          <path class="solid" d="M4 13 C4 6 11 3 17 4" />
+          <path class="dashed" d="M17 4 C24 5 29 8 28 13 C27 19 20 21 14 20 C8 19 4 18 4 13" />
+          <circle cx="11" cy="12" r="2.6" fill={MODERATE} />
+          <circle cx="20" cy="13" r="3.2" fill={STRONG} />
+        </svg>
+        <div>
+          <strong>{$_("storm.key.system")}</strong>
+          <span>{$_("storm.key.system_body")}</span>
+        </div>
+        {@render toggle("system")}
+      </li>
       <li class:off={$hiddenStormMarks.has("volume")}>
         <svg class="swatch" viewBox="0 0 34 18" aria-hidden="true">
           <rect class="tag" x="0.5" y="0.5" width="33" height="17" rx="8.5" />
@@ -359,6 +375,11 @@ $: lightningKept = shownIn($archiveWindow, "lightning");
 {/if}
 
 <style>
+  /* A system's outline, in the accent the map draws it in (layers/stormGroups.ts). */
+  .system .wash { fill: var(--mc-accent); fill-opacity: 0.08; stroke: none; }
+  .system .solid, .system .dashed { fill: none; stroke: var(--mc-accent); stroke-linecap: butt; }
+  .system .solid { stroke-width: 1.4; }
+  .system .dashed { stroke-width: 1.8; stroke-dasharray: 3.4 2.6; }
   /* A heading over the rows that hold over Germany alone, in the
      secondary ink as a list's section header is. */
   .region {

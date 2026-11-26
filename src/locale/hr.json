@@ -443,6 +443,8 @@
       "path_body": "Kuda je prošla. Blijedi kad se više ne vidi.",
       "join": "Spajanje ili dijeljenje",
       "join_body": "Točkasto: jedna se oluja spojila s drugom ili se od nje odvojila.",
+      "system": "Olujni sustav",
+      "system_body": "Oluje koje pripadaju zajedno, obrubljene kao jedna. Isprekidano: obris je iz drugog snimanja nego radarska slika.",
       "hail": "Tuča",
       "hail_body": "Crveni rub i ✦: DWD detektira tuču.",
       "rotation": "Rotacija",

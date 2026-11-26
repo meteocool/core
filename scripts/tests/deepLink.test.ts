@@ -324,6 +324,11 @@ test("a list of storm marks naming none the key has is dropped, and unknown ones
   assert.deepEqual(parseLink("?hide=tornado,hail").hide, ["hail"]);
 });
 
+test("the systems' outlines switched off in the key go into a link and come back out of it", () => {
+  assert.equal(linkSearch("", { hide: ["system"] }), "?hide=system");
+  assert.deepEqual(parseLink("?hide=system,join").hide, ["join", "system"]);
+});
+
 test("the stations' parameter round-trips with the stations on", () => {
   const state: LinkState = { layer: "radar", overlays: { ...RADAR_OVERLAYS, stations: true }, stationParameter: "temperature" };
   const search = linkSearch("", state);

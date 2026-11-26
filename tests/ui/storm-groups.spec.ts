@@ -85,6 +85,32 @@ test("a system's outline is dashed a scan behind the radar and solid on its own 
   await expect.poll(async () => (await drawn(page)).stale).toContain(CAMARGUE);
 });
 
+test("the storm key explains a system's outline, solid and dashed, and switches it off and on", async ({ page }) => {
+  await noGeocoder(page);
+  await openAt(page, STRONG.geometry.coordinates, 10);
+  await expect.poll(async () => (await drawn(page)).groups, { timeout: 15_000 }).toContain(CAMARGUE);
+  await page.getByRole("button", { name: "Storms" }).click();
+  await expect(page.getByText("Storm system", { exact: true })).toBeVisible();
+  await expect(page.getByText(/Dashed: the outline is from another scan/)).toBeVisible();
+  const outlines = page.getByRole("switch", { name: "Show on the map: Storm system" });
+  await expect(outlines).toBeChecked();
+  // Off: the outlines go (fading out), the storms stay, and a shared link says so.
+  await outlines.uncheck();
+  const shown = async () => {
+    const features = await page.evaluate(() => {
+      const groups = (window as any).lm.maps[0].getLayers().getArray().find((layer: any) => layer.getZIndex() === 88);
+      return groups.getSource().getFeatures().filter((feature: any) => !feature.get("leaving")).map((feature: any) => feature.getId() as string);
+    });
+    return features;
+  };
+  await expect.poll(shown).not.toContain(CAMARGUE);
+  expect((await drawn(page)).full).toContain(STRONG.id);
+  await expect.poll(() => new URL(page.url()).searchParams.get("hide")).toBe("system");
+  // On again.
+  await outlines.check();
+  await expect.poll(shown).toContain(CAMARGUE);
+});
+
 test("a quiet storm opens when tapped, is drawn in full while open, and its panel names its system", async ({ page, isMobile }) => {
   await noGeocoder(page);
   await openAt(page, QUIET_VAR.geometry.coordinates, 10);

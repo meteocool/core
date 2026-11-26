@@ -443,6 +443,8 @@
       "path_body": "Kadiaľ prešla. Bledne, keď už nie je vidieť.",
       "join": "Spojenie alebo rozdelenie",
       "join_body": "Bodkovane: búrka splynula s inou alebo sa od nej oddelila.",
+      "system": "Búrkový systém",
+      "system_body": "Búrky, ktoré k sebe patria, ohraničené ako celok. Čiarkovane: obrys je z iného snímania než radarový obraz.",
       "hail": "Krupobitie",
       "hail_body": "Červený okraj a ✦: DWD deteguje krupobitie.",
       "rotation": "Rotácia",

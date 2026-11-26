@@ -443,6 +443,8 @@
       "path_body": "Hvor det har været. Falmer, når det ikke længere ses.",
       "join": "Sammensmeltning eller deling",
       "join_body": "Prikket: et uvejr løb sammen med et andet eller brød ud fra det.",
+      "system": "Uvejrssystem",
+      "system_body": "Uvejr, der hører sammen, omridset som ét. Stiplet: omridset er fra en anden skanning end radarbilledet.",
       "hail": "Hagl",
       "hail_body": "Rød kant og ✦: DWD registrerer hagl.",
       "rotation": "Rotation",

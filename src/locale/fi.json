@@ -443,6 +443,8 @@
       "path_body": "Missä se on kulkenut. Haalistuu, kun sitä ei enää nähdä.",
       "join": "Yhdistyminen tai jakautuminen",
       "join_body": "Pisteviiva: ukkonen yhdistyi toiseen tai irtosi siitä.",
+      "system": "Ukkosjärjestelmä",
+      "system_body": "Yhteen kuuluvat ukkoset yhtenä ääriviivana. Katkoviiva: ääriviiva on eri luotauksesta kuin tutkakuva.",
       "hail": "Rakeet",
       "hail_body": "Punainen reuna ja ✦: DWD havaitsee rakeita.",
       "rotation": "Pyöriminen",

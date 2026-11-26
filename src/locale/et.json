@@ -443,6 +443,8 @@
       "path_body": "Kus see on liikunud. Tuhmub, kui seda enam ei nähta.",
       "join": "Ühinemine või jagunemine",
       "join_body": "Punktiir: üks äike ühines teisega või eraldus sellest.",
+      "system": "Äikesesüsteem",
+      "system_body": "Kokku kuuluvad äikesed ühe piirjoonega. Katkendjoon: piirjoon on teisest skaneeringust kui radaripilt.",
       "hail": "Rahe",
       "hail_body": "Punane äär ja ✦: DWD tuvastab rahet.",
       "rotation": "Pöörlemine",

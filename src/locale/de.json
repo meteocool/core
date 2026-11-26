@@ -443,6 +443,8 @@
       "path_body": "Wo es entlanggezogen ist. Verblasst, sobald es nicht mehr erfasst wird.",
       "join": "Verschmelzung oder Teilung",
       "join_body": "Gepunktet: ein Gewitter ist in ein anderes aufgegangen oder hat sich abgespalten.",
+      "system": "Gewittersystem",
+      "system_body": "Gewitter, die zusammengehören, mit einem gemeinsamen Umriss. Gestrichelt: der Umriss stammt aus einem anderen Scan als das Radarbild.",
       "hail": "Hagel",
       "hail_body": "Roter Rand und ✦: der DWD erkennt Hagel.",
       "rotation": "Rotation",

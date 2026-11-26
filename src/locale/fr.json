@@ -443,6 +443,8 @@
       "path_body": "Là où il est passé. S'estompe quand il n'est plus détecté.",
       "join": "Fusion ou division",
       "join_body": "Pointillés : un orage a rejoint un autre, ou s'en est détaché.",
+      "system": "Système orageux",
+      "system_body": "Des orages qui vont ensemble, sous un seul contour. Tirets : le contour vient d'un autre balayage que l'image radar.",
       "hail": "Grêle",
       "hail_body": "Bord rouge et ✦ : le DWD détecte de la grêle.",
       "rotation": "Rotation",

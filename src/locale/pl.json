@@ -443,6 +443,8 @@
       "path_body": "Którędy przeszła. Blednie, gdy przestaje być widoczna.",
       "join": "Połączenie lub podział",
       "join_body": "Kropkowana: burza połączyła się z inną lub się od niej oddzieliła.",
+      "system": "Układ burzowy",
+      "system_body": "Burze, które należą do siebie, obrysowane jako całość. Przerywana: obrys pochodzi z innego skanu niż obraz radarowy.",
       "hail": "Grad",
       "hail_body": "Czerwona obwódka i ✦: DWD wykrywa grad.",
       "rotation": "Rotacja",

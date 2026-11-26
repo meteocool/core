@@ -443,6 +443,8 @@
       "path_body": "Var det har varit. Bleknar när det inte längre syns.",
       "join": "Sammanslagning eller delning",
       "join_body": "Prickad: ett oväder gick upp i ett annat eller bröt sig loss från det.",
+      "system": "Ovädersystem",
+      "system_body": "Oväder som hör ihop, med en gemensam kontur. Streckad: konturen kommer från en annan skanning än radarbilden.",
       "hail": "Hagel",
       "hail_body": "Röd kant och ✦: DWD upptäcker hagel.",
       "rotation": "Rotation",

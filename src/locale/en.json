@@ -973,6 +973,8 @@
       "path_body": "Where it has been. Fades once it is no longer seen.",
       "join": "Merge or split",
       "join_body": "Dotted: one storm ran into another, or broke off it.",
+      "system": "Storm system",
+      "system_body": "Storms that belong together, outlined as one. Dashed: the outline is from another scan than the radar image.",
       "hail": "Hail",
       "hail_body": "Red rim and ✦: DWD detects hail.",
       "rotation": "Rotation",

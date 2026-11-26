@@ -443,6 +443,8 @@
       "path_body": "Waar het is geweest. Vervaagt zodra het niet meer wordt gezien.",
       "join": "Samensmelting of splitsing",
       "join_body": "Gestippeld: een onweer is in een ander opgegaan of ervan afgesplitst.",
+      "system": "Onweerssysteem",
+      "system_body": "Onweersbuien die bij elkaar horen, met één omlijning. Gestreept: de omlijning komt uit een andere scan dan het radarbeeld.",
       "hail": "Hagel",
       "hail_body": "Rode rand en ✦: de DWD detecteert hagel.",
       "rotation": "Rotatie",
