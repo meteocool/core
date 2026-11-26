@@ -128,6 +128,12 @@ const DUE_S = 30;
 /** How often the end of a piece is looked out for, ms. */
 const LOOP_WATCH_MS = 250;
 /**
+ * How long a context asked to play again without a click or a key may take
+ * to, ms, before the page counts as not let play: back from the lock screen,
+ * iOS leaves it waiting for the next tap.
+ */
+const STALL_MS = 600;
+/**
  * How far ahead of the context's clock a change is scheduled, seconds: its
  * audio thread runs ahead of the clock the page reads (soundGraph.ts).
  */
@@ -180,6 +186,7 @@ export function pageAudio(): AudioContext | null {
   } catch {
     context = null;
   }
+  context?.addEventListener("statechange", stateChanged);
   return context;
 }
 
@@ -467,6 +474,7 @@ class Music {
   /** Until when what each listener stopped wanting plays on, ms on the page's clock. */
   private readonly lingers: Record<Listener, number> = { menu: 0, flight: 0 };
   private restTimer: ReturnType<typeof setTimeout> | null = null;
+  private stallTimer: ReturnType<typeof setTimeout> | null = null;
 
   /** The menus' fade, between their piece and the speakers; made with the context. */
   menuGain(): GainNode | null {
@@ -483,6 +491,15 @@ class Music {
   /** Whether everything a click or a key could do for the music is done. */
   unlocked(): boolean {
     return context?.state === "running" && Object.values(this.pieces).every((piece) => piece.unlocked());
+  }
+
+  /**
+   * Whether the music is wanted and the page seen, but the context does not
+   * run: stopped by the system (iOS, the phone locked), and not let play
+   * again until a click or a key.
+   */
+  stalled(): boolean {
+    return Boolean(context) && context?.state !== "running" && this.wanted.size > 0 && !hidden();
   }
 
   /** Whether `who` wants the music now. What it stops wanting plays on a while, for its fade to finish. */
@@ -504,6 +521,16 @@ class Music {
     } else {
       soundLocked.set(false);
     }
+    // A moment of silence played from the click: what has iOS take the page's sound up again after the lock screen.
+    try {
+      const blip = audio.createBufferSource();
+      blip.buffer = audio.createBuffer(1, 1, audio.sampleRate);
+      blip.connect(audio.destination);
+      blip.onended = () => blip.disconnect();
+      blip.start();
+    } catch {
+      // Nothing to wake.
+    }
     this.menuGain();
     for (const piece of Object.values(this.pieces)) piece.unlock();
   }
@@ -520,7 +547,15 @@ class Music {
     const now = performance.now();
     const seen = !hidden();
     const hears = (who: Listener) => seen && (this.wanted.has(who) || now < this.lingers[who]);
-    if (this.wanted.size > 0 && seen && audio.state !== "running") void audio.resume().catch(() => undefined);
+    if (this.wanted.size > 0 && seen && audio.state !== "running") {
+      void audio.resume().catch(() => undefined);
+      // Asked without a click it may not come (iOS, back from the lock screen): then the next click or key wakes it.
+      listen();
+      this.stallTimer ??= setTimeout(() => {
+        this.stallTimer = null;
+        if (this.stalled()) soundLocked.set(true);
+      }, STALL_MS);
+    }
     this.pieces.menu.set(hears("menu"));
     this.pieces.theme.set(hears("flight"));
     this.pieces.tension.set(hears("flight"));
@@ -643,6 +678,19 @@ function listen(): void {
   for (const type of GESTURES) window.addEventListener(type, gesture, true);
 }
 
+/**
+ * The context running or not, whoever stopped it: the system may (iOS, the
+ * phone locked), and then only a click or a key starts it again.
+ */
+function stateChanged(): void {
+  if (context?.state === "running") {
+    soundLocked.set(false);
+  } else if (music.stalled()) {
+    soundLocked.set(true);
+    listen();
+  }
+}
+
 function unlisten(): void {
   if (!listening) return;
   listening = false;
@@ -654,6 +702,8 @@ if (typeof window !== "undefined" && soundAvailable()) {
   // While developing, within reach of the console: where each piece is, and the menus' fade.
   if (import.meta.env?.DEV) (window as unknown as { flightMusic?: unknown }).flightMusic = { music, context: () => context };
   document.addEventListener("visibilitychange", () => {
+    // Back on the page (from the lock screen, mostly): its next click or key wakes the sound, should iOS have stopped it while reporting it running.
+    if (!hidden() && context) listen();
     syncMenu();
     music.sync();
   });
