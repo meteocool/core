@@ -1118,4 +1118,33 @@ const guides = [
   @container mc-frame (max-width: 400px) {
     .mark a { display: none; }
   }
+  /* A small screen with room for two columns (a phone on its side, a small
+     tablet upright): under the way in, the map on the right, out to the
+     screen's edge and fading into the page on its other three sides, and
+     the rest of the words beside it and on below it. */
+  @container mc-frame (min-width: 600px) and ((max-width: 760px) or (max-height: 500px)) {
+    main { display: flow-root; }
+    .window {
+      --fade: clamp(28px, 12%, 64px);
+      float: right;
+      width: min(56%, 560px);
+      height: clamp(220px, 76svh, 440px);
+      height: clamp(220px, 76cqh, 440px);
+      margin: 14px calc(-1 * var(--sheet-right)) 18px 22px;
+      -webkit-mask-image:
+        linear-gradient(90deg, transparent 0, #000 var(--fade)),
+        linear-gradient(180deg, transparent 0, #000 var(--fade), #000 calc(100% - var(--fade)), transparent 100%);
+      -webkit-mask-composite: source-in;
+      mask-image:
+        linear-gradient(90deg, transparent 0, #000 var(--fade)),
+        linear-gradient(180deg, transparent 0, #000 var(--fade), #000 calc(100% - var(--fade)), transparent 100%);
+      mask-composite: intersect;
+    }
+    /* Beside the map, the line that sets the words off from the way in would run behind it. */
+    .brief { margin-top: 14px; padding-top: 0; border-top: 0; }
+    /* Its two lists one after the other, so their rows go on under the map where it ends. */
+    .guide { display: block; }
+    .guide section + section { margin-top: 18px; }
+    footer { clear: both; }
+  }
 </style>

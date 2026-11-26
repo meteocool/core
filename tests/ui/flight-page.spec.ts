@@ -251,6 +251,11 @@ test("on a phone held sideways, the page is a phone's: one that scrolls, the map
     landing(page).locator(".window").boundingBox(), board(page).boundingBox(),
   ]);
   expect(map!.y).toBeGreaterThan(button!.y + button!.height);
+  // Two columns on a phone's side: the map on the right, the words beside it.
+  const words = await landing(page).locator(".mission p").first().boundingBox();
+  expect(map!.x + map!.width).toBeGreaterThanOrEqual(874 - 1);
+  expect(words!.x + words!.width).toBeLessThanOrEqual(map!.x);
+  expect(words!.y).toBeLessThan(map!.y + map!.height);
   expect(await landing(page).evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
   await landing(page).evaluate((element) => { element.scrollTop = element.scrollHeight; });
   await expect(page.getByRole("heading", { level: 2 }).first()).toBeInViewport();
