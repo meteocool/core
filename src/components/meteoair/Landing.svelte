@@ -862,8 +862,8 @@ const guides = [
   .note {
     margin: 0;
     color: var(--ink-3);
-    font-size: 12.5px;
-    line-height: 1.45;
+    font-size: 13px;
+    line-height: 1.4;
   }
   /* The small print under the button. */
   .go .note { flex-basis: 100%; }
@@ -947,13 +947,14 @@ const guides = [
   .mission p {
     margin: 0;
     color: var(--ink-2);
-    font-size: clamp(16px, 1.2vw, 17px);
-    font-size: clamp(16px, 1.2cqw, 17px);
-    line-height: 1.4;
+    font-size: 15px;
+    font-weight: 400;
+    line-height: 1.45;
     text-wrap: balance;
   }
   /* The last line is the page's offer: set a little apart, and brighter. */
   .mission .now { margin-top: 5px; color: var(--ink); font-weight: 600; }
+  /* The page's sizes, from the headline down: lede 17–21, subheadings 16, words 15, lists 14, small print 13. */
   /* Side by side where there is room for two, one under the other on a phone. */
   .guide {
     display: grid;
@@ -963,11 +964,11 @@ const guides = [
   }
   h2 {
     margin: 0 0 10px;
-    color: var(--ink-3);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    color: var(--ink);
+    font-size: 16px;
+    font-weight: 650;
+    line-height: 1.3;
+    letter-spacing: -0.01em;
   }
   ul {
     display: grid;
@@ -991,7 +992,7 @@ const guides = [
   li p {
     margin: 0;
     color: var(--ink-2);
-    font-size: 13.5px;
+    font-size: 14px;
     line-height: 1.45;
   }
   li strong { color: var(--ink); font-weight: 650; }

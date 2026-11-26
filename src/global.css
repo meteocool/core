@@ -5,6 +5,12 @@ body {
   height: 100%;
 }
 
+/* No text inflated on a phone's side: iOS Safari enlarges wide blocks of text there, not narrow ones, so sizes set alike come out unlike. */
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 body {
   color: var(--mc-text, #1c1c1e);
   margin: 0;
