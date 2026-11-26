@@ -461,6 +461,8 @@ export class StreamTrack extends EventTarget implements Track {
     source.playbackRate.value = this.playbackRate;
     source.connect(this.output);
     source.start(session.nextTime);
+    // The next buffer right where this one ends: without it each would start on top of the last.
+    session.nextTime += buffer.duration / this.playbackRate;
     session.sources.add(source);
     source.onended = () => {
       session.sources.delete(source);
