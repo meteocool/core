@@ -7,9 +7,8 @@
  * Why not a media element, which streams a file by itself: Safari and the
  * apps' web views make any media element that holds a file the system's
  * player for the page. The lock screen and Control Center then show the
- * flight's music with its controls for as long as the page is kept, and the
- * page's sound stops whatever else was playing: the reader's own music, a
- * video in picture in picture. Sound made by Web Audio alone is not a player.
+ * flight's music with its controls for as long as the page is kept. Sound
+ * made by Web Audio alone is not a player.
  *
  * A `StreamTrack` stands in for the media element where the soundtrack and
  * the thunder's recordings used one (soundtrack.ts, thunderClips.ts): the
