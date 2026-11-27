@@ -104,7 +104,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** All currently active mesocyclone detections. */
+        /** All currently active mesocyclone detections, and the rotation signatures read from the radars. */
         get: operations["mesocyclone_cache_mesocyclones_all__get"];
         put?: never;
         post?: never;
@@ -859,7 +859,10 @@ export interface components {
         };
         /**
          * Mesocyclone
-         * @description One DWD mesocyclone detection. The `mesocyclones` event carries a list.
+         * @description One DWD mesocyclone detection.
+         *
+         *     The `mesocyclones` event and `/mesocyclones/all/` carry a list of these
+         *     and of `RotationSignature`, told apart by `source`.
          */
         Mesocyclone: {
             /**
@@ -882,6 +885,13 @@ export interface components {
              * @description EPSG:3857 easting, in metres
              */
             lon: number;
+            /**
+             * Source
+             * @description Whose detection: DWD's mesocyclone product
+             * @default dwd
+             * @constant
+             */
+            source: "dwd";
             /**
              * Time
              * @description Detection id: milliseconds since the epoch, plus an index
@@ -924,7 +934,7 @@ export interface components {
         };
         /**
          * NetworkRefresh
-         * @description A nudge that one EUMETNET network's composite, or another frame with a route of its own, has been re-rendered.
+         * @description A nudge that one network's composite, or another frame with a route of its own, has been re-rendered.
          *
          *     Deliberately not a `Poke`, for the reason `CellsRefresh` is not one: the
          *     frontend's `poke` handler reloads DWD's whole radar timeseries, and a
@@ -934,10 +944,10 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network, and from the same pass its echo tops at 18, 45 and 50 dBZ, `echotop18`, `echotop45` and `echotop50`, and its vertically integrated liquid, `vil`
+             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `us` the United States from NOAA's MRMS, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network, and from the same pass its echo tops at 18, 45 and 50 dBZ, `echotop18`, `echotop45` and `echotop50`, and its vertically integrated liquid, `vil`; and the United States' column maximum, 18 dBZ echo top and vertically integrated liquid from MRMS, `us_colmax`, `us_echotop18` and `us_vil`
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "eu" | "dmax" | "colmax" | "echotop18" | "echotop45" | "echotop50" | "vil";
+            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "us" | "eu" | "dmax" | "colmax" | "echotop18" | "echotop45" | "echotop50" | "vil" | "us_colmax" | "us_echotop18" | "us_vil";
         };
         /**
          * NowcastRefresh
@@ -953,10 +963,10 @@ export interface components {
         NowcastRefresh: {
             /**
              * Domain
-             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `ie` Met Eireann
+             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `ie` Met Eireann, `us` the United States (NOAA's MRMS)
              * @enum {string}
              */
-            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "ie";
+            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "ie" | "us";
             /**
              * Issued At
              * @description The run's issue time, unix seconds: the five-minute slot it starts from
@@ -1440,10 +1450,98 @@ export interface components {
             tile?: number[] | null;
         };
         /**
+         * RotationSignature
+         * @description One rotation signature: a radar's velocity rotating at two tilts or more, read by meteocool.
+         *
+         *     Not a mesocyclone: the velocity shears here at these tilts, with its
+         *     rotational velocity, depth and range, and no more is claimed. Carried in
+         *     the `mesocyclones` event and at `/mesocyclones/all/` beside DWD's
+         *     detections, told apart by `source`.
+         */
+        RotationSignature: {
+            /**
+             * Agrees With Dwd
+             * @description Whether a DWD mesocyclone detection of the same cycle lies within its radius plus 3 km; null where DWD has no detection product
+             */
+            agrees_with_dwd?: boolean | null;
+            /**
+             * Heights M
+             * @description The beam's height above sea level at each tilt, in metres
+             */
+            heights_m: number[];
+            /**
+             * Lat
+             * @description EPSG:3857 northing, in metres
+             */
+            lat: number;
+            /**
+             * Lon
+             * @description EPSG:3857 easting, in metres
+             */
+            lon: number;
+            /**
+             * Network
+             * @description The radar's network, such as `de`
+             */
+            network: string;
+            /**
+             * Persistent
+             * @description Whether the radar had a signature within 8 km in its previous cycle
+             */
+            persistent: boolean;
+            /**
+             * Range Km
+             * @description How far from the radar, in km
+             */
+            range_km: number;
+            /**
+             * Scanned At
+             * @description The cycle's scan time, milliseconds since the epoch
+             */
+            scanned_at: number;
+            /**
+             * Shear Max
+             * @description The strongest azimuthal shear in the signature, in 1/s
+             */
+            shear_max: number;
+            /**
+             * Site
+             * @description The radar it was read from, by its ODIM node code, such as `deasb`
+             */
+            site: string;
+            /**
+             * Source
+             * @description Whose detection: meteocool's own
+             * @default meteocool
+             * @constant
+             */
+            source: "meteocool";
+            /**
+             * Tilts Deg
+             * @description The tilts it stands on, lowest first
+             */
+            tilts_deg: number[];
+            /**
+             * Time
+             * @description Signature id: the cycle's scan time in milliseconds since the epoch, plus an index
+             */
+            time: number;
+            /**
+             * Vrot M S
+             * @description Rotational velocity: half the couplet's span of inbound and outbound, in m/s
+             */
+            vrot_m_s?: number | null;
+        };
+        /**
          * SiteSweeps
          * @description One radar, where it is, and the tilts it has published lately.
          */
         SiteSweeps: {
+            /**
+             * Divergence
+             * @description The velocity's radial divergence, positive divergent and negative convergent, lowest tilt first: exactly the tilts the shear is listed for
+             */
+            divergence?: components["schemas"]["SweepTilt"][];
             /** Lat */
             lat: number;
             /** Lon */
@@ -1462,8 +1560,18 @@ export interface components {
              */
             reflectivity?: components["schemas"]["SweepTilt"][];
             /**
+             * Rhohv
+             * @description The correlation coefficient between the two polarisations, encoded `rhohv-u8`: the radar's lowest tilt alone, where the radar measures it
+             */
+            rhohv?: components["schemas"]["SweepTilt"][];
+            /**
+             * Shear
+             * @description The velocity's azimuthal shear, lowest tilt first: only the tilts whose velocity was dealiased and folds at 25 m/s or more
+             */
+            shear?: components["schemas"]["SweepTilt"][];
+            /**
              * Site
-             * @description The ODIM node code, such as `deoft`
+             * @description The radar's code: its ODIM node code, such as `deoft`, or a US radar's lower-case ICAO, such as `kokx`
              */
             site: string;
             /**
@@ -1471,6 +1579,11 @@ export interface components {
              * @description Lowest tilt first
              */
             velocity?: components["schemas"]["SweepTilt"][];
+            /**
+             * Zdr
+             * @description Differential reflectivity in dB, encoded `zdr-u8`: the radar's lowest tilt alone, where the radar measures it
+             */
+            zdr?: components["schemas"]["SweepTilt"][];
         };
         /**
          * SnowRefresh
@@ -1818,13 +1931,13 @@ export interface components {
             bytes: number;
             /**
              * Dealiased
-             * @description Velocity only: whether it was dealiased
+             * @description Velocity, and the shear and divergence read from it: whether it was dealiased
              * @default false
              */
             dealiased: boolean;
             /**
              * Nyquist M S
-             * @description Velocity only: the folding speed
+             * @description Velocity, and the shear and divergence read from it: the folding speed
              */
             nyquist_m_s?: number | null;
             /**
@@ -2325,7 +2438,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Mesocyclone"][];
+                    "application/json": (components["schemas"]["Mesocyclone"] | components["schemas"]["RotationSignature"])[];
                 };
             };
         };
@@ -2582,7 +2695,7 @@ export interface operations {
             query?: {
                 /** @description Viewport as `west,south,east,north` in WGS84 degrees: the sites inside it */
                 bbox?: string | null;
-                /** @description One site alone, by its ODIM node code */
+                /** @description One site alone, by its code: `deoft`, or a US radar's `kokx` */
                 site?: string | null;
                 /** @description The time to answer for, UTC: the sites and tilts as they were listed then, each tilt's newest sweeps scanned at or before it. Defaults to now. An answer for a time over an hour ago never changes, and is cached for good */
                 at?: string | null;

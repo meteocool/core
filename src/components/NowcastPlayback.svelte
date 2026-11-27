@@ -21,7 +21,7 @@ import {
   dryAtUser, inspectLatLon, mapExtent4326, modelCompareAt, radarStale, onForecastStep,
   frameRequest, playbackRunning, browsingFrames, live, openStripCount, openHintCount, playbackFromStart,
   nowcastCoverage, framesPreloaded, networkStatus, siteMode, siteSweepView, stationLayerVisible,
-  drawnEncoding, archiveWindow, archivePickerOpen, stalledNetworks,
+  drawnEncoding, archiveWindow, archivePickerOpen, stalledNetworks, unitedStatesServed,
 } from "../stores";
 
 import { DeviceDetect as dd } from "../lib/DeviceDetect";
@@ -62,6 +62,7 @@ import {
   plRadarExtent4326,
   seRadarExtent4326,
   skRadarExtent4326,
+  usRadarExtent4326,
 } from "../layers/extents";
 import { saysNoForecast, uncoveredShare } from "../lib/forecastCoverage";
 import { saysFeedStopped } from "../lib/feedOutage";
@@ -251,8 +252,9 @@ function overlaps(
 }
 
 /* Every network's grid, not just DWD's: a viewport over Brittany or Corsica
-   misses DWD's box entirely and is covered all the same, by Meteo-France. */
-const radarExtents4326 = [
+   misses DWD's box entirely and is covered all the same, by Meteo-France.
+   The United States' only where the backend serves it (`unitedStatesServed`). */
+const europeRadarExtents4326 = [
   dwdRadarExtent4326,
   chRadarExtent4326,
   frRadarExtent4326,
@@ -270,6 +272,7 @@ const radarExtents4326 = [
   seRadarExtent4326,
   noRadarExtent4326,
 ];
+$: radarExtents4326 = $unitedStatesServed ? [...europeRadarExtents4326, usRadarExtent4326] : europeRadarExtents4326;
 
 $: outOfCoverage = $sharedActiveCap === "radar"
   && $mapExtent4326 !== null
@@ -445,8 +448,8 @@ $: chartShowable = (hasPrecipitation || $inspectLatLon !== null)
  * looked at again), at most once a minute. Taken down for the session, one
  * dropped request on a train would lose the strip until a reload.
  */
-const covers = (point: [number, number] | null): boolean => point !== null
-  && radarExtents4326.some(([minLon, minLat, maxLon, maxLat]) => (
+const covers = (point: [number, number] | null, extents: [number, number, number, number][]): boolean => point !== null
+  && extents.some(([minLon, minLat, maxLon, maxLat]) => (
     point[1] >= minLon && point[1] <= maxLon && point[0] >= minLat && point[0] <= maxLat));
 let outlookDismissed = outlookSnoozed();
 let outlookUnavailable = false;
@@ -463,7 +466,7 @@ function dismissOutlook() {
 }
 $: outlookShowable = $dryAtUser
   && $latLon !== null
-  && covers($latLon)
+  && covers($latLon, radarExtents4326)
   && $inspectLatLon === null
   && $sharedActiveCap === "radar"
   && !outOfCoverage
@@ -510,12 +513,12 @@ function dismissNotice(notice: QueuedNotice) {
 }
 
 /** A strip's heading and text, by what it is about. */
-function noticeWords(notice: QueuedNotice, nowcast: boolean): { title: string; body: string } {
+function noticeWords(notice: QueuedNotice, nowcast: boolean, servesUs: boolean): { title: string; body: string } {
   switch (notice.kind) {
     case "ours":
       return { title: $_(notice.notice.level === "warning" ? "notice_warning" : "notice_info"), body: notice.notice.text };
     case "no-coverage":
-      return { title: $_("radar_no_coverage"), body: $_("radar_no_coverage_body") };
+      return { title: $_("radar_no_coverage"), body: $_(servesUs ? "radar_no_coverage_body_us" : "radar_no_coverage_body") };
     case "radar-stopped":
       return { title: $_("radar_feed_stopped"), body: $_("radar_feed_stopped_body") };
     case "forecast-stopped":
@@ -527,7 +530,8 @@ function noticeWords(notice: QueuedNotice, nowcast: boolean): { title: string; b
       };
   }
 }
-$: words = shownNotice && shownNotice.kind !== "dry-outlook" ? noticeWords(shownNotice, $nowcastCoverage !== null) : null;
+$: words = shownNotice && shownNotice.kind !== "dry-outlook"
+  ? noticeWords(shownNotice, $nowcastCoverage !== null, $unitedStatesServed) : null;
 
 /* Between a tap and the grid that answers it, the strip is up with the last
    point's bars still in it. Flagged here rather than read off the capability,

@@ -1,0 +1,1112 @@
+{
+ "source": "unidata-nexrad-level3 product headers; ICAOs from unidata-nexrad-level2-chunks",
+ "generated": "2026-11-27",
+ "sites": [
+  {
+   "icao": "KABR",
+   "id": "ABR",
+   "lat": 45.456,
+   "lon": -98.413,
+   "height_m": 421.5
+  },
+  {
+   "icao": "KABX",
+   "id": "ABX",
+   "lat": 35.15,
+   "lon": -106.824,
+   "height_m": 1813.9
+  },
+  {
+   "icao": "KAKQ",
+   "id": "AKQ",
+   "lat": 36.984,
+   "lon": -77.008,
+   "height_m": 77.4
+  },
+  {
+   "icao": "KAMA",
+   "id": "AMA",
+   "lat": 35.233,
+   "lon": -101.709,
+   "height_m": 1128.7
+  },
+  {
+   "icao": "KAMX",
+   "id": "AMX",
+   "lat": 25.611,
+   "lon": -80.413,
+   "height_m": 33.8
+  },
+  {
+   "icao": "KAPX",
+   "id": "APX",
+   "lat": 44.906,
+   "lon": -84.72,
+   "height_m": 475.8
+  },
+  {
+   "icao": "KARX",
+   "id": "ARX",
+   "lat": 43.823,
+   "lon": -91.191,
+   "height_m": 413.6
+  },
+  {
+   "icao": "KATX",
+   "id": "ATX",
+   "lat": 48.195,
+   "lon": -122.496,
+   "height_m": 195.7
+  },
+  {
+   "icao": "KBBX",
+   "id": "BBX",
+   "lat": 39.496,
+   "lon": -121.632,
+   "height_m": 67.4
+  },
+  {
+   "icao": "KBGM",
+   "id": "BGM",
+   "lat": 42.2,
+   "lon": -75.985,
+   "height_m": 519.1
+  },
+  {
+   "icao": "KBHX",
+   "id": "BHX",
+   "lat": 40.499,
+   "lon": -124.292,
+   "height_m": 766.9
+  },
+  {
+   "icao": "KBIS",
+   "id": "BIS",
+   "lat": 46.771,
+   "lon": -100.76,
+   "height_m": 534.9
+  },
+  {
+   "icao": "KBLX",
+   "id": "BLX",
+   "lat": 45.854,
+   "lon": -108.607,
+   "height_m": 1128.7
+  },
+  {
+   "icao": "KBMX",
+   "id": "BMX",
+   "lat": 33.172,
+   "lon": -86.77,
+   "height_m": 231.3
+  },
+  {
+   "icao": "KBOX",
+   "id": "BOX",
+   "lat": 41.956,
+   "lon": -71.137,
+   "height_m": 70.4
+  },
+  {
+   "icao": "KBRO",
+   "id": "BRO",
+   "lat": 25.916,
+   "lon": -97.419,
+   "height_m": 26.5
+  },
+  {
+   "icao": "KBUF",
+   "id": "BUF",
+   "lat": 42.949,
+   "lon": -78.737,
+   "height_m": 240.8
+  },
+  {
+   "icao": "KBYX",
+   "id": "BYX",
+   "lat": 24.597,
+   "lon": -81.703,
+   "height_m": 27.1
+  },
+  {
+   "icao": "KCAE",
+   "id": "CAE",
+   "lat": 33.949,
+   "lon": -81.119,
+   "height_m": 104.9
+  },
+  {
+   "icao": "KCBW",
+   "id": "CBW",
+   "lat": 46.039,
+   "lon": -67.806,
+   "height_m": 261.8
+  },
+  {
+   "icao": "KCBX",
+   "id": "CBX",
+   "lat": 43.49,
+   "lon": -116.236,
+   "height_m": 966.5
+  },
+  {
+   "icao": "KCCX",
+   "id": "CCX",
+   "lat": 40.923,
+   "lon": -78.004,
+   "height_m": 757.7
+  },
+  {
+   "icao": "KCLE",
+   "id": "CLE",
+   "lat": 41.413,
+   "lon": -81.86,
+   "height_m": 262.1
+  },
+  {
+   "icao": "KCLX",
+   "id": "CLX",
+   "lat": 32.655,
+   "lon": -81.042,
+   "height_m": 69.5
+  },
+  {
+   "icao": "KCRP",
+   "id": "CRP",
+   "lat": 27.784,
+   "lon": -97.511,
+   "height_m": 43.3
+  },
+  {
+   "icao": "KCXX",
+   "id": "CXX",
+   "lat": 44.511,
+   "lon": -73.166,
+   "height_m": 131.4
+  },
+  {
+   "icao": "KCYS",
+   "id": "CYS",
+   "lat": 41.152,
+   "lon": -104.806,
+   "height_m": 1887.3
+  },
+  {
+   "icao": "KDAX",
+   "id": "DAX",
+   "lat": 38.501,
+   "lon": -121.678,
+   "height_m": 43.9
+  },
+  {
+   "icao": "KDDC",
+   "id": "DDC",
+   "lat": 37.761,
+   "lon": -99.969,
+   "height_m": 814.1
+  },
+  {
+   "icao": "KDFX",
+   "id": "DFX",
+   "lat": 29.273,
+   "lon": -100.28,
+   "height_m": 364.5
+  },
+  {
+   "icao": "KDGX",
+   "id": "DGX",
+   "lat": 32.28,
+   "lon": -89.984,
+   "height_m": 185.6
+  },
+  {
+   "icao": "KDIX",
+   "id": "DIX",
+   "lat": 39.947,
+   "lon": -74.411,
+   "height_m": 70.1
+  },
+  {
+   "icao": "KDLH",
+   "id": "DLH",
+   "lat": 46.837,
+   "lon": -92.21,
+   "height_m": 470.0
+  },
+  {
+   "icao": "KDMX",
+   "id": "DMX",
+   "lat": 41.731,
+   "lon": -93.723,
+   "height_m": 333.5
+  },
+  {
+   "icao": "KDOX",
+   "id": "DOX",
+   "lat": 38.826,
+   "lon": -75.44,
+   "height_m": 49.7
+  },
+  {
+   "icao": "KDTX",
+   "id": "DTX",
+   "lat": 42.7,
+   "lon": -83.472,
+   "height_m": 370.6
+  },
+  {
+   "icao": "KDVN",
+   "id": "DVN",
+   "lat": 41.612,
+   "lon": -90.581,
+   "height_m": 259.4
+  },
+  {
+   "icao": "KDYX",
+   "id": "DYX",
+   "lat": 32.538,
+   "lon": -99.254,
+   "height_m": 481.9
+  },
+  {
+   "icao": "KEAX",
+   "id": "EAX",
+   "lat": 38.81,
+   "lon": -94.264,
+   "height_m": 332.8
+  },
+  {
+   "icao": "KEMX",
+   "id": "EMX",
+   "lat": 31.894,
+   "lon": -110.63,
+   "height_m": 1621.2
+  },
+  {
+   "icao": "KENX",
+   "id": "ENX",
+   "lat": 42.586,
+   "lon": -74.064,
+   "height_m": 589.5
+  },
+  {
+   "icao": "KEOX",
+   "id": "EOX",
+   "lat": 31.46,
+   "lon": -85.459,
+   "height_m": 163.7
+  },
+  {
+   "icao": "KEPZ",
+   "id": "EPZ",
+   "lat": 31.873,
+   "lon": -106.698,
+   "height_m": 1285.6
+  },
+  {
+   "icao": "KESX",
+   "id": "ESX",
+   "lat": 35.701,
+   "lon": -114.891,
+   "height_m": 1508.2
+  },
+  {
+   "icao": "KEVX",
+   "id": "EVX",
+   "lat": 30.565,
+   "lon": -85.922,
+   "height_m": 67.7
+  },
+  {
+   "icao": "KEWX",
+   "id": "EWX",
+   "lat": 29.704,
+   "lon": -98.029,
+   "height_m": 233.5
+  },
+  {
+   "icao": "KEYX",
+   "id": "EYX",
+   "lat": 35.098,
+   "lon": -117.561,
+   "height_m": 875.7
+  },
+  {
+   "icao": "KFCX",
+   "id": "FCX",
+   "lat": 37.024,
+   "lon": -80.274,
+   "height_m": 903.7
+  },
+  {
+   "icao": "KFDR",
+   "id": "FDR",
+   "lat": 34.362,
+   "lon": -98.977,
+   "height_m": 400.8
+  },
+  {
+   "icao": "KFDX",
+   "id": "FDX",
+   "lat": 34.634,
+   "lon": -103.619,
+   "height_m": 1432.0
+  },
+  {
+   "icao": "KFFC",
+   "id": "FFC",
+   "lat": 33.363,
+   "lon": -84.566,
+   "height_m": 296.3
+  },
+  {
+   "icao": "KFSD",
+   "id": "FSD",
+   "lat": 43.588,
+   "lon": -96.729,
+   "height_m": 455.7
+  },
+  {
+   "icao": "KFSX",
+   "id": "FSX",
+   "lat": 34.574,
+   "lon": -111.198,
+   "height_m": 2290.3
+  },
+  {
+   "icao": "KFTG",
+   "id": "FTG",
+   "lat": 39.786,
+   "lon": -104.546,
+   "height_m": 1709.9
+  },
+  {
+   "icao": "KFWS",
+   "id": "FWS",
+   "lat": 32.573,
+   "lon": -97.303,
+   "height_m": 236.5
+  },
+  {
+   "icao": "KGGW",
+   "id": "GGW",
+   "lat": 48.206,
+   "lon": -106.625,
+   "height_m": 726.6
+  },
+  {
+   "icao": "KGJX",
+   "id": "GJX",
+   "lat": 39.062,
+   "lon": -108.214,
+   "height_m": 3078.5
+  },
+  {
+   "icao": "KGLD",
+   "id": "GLD",
+   "lat": 39.367,
+   "lon": -101.7,
+   "height_m": 1132.9
+  },
+  {
+   "icao": "KGRB",
+   "id": "GRB",
+   "lat": 44.499,
+   "lon": -88.111,
+   "height_m": 250.5
+  },
+  {
+   "icao": "KGRK",
+   "id": "GRK",
+   "lat": 30.722,
+   "lon": -97.383,
+   "height_m": 183.5
+  },
+  {
+   "icao": "KGRR",
+   "id": "GRR",
+   "lat": 42.894,
+   "lon": -85.545,
+   "height_m": 266.7
+  },
+  {
+   "icao": "KGSP",
+   "id": "GSP",
+   "lat": 34.883,
+   "lon": -82.22,
+   "height_m": 325.5
+  },
+  {
+   "icao": "KGWX",
+   "id": "GWX",
+   "lat": 33.897,
+   "lon": -88.329,
+   "height_m": 179.5
+  },
+  {
+   "icao": "KGYX",
+   "id": "GYX",
+   "lat": 43.891,
+   "lon": -70.256,
+   "height_m": 144.2
+  },
+  {
+   "icao": "KHDC",
+   "id": "HDC",
+   "lat": 30.519,
+   "lon": -90.407,
+   "height_m": 47.9
+  },
+  {
+   "icao": "KHDX",
+   "id": "HDX",
+   "lat": 33.077,
+   "lon": -106.12,
+   "height_m": 1301.5
+  },
+  {
+   "icao": "KHGX",
+   "id": "HGX",
+   "lat": 29.472,
+   "lon": -95.079,
+   "height_m": 35.1
+  },
+  {
+   "icao": "KHNX",
+   "id": "HNX",
+   "lat": 36.314,
+   "lon": -119.632,
+   "height_m": 103.6
+  },
+  {
+   "icao": "KHPX",
+   "id": "HPX",
+   "lat": 36.737,
+   "lon": -87.285,
+   "height_m": 186.8
+  },
+  {
+   "icao": "KHTX",
+   "id": "HTX",
+   "lat": 34.931,
+   "lon": -86.084,
+   "height_m": 566.6
+  },
+  {
+   "icao": "KICT",
+   "id": "ICT",
+   "lat": 37.654,
+   "lon": -97.443,
+   "height_m": 426.7
+  },
+  {
+   "icao": "KICX",
+   "id": "ICX",
+   "lat": 37.591,
+   "lon": -112.862,
+   "height_m": 3278.4
+  },
+  {
+   "icao": "KILN",
+   "id": "ILN",
+   "lat": 39.42,
+   "lon": -83.822,
+   "height_m": 356.6
+  },
+  {
+   "icao": "KILX",
+   "id": "ILX",
+   "lat": 40.15,
+   "lon": -89.337,
+   "height_m": 222.5
+  },
+  {
+   "icao": "KIND",
+   "id": "IND",
+   "lat": 39.708,
+   "lon": -86.28,
+   "height_m": 270.4
+  },
+  {
+   "icao": "KINX",
+   "id": "INX",
+   "lat": 36.175,
+   "lon": -95.564,
+   "height_m": 228.3
+  },
+  {
+   "icao": "KIWA",
+   "id": "IWA",
+   "lat": 33.289,
+   "lon": -111.67,
+   "height_m": 434.6
+  },
+  {
+   "icao": "KIWX",
+   "id": "IWX",
+   "lat": 41.359,
+   "lon": -85.7,
+   "height_m": 321.6
+  },
+  {
+   "icao": "KJAX",
+   "id": "JAX",
+   "lat": 30.485,
+   "lon": -81.702,
+   "height_m": 48.5
+  },
+  {
+   "icao": "KJGX",
+   "id": "JGX",
+   "lat": 32.675,
+   "lon": -83.351,
+   "height_m": 188.4
+  },
+  {
+   "icao": "KJKL",
+   "id": "JKL",
+   "lat": 37.591,
+   "lon": -83.313,
+   "height_m": 445.3
+  },
+  {
+   "icao": "KLBB",
+   "id": "LBB",
+   "lat": 33.654,
+   "lon": -101.814,
+   "height_m": 1029.6
+  },
+  {
+   "icao": "KLCH",
+   "id": "LCH",
+   "lat": 30.125,
+   "lon": -93.216,
+   "height_m": 41.5
+  },
+  {
+   "icao": "KLGX",
+   "id": "LGX",
+   "lat": 47.116,
+   "lon": -124.107,
+   "height_m": 111.6
+  },
+  {
+   "icao": "KLNX",
+   "id": "LNX",
+   "lat": 41.958,
+   "lon": -100.576,
+   "height_m": 948.5
+  },
+  {
+   "icao": "KLOT",
+   "id": "LOT",
+   "lat": 41.604,
+   "lon": -88.085,
+   "height_m": 231.6
+  },
+  {
+   "icao": "KLRX",
+   "id": "LRX",
+   "lat": 40.74,
+   "lon": -116.803,
+   "height_m": 2101.6
+  },
+  {
+   "icao": "KLSX",
+   "id": "LSX",
+   "lat": 38.699,
+   "lon": -90.683,
+   "height_m": 219.8
+  },
+  {
+   "icao": "KLTX",
+   "id": "LTX",
+   "lat": 33.989,
+   "lon": -78.429,
+   "height_m": 44.2
+  },
+  {
+   "icao": "KLVX",
+   "id": "LVX",
+   "lat": 37.975,
+   "lon": -85.944,
+   "height_m": 253.9
+  },
+  {
+   "icao": "KLWX",
+   "id": "LWX",
+   "lat": 38.976,
+   "lon": -77.487,
+   "height_m": 123.1
+  },
+  {
+   "icao": "KLZK",
+   "id": "LZK",
+   "lat": 34.836,
+   "lon": -92.262,
+   "height_m": 197.8
+  },
+  {
+   "icao": "KMAF",
+   "id": "MAF",
+   "lat": 31.943,
+   "lon": -102.189,
+   "height_m": 902.5
+  },
+  {
+   "icao": "KMAX",
+   "id": "MAX",
+   "lat": 42.081,
+   "lon": -122.717,
+   "height_m": 2304.6
+  },
+  {
+   "icao": "KMBX",
+   "id": "MBX",
+   "lat": 48.393,
+   "lon": -100.864,
+   "height_m": 484.6
+  },
+  {
+   "icao": "KMHX",
+   "id": "MHX",
+   "lat": 34.776,
+   "lon": -76.876,
+   "height_m": 43.9
+  },
+  {
+   "icao": "KMKX",
+   "id": "MKX",
+   "lat": 42.968,
+   "lon": -88.551,
+   "height_m": 311.5
+  },
+  {
+   "icao": "KMLB",
+   "id": "MLB",
+   "lat": 28.113,
+   "lon": -80.654,
+   "height_m": 45.4
+  },
+  {
+   "icao": "KMOB",
+   "id": "MOB",
+   "lat": 30.679,
+   "lon": -88.24,
+   "height_m": 88.1
+  },
+  {
+   "icao": "KMPX",
+   "id": "MPX",
+   "lat": 44.849,
+   "lon": -93.565,
+   "height_m": 335.6
+  },
+  {
+   "icao": "KMQT",
+   "id": "MQT",
+   "lat": 46.531,
+   "lon": -87.548,
+   "height_m": 464.8
+  },
+  {
+   "icao": "KMRX",
+   "id": "MRX",
+   "lat": 36.168,
+   "lon": -83.402,
+   "height_m": 437.1
+  },
+  {
+   "icao": "KMSX",
+   "id": "MSX",
+   "lat": 47.041,
+   "lon": -113.986,
+   "height_m": 2431.7
+  },
+  {
+   "icao": "KMTX",
+   "id": "MTX",
+   "lat": 41.263,
+   "lon": -112.448,
+   "height_m": 2009.5
+  },
+  {
+   "icao": "KMUX",
+   "id": "MUX",
+   "lat": 37.155,
+   "lon": -121.898,
+   "height_m": 1082.0
+  },
+  {
+   "icao": "KMVX",
+   "id": "MVX",
+   "lat": 47.528,
+   "lon": -97.325,
+   "height_m": 330.1
+  },
+  {
+   "icao": "KMXX",
+   "id": "MXX",
+   "lat": 32.537,
+   "lon": -85.79,
+   "height_m": 170.7
+  },
+  {
+   "icao": "KNKX",
+   "id": "NKX",
+   "lat": 32.919,
+   "lon": -117.041,
+   "height_m": 320.6
+  },
+  {
+   "icao": "KNQA",
+   "id": "NQA",
+   "lat": 35.345,
+   "lon": -89.873,
+   "height_m": 132.6
+  },
+  {
+   "icao": "KOAX",
+   "id": "OAX",
+   "lat": 41.32,
+   "lon": -96.367,
+   "height_m": 384.7
+  },
+  {
+   "icao": "KOHX",
+   "id": "OHX",
+   "lat": 36.247,
+   "lon": -86.563,
+   "height_m": 206.0
+  },
+  {
+   "icao": "KOKX",
+   "id": "OKX",
+   "lat": 40.865,
+   "lon": -72.864,
+   "height_m": 60.4
+  },
+  {
+   "icao": "KOTX",
+   "id": "OTX",
+   "lat": 47.681,
+   "lon": -117.626,
+   "height_m": 746.5
+  },
+  {
+   "icao": "KPAH",
+   "id": "PAH",
+   "lat": 37.068,
+   "lon": -88.772,
+   "height_m": 153.9
+  },
+  {
+   "icao": "KPBZ",
+   "id": "PBZ",
+   "lat": 40.532,
+   "lon": -80.218,
+   "height_m": 385.9
+  },
+  {
+   "icao": "KPDT",
+   "id": "PDT",
+   "lat": 45.691,
+   "lon": -118.853,
+   "height_m": 481.6
+  },
+  {
+   "icao": "KPOE",
+   "id": "POE",
+   "lat": 31.155,
+   "lon": -92.976,
+   "height_m": 143.9
+  },
+  {
+   "icao": "KPUX",
+   "id": "PUX",
+   "lat": 38.46,
+   "lon": -104.181,
+   "height_m": 1634.6
+  },
+  {
+   "icao": "KRAX",
+   "id": "RAX",
+   "lat": 35.665,
+   "lon": -78.49,
+   "height_m": 140.5
+  },
+  {
+   "icao": "KRGX",
+   "id": "RGX",
+   "lat": 39.754,
+   "lon": -119.462,
+   "height_m": 2559.1
+  },
+  {
+   "icao": "KRIW",
+   "id": "RIW",
+   "lat": 43.066,
+   "lon": -108.477,
+   "height_m": 1716.9
+  },
+  {
+   "icao": "KRLX",
+   "id": "RLX",
+   "lat": 38.311,
+   "lon": -81.723,
+   "height_m": 369.4
+  },
+  {
+   "icao": "KRTX",
+   "id": "RTX",
+   "lat": 45.715,
+   "lon": -122.965,
+   "height_m": 526.7
+  },
+  {
+   "icao": "KSFX",
+   "id": "SFX",
+   "lat": 43.106,
+   "lon": -112.686,
+   "height_m": 1383.5
+  },
+  {
+   "icao": "KSGF",
+   "id": "SGF",
+   "lat": 37.235,
+   "lon": -93.4,
+   "height_m": 419.1
+  },
+  {
+   "icao": "KSHV",
+   "id": "SHV",
+   "lat": 32.451,
+   "lon": -93.841,
+   "height_m": 117.7
+  },
+  {
+   "icao": "KSJT",
+   "id": "SJT",
+   "lat": 31.371,
+   "lon": -100.492,
+   "height_m": 610.8
+  },
+  {
+   "icao": "KSOX",
+   "id": "SOX",
+   "lat": 33.818,
+   "lon": -117.636,
+   "height_m": 946.4
+  },
+  {
+   "icao": "KSRX",
+   "id": "SRX",
+   "lat": 35.29,
+   "lon": -94.362,
+   "height_m": 224.6
+  },
+  {
+   "icao": "KTBW",
+   "id": "TBW",
+   "lat": 27.705,
+   "lon": -82.402,
+   "height_m": 37.2
+  },
+  {
+   "icao": "KTFX",
+   "id": "TFX",
+   "lat": 47.46,
+   "lon": -111.385,
+   "height_m": 1159.5
+  },
+  {
+   "icao": "KTLH",
+   "id": "TLH",
+   "lat": 30.398,
+   "lon": -84.329,
+   "height_m": 53.6
+  },
+  {
+   "icao": "KTLX",
+   "id": "TLX",
+   "lat": 35.333,
+   "lon": -97.278,
+   "height_m": 389.2
+  },
+  {
+   "icao": "KTWX",
+   "id": "TWX",
+   "lat": 38.997,
+   "lon": -96.232,
+   "height_m": 431.3
+  },
+  {
+   "icao": "KTYX",
+   "id": "TYX",
+   "lat": 43.756,
+   "lon": -75.68,
+   "height_m": 597.4
+  },
+  {
+   "icao": "KUDX",
+   "id": "UDX",
+   "lat": 44.125,
+   "lon": -102.83,
+   "height_m": 973.5
+  },
+  {
+   "icao": "KUEX",
+   "id": "UEX",
+   "lat": 40.321,
+   "lon": -98.442,
+   "height_m": 627.0
+  },
+  {
+   "icao": "KVAX",
+   "id": "VAX",
+   "lat": 30.89,
+   "lon": -83.002,
+   "height_m": 100.6
+  },
+  {
+   "icao": "KVBX",
+   "id": "VBX",
+   "lat": 34.839,
+   "lon": -120.398,
+   "height_m": 412.7
+  },
+  {
+   "icao": "KVNX",
+   "id": "VNX",
+   "lat": 36.741,
+   "lon": -98.128,
+   "height_m": 383.4
+  },
+  {
+   "icao": "KVTX",
+   "id": "VTX",
+   "lat": 34.412,
+   "lon": -119.179,
+   "height_m": 855.6
+  },
+  {
+   "icao": "KVWX",
+   "id": "VWX",
+   "lat": 38.26,
+   "lon": -87.724,
+   "height_m": 190.5
+  },
+  {
+   "icao": "KYUX",
+   "id": "YUX",
+   "lat": 32.495,
+   "lon": -114.656,
+   "height_m": 72.8
+  },
+  {
+   "icao": "PABC",
+   "id": "ABC",
+   "lat": 60.792,
+   "lon": -161.876,
+   "height_m": 58.8
+  },
+  {
+   "icao": "PACG",
+   "id": "ACG",
+   "lat": 56.853,
+   "lon": -135.528,
+   "height_m": 82.9
+  },
+  {
+   "icao": "PAEC",
+   "id": "AEC",
+   "lat": 64.512,
+   "lon": -165.293,
+   "height_m": 27.4
+  },
+  {
+   "icao": "PAHG",
+   "id": "AHG",
+   "lat": 60.726,
+   "lon": -151.351,
+   "height_m": 108.5
+  },
+  {
+   "icao": "PAIH",
+   "id": "AIH",
+   "lat": 59.461,
+   "lon": -146.303,
+   "height_m": 40.2
+  },
+  {
+   "icao": "PAKC",
+   "id": "AKC",
+   "lat": 58.68,
+   "lon": -156.629,
+   "height_m": 43.9
+  },
+  {
+   "icao": "PAPD",
+   "id": "APD",
+   "lat": 65.035,
+   "lon": -147.501,
+   "height_m": 825.1
+  },
+  {
+   "icao": "PGUA",
+   "id": "GUA",
+   "lat": 13.456,
+   "lon": 144.811,
+   "height_m": 117.7
+  },
+  {
+   "icao": "PHKI",
+   "id": "HKI",
+   "lat": 21.894,
+   "lon": -159.552,
+   "height_m": 103.6
+  },
+  {
+   "icao": "PHKM",
+   "id": "HKM",
+   "lat": 20.125,
+   "lon": -155.778,
+   "height_m": 1208.5
+  },
+  {
+   "icao": "PHMO",
+   "id": "HMO",
+   "lat": 21.133,
+   "lon": -157.18,
+   "height_m": 440.1
+  },
+  {
+   "icao": "PHWA",
+   "id": "HWA",
+   "lat": 19.095,
+   "lon": -155.569,
+   "height_m": 445.3
+  },
+  {
+   "icao": "RKJK",
+   "id": "KJK",
+   "lat": 35.924,
+   "lon": 126.622,
+   "height_m": 58.2
+  },
+  {
+   "icao": "RKSG",
+   "id": "KSG",
+   "lat": 37.207,
+   "lon": 127.285,
+   "height_m": 463.6
+  },
+  {
+   "icao": "TJUA",
+   "id": "JUA",
+   "lat": 18.116,
+   "lon": -66.078,
+   "height_m": 901.6
+  }
+ ]
+}

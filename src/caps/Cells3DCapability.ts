@@ -22,7 +22,7 @@ import {
 } from "../layers/satellite";
 import { tileSourceUrl } from "../layers/dwd";
 import { drawnTileId } from "../lib/rvp6";
-import { NETWORKS } from "../layers/network";
+import { NETWORKS, NETWORK_MAX_ZOOM } from "../layers/network";
 import { SEVERITY_COLOURS } from "../layers/cells";
 import { HOLES } from "../layers/networkHoles";
 import type { NetworkCode } from "../layers/networkHoles";
@@ -4391,7 +4391,8 @@ export default class Cells3DCapability extends Capability {
         tiles: [mask.tiles],
         tileSize: 512,
         minzoom: 3,
-        maxzoom: 8,
+        // Deeper, MapLibre overzooms its deepest tiles: the United States' stop at 7.
+        maxzoom: network.maxZoom ?? NETWORK_MAX_ZOOM,
         attribution: network.attribution,
       });
       gl.addLayer({

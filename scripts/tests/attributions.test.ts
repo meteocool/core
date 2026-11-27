@@ -66,6 +66,8 @@ test("every radar entry in the imprint links its licence", () => {
   const licences = [
     "https://creativecommons.org/licenses/by/4.0/",
     "https://www.etalab.gouv.fr/licence-ouverte-open-licence/",
+    // NOAA's statement that its data is public domain, and what that asks of whoever shows it.
+    "https://www.weather.gov/disclaimer",
   ];
   for (const entry of entries) {
     const hrefs = [...entry.matchAll(/href="([^"]+)"/g)].map((match) => match[1]);

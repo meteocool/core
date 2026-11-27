@@ -16,7 +16,7 @@
   "connection_details": "Yhteyden tiedot",
   "title": "Tietoja meteocoolista",
   "text1": "meteocool on ilmainen paikkatietoalusta, joka kokoaa ja havainnollistaa säätietoja ja keskittyy erityisesti rajuilmoihin. Se on tehty mobiililaitteille, ja sen avulla voit lähteä lähestyvän sään perään tai väistellä sitä.",
-  "text2": "meteocool käyttää Saksan (DWD), Sveitsin, Ranskan, Tšekin, Puolan, Belgian, Slovakian, Liettuan, Viron, Irlannin, Kroatian, Tanskan, Alankomaiden, Suomen, Ruotsin ja Norjan sääpalvelujen tutkatietoja sekä blitzortung.org-projektin reaaliaikaisia salamahavaintoja.",
+  "text2": "meteocool käyttää Saksan (DWD), Sveitsin, Ranskan, Tšekin, Puolan, Belgian, Slovakian, Liettuan, Viron, Irlannin, Kroatian, Tanskan, Alankomaiden, Suomen, Ruotsin, Norjan ja Yhdysvaltojen (NOAA/NWS, NOAA/NSSL MRMS) sääpalvelujen tutkatietoja sekä blitzortung.org-projektin reaaliaikaisia salamahavaintoja. meteocool käsittelee nämä tiedot: se muuntaa ne toiseen projektioon, pilkkoo ne tiiliksi ja laskee niistä ennusteita. NOAA tai muut sääpalvelut eivät tue tai suosittele meteocoolia.",
   "credits_help": {
     "header": "Tekijät ja apu",
     "text1": "meteocoolin tekevät <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> ja NessArt.",
@@ -137,6 +137,7 @@
   "lightning_unavailable": "Tilastot eivät ole juuri nyt saatavilla.",
   "radar_no_coverage": "Täällä ei vielä ole tutkaa",
   "radar_no_coverage_body": "Reaaliaikainen tutkakuva tulee Saksan, Sveitsin, Ranskan, Tšekin, Puolan, Belgian, Slovakian, Liettuan, Viron, Irlannin, Kroatian, Tanskan, Alankomaiden, Suomen, Ruotsin ja Norjan sääpalveluilta, joten se kattaa vain nämä maat. Salamat ja ennustemallit toimivat kaikkialla maailmassa.",
+  "radar_no_coverage_body_us": "Reaaliaikainen tutkakuva tulee Saksan, Sveitsin, Ranskan, Tšekin, Puolan, Belgian, Slovakian, Liettuan, Viron, Irlannin, Kroatian, Tanskan, Alankomaiden, Suomen, Ruotsin, Norjan ja Yhdysvaltojen sääpalveluilta, joten se kattaa vain nämä maat. Salamat ja ennustemallit toimivat kaikkialla maailmassa.",
   "forecast_no_coverage": "Täällä ei ole ennustetta",
   "forecast_no_coverage_body": "Sade-ennuste tulee Saksan sääpalvelulta (DWD), joten se kattaa vain Saksan ja sen lähialueet. Muualla tutka näyttää vain menneen ja nykyhetken.",
   "forecast_no_coverage_body_nowcast": "Tätä kartan osaa ei tällä hetkellä kata Saksan sääpalvelun (DWD) ennuste eikä meteocoolin lähiennuste. Tutka näyttää siellä vain menneen ja nykyhetken.",

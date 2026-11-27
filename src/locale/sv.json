@@ -16,7 +16,7 @@
   "connection_details": "Anslutningsdetaljer",
   "title": "Om meteocool",
   "text1": "meteocool är en gratis GIS-plattform som samlar och visualiserar väderdata, med fokus på oväder. Den är optimerad för mobila enheter, och du kan använda den för att jaga vädret som är på väg, eller för att undvika det.",
-  "text2": "meteocool använder radardata från vädertjänsterna i Tyskland (DWD), Schweiz, Frankrike, Tjeckien, Polen, Belgien, Slovakien, Litauen, Estland, Irland, Kroatien, Danmark, Nederländerna, Finland, Sverige och Norge, och blixtar i realtid från projektet blitzortung.org.",
+  "text2": "meteocool använder radardata från vädertjänsterna i Tyskland (DWD), Schweiz, Frankrike, Tjeckien, Polen, Belgien, Slovakien, Litauen, Estland, Irland, Kroatien, Danmark, Nederländerna, Finland, Sverige, Norge och USA (NOAA/NWS, NOAA/NSSL MRMS), och blixtar i realtid från projektet blitzortung.org. meteocool bearbetar uppgifterna: de projiceras om, delas upp i rutor och används för prognoser. Varken NOAA eller de andra vädertjänsterna står bakom eller rekommenderar meteocool.",
   "credits_help": {
     "header": "Tack & hjälp",
     "text1": "meteocool görs av <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> och NessArt.",
@@ -137,6 +137,7 @@
   "lightning_unavailable": "Statistiken är inte tillgänglig just nu.",
   "radar_no_coverage": "Ingen radar här än",
   "radar_no_coverage_body": "Liveradarn kommer från vädertjänsterna i Tyskland, Schweiz, Frankrike, Tjeckien, Polen, Belgien, Slovakien, Litauen, Estland, Irland, Kroatien, Danmark, Nederländerna, Finland, Sverige och Norge, så den täcker bara de länderna. Blixtar och prognosmodellerna fungerar i hela världen.",
+  "radar_no_coverage_body_us": "Liveradarn kommer från vädertjänsterna i Tyskland, Schweiz, Frankrike, Tjeckien, Polen, Belgien, Slovakien, Litauen, Estland, Irland, Kroatien, Danmark, Nederländerna, Finland, Sverige, Norge och USA, så den täcker bara de länderna. Blixtar och prognosmodellerna fungerar i hela världen.",
   "forecast_no_coverage": "Ingen prognos här",
   "forecast_no_coverage_body": "Regnprognosen kommer från den tyska vädertjänsten och täcker därför bara Tyskland med omnejd. Radarn på andra håll visar bara det som har varit och det som är nu.",
   "forecast_no_coverage_body_nowcast": "Varken den tyska vädertjänstens prognos eller meteocools korttidsprognos täcker den här delen av kartan just nu. Radarn där visar bara det som har varit och det som är nu.",

@@ -16,7 +16,7 @@
   "connection_details": "Forbindelsesdetaljer",
   "title": "Om meteocool",
   "text1": "meteocool er en gratis GIS-platform, der samler og visualiserer vejrdata med fokus på voldsomt vejr. Den er optimeret til mobile enheder, og du kan bruge den til at jagte vejret, der er på vej, eller til at undgå det.",
-  "text2": "meteocool bruger radardata fra vejrtjenesterne i Tyskland (DWD), Schweiz, Frankrig, Tjekkiet, Polen, Belgien, Slovakiet, Litauen, Estland, Irland, Kroatien, Danmark, Nederlandene, Finland, Sverige og Norge samt lyn i realtid fra projektet blitzortung.org.",
+  "text2": "meteocool bruger radardata fra vejrtjenesterne i Tyskland (DWD), Schweiz, Frankrig, Tjekkiet, Polen, Belgien, Slovakiet, Litauen, Estland, Irland, Kroatien, Danmark, Nederlandene, Finland, Sverige, Norge og USA (NOAA/NWS, NOAA/NSSL MRMS) samt lyn i realtid fra projektet blitzortung.org. meteocool bearbejder dataene: de omprojiceres, deles i fliser og bruges til prognoser. Hverken NOAA eller de andre vejrtjenester står bag eller anbefaler meteocool.",
   "credits_help": {
     "header": "Medvirkende og hjælp",
     "text1": "meteocool er lavet af <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> og NessArt.",
@@ -137,6 +137,7 @@
   "lightning_unavailable": "Statistikken er ikke tilgængelig lige nu.",
   "radar_no_coverage": "Ingen radar her endnu",
   "radar_no_coverage_body": "Live-radaren kommer fra vejrtjenesterne i Tyskland, Schweiz, Frankrig, Tjekkiet, Polen, Belgien, Slovakiet, Litauen, Estland, Irland, Kroatien, Danmark, Nederlandene, Finland, Sverige og Norge, så den dækker kun de lande. Lyn og prognosemodellerne virker i hele verden.",
+  "radar_no_coverage_body_us": "Live-radaren kommer fra vejrtjenesterne i Tyskland, Schweiz, Frankrig, Tjekkiet, Polen, Belgien, Slovakiet, Litauen, Estland, Irland, Kroatien, Danmark, Nederlandene, Finland, Sverige, Norge og USA, så den dækker kun de lande. Lyn og prognosemodellerne virker i hele verden.",
   "forecast_no_coverage": "Ingen prognose her",
   "forecast_no_coverage_body": "Regnprognosen kommer fra den tyske vejrtjeneste, så den dækker kun Tyskland og området omkring. Andre steder viser radaren kun fortid og nutid.",
   "forecast_no_coverage_body_nowcast": "Hverken den tyske vejrtjenestes prognose eller meteocools korttidsprognose dækker denne del af kortet lige nu. Radaren viser her kun fortid og nutid.",

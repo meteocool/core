@@ -16,7 +16,7 @@
   "connection_details": "Détails de la connexion",
   "title": "À propos de meteocool",
   "text1": "meteocool est une plateforme SIG gratuite qui rassemble et visualise des données météo, en particulier sur les phénomènes violents. Elle est optimisée pour les appareils mobiles, et vous pouvez l'utiliser pour aller au-devant du mauvais temps qui arrive ou pour l'éviter.",
-  "text2": "meteocool utilise les données radar des services météorologiques d'Allemagne (DWD), de Suisse, de France, de Tchéquie, de Pologne, de Belgique, de Slovaquie, de Lituanie, d'Estonie, d'Irlande, de Croatie, du Danemark, des Pays-Bas, de Finlande, de Suède et de Norvège, ainsi que la foudre en temps réel du projet blitzortung.org.",
+  "text2": "meteocool utilise les données radar des services météorologiques d'Allemagne (DWD), de Suisse, de France, de Tchéquie, de Pologne, de Belgique, de Slovaquie, de Lituanie, d'Estonie, d'Irlande, de Croatie, du Danemark, des Pays-Bas, de Finlande, de Suède, de Norvège et des États-Unis (NOAA/NWS, NOAA/NSSL MRMS), ainsi que la foudre en temps réel du projet blitzortung.org. meteocool traite ces données : il les reprojette, les découpe en tuiles et en tire des prévisions. Ni la NOAA ni les autres services météorologiques n'approuvent meteocool.",
   "credits_help": {
     "header": "Crédits et aide",
     "text1": "meteocool vous est proposé par <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> et NessArt.",
@@ -137,6 +137,7 @@
   "lightning_unavailable": "Statistiques actuellement indisponibles.",
   "radar_no_coverage": "Pas encore de radar ici",
   "radar_no_coverage_body": "Le radar en direct provient des services météorologiques d'Allemagne, de Suisse, de France, de Tchéquie, de Pologne, de Belgique, de Slovaquie, de Lituanie, d'Estonie, d'Irlande, de Croatie, du Danemark, des Pays-Bas, de Finlande, de Suède et de Norvège, et ne couvre donc que ces pays. La foudre et les modèles de prévision fonctionnent dans le monde entier.",
+  "radar_no_coverage_body_us": "Le radar en direct provient des services météorologiques d'Allemagne, de Suisse, de France, de Tchéquie, de Pologne, de Belgique, de Slovaquie, de Lituanie, d'Estonie, d'Irlande, de Croatie, du Danemark, des Pays-Bas, de Finlande, de Suède, de Norvège et des États-Unis, et ne couvre donc que ces pays. La foudre et les modèles de prévision fonctionnent dans le monde entier.",
   "forecast_no_coverage": "Pas de prévision ici",
   "forecast_no_coverage_body": "La prévision de pluie vient du service météorologique allemand et ne couvre donc que l'Allemagne et ses environs. Ailleurs, le radar ne montre que le passé et le présent.",
   "forecast_no_coverage_body_nowcast": "Ni la prévision du service météorologique allemand ni le nowcast de meteocool ne couvrent cette partie de la carte à cette heure. Le radar n'y montre que le passé et le présent.",

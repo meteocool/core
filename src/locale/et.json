@@ -16,7 +16,7 @@
   "connection_details": "Ühenduse üksikasjad",
   "title": "Teave meteocooli kohta",
   "text1": "meteocool on tasuta GIS-platvorm, mis kogub ja visualiseerib ilmaandmeid, keskendudes ohtlikule ilmale. See on loodud eelkõige mobiilseadmetele ning sellega saad lähenevat ilma taga ajada või sellest hoopis eemale hoida.",
-  "text2": "meteocool kasutab Saksamaa (DWD), Šveitsi, Prantsusmaa, Tšehhi, Poola, Belgia, Slovakkia, Leedu, Eesti, Iirimaa, Horvaatia, Taani, Hollandi, Soome, Rootsi ja Norra ilmateenistuste radariandmeid ning projekti blitzortung.org reaalajas välguandmeid.",
+  "text2": "meteocool kasutab Saksamaa (DWD), Šveitsi, Prantsusmaa, Tšehhi, Poola, Belgia, Slovakkia, Leedu, Eesti, Iirimaa, Horvaatia, Taani, Hollandi, Soome, Rootsi, Norra ja Ameerika Ühendriikide (NOAA/NWS, NOAA/NSSL MRMS) ilmateenistuste radariandmeid ning projekti blitzortung.org reaalajas välguandmeid. meteocool töötleb neid andmeid: projitseerib need ümber, jagab paanideks ja arvutab nende põhjal prognoose. Ei NOAA ega teised ilmateenistused ei toeta ega soovita meteocooli.",
   "credits_help": {
     "header": "Tegijad ja abi",
     "text1": "meteocooli teevad sinu jaoks <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> ja NessArt.",
@@ -137,6 +137,7 @@
   "lightning_unavailable": "Statistika pole praegu saadaval.",
   "radar_no_coverage": "Siin veel radarit pole",
   "radar_no_coverage_body": "Reaalajas radar tuleb Saksamaa, Šveitsi, Prantsusmaa, Tšehhi, Poola, Belgia, Slovakkia, Leedu, Eesti, Iirimaa, Horvaatia, Taani, Hollandi, Soome, Rootsi ja Norra ilmateenistustelt, seega katab see ainult neid riike. Välk ja prognoosimudelid töötavad kogu maailmas.",
+  "radar_no_coverage_body_us": "Reaalajas radar tuleb Saksamaa, Šveitsi, Prantsusmaa, Tšehhi, Poola, Belgia, Slovakkia, Leedu, Eesti, Iirimaa, Horvaatia, Taani, Hollandi, Soome, Rootsi, Norra ja Ameerika Ühendriikide ilmateenistustelt, seega katab see ainult neid riike. Välk ja prognoosimudelid töötavad kogu maailmas.",
   "forecast_no_coverage": "Siin prognoosi pole",
   "forecast_no_coverage_body": "Vihmaprognoos tuleb Saksamaa ilmateenistuselt, seega katab see ainult Saksamaad ja selle ümbrust. Mujal näitab radar ainult möödunut ja praegust.",
   "forecast_no_coverage_body_nowcast": "Seda kaardiosa ei kata praegu Saksa ilmateenistuse prognoos ega ka meteocooli lühiprognoos. Radar näitab seal ainult möödunut ja praegust.",

@@ -16,7 +16,7 @@
   "connection_details": "Verbindingsdetails",
   "title": "Over meteocool",
   "text1": "meteocool is een gratis GIS-platform dat weergegevens verzamelt en visualiseert, met de nadruk op zwaar weer. Het is geoptimaliseerd voor mobiele apparaten, en je kunt het gebruiken om naderend weer op te zoeken of juist te ontwijken.",
-  "text2": "meteocool gebruikt radargegevens van de weerdiensten van Duitsland (DWD), Zwitserland, Frankrijk, Tsjechië, Polen, België, Slowakije, Litouwen, Estland, Ierland, Kroatië, Denemarken, Nederland, Finland, Zweden en Noorwegen, en realtime bliksemgegevens van het blitzortung.org-project.",
+  "text2": "meteocool gebruikt radargegevens van de weerdiensten van Duitsland (DWD), Zwitserland, Frankrijk, Tsjechië, Polen, België, Slowakije, Litouwen, Estland, Ierland, Kroatië, Denemarken, Nederland, Finland, Zweden, Noorwegen en de Verenigde Staten (NOAA/NWS, NOAA/NSSL MRMS), en realtime bliksemgegevens van het blitzortung.org-project. meteocool bewerkt deze gegevens: het herprojecteert ze, deelt ze op in tegels en berekent er voorspellingen mee. NOAA en de andere weerdiensten onderschrijven meteocool niet.",
   "credits_help": {
     "header": "Credits & hulp",
     "text1": "meteocool is gemaakt door <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> en NessArt.",
@@ -137,6 +137,7 @@
   "lightning_unavailable": "Statistieken momenteel niet beschikbaar.",
   "radar_no_coverage": "Hier nog geen radar",
   "radar_no_coverage_body": "Live radar komt van de weerdiensten van Duitsland, Zwitserland, Frankrijk, Tsjechië, Polen, België, Slowakije, Litouwen, Estland, Ierland, Kroatië, Denemarken, Nederland, Finland, Zweden en Noorwegen, en dekt dus alleen die landen. Bliksem en de voorspellingsmodellen werken wereldwijd.",
+  "radar_no_coverage_body_us": "Live radar komt van de weerdiensten van Duitsland, Zwitserland, Frankrijk, Tsjechië, Polen, België, Slowakije, Litouwen, Estland, Ierland, Kroatië, Denemarken, Nederland, Finland, Zweden, Noorwegen en de Verenigde Staten, en dekt dus alleen die landen. Bliksem en de voorspellingsmodellen werken wereldwijd.",
   "forecast_no_coverage": "Geen verwachting hier",
   "forecast_no_coverage_body": "De regenverwachting komt van de Duitse weerdienst en dekt dus alleen Duitsland en de omgeving. De radar elders toont alleen het verleden en het heden.",
   "forecast_no_coverage_body_nowcast": "De verwachting van de Duitse weerdienst noch de nowcast van meteocool dekt op dit moment dit deel van de kaart. De radar toont daar alleen het verleden en het heden.",

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { contributions, radarSite } from "../../src/lib/radarSites.ts";
+import { NEXRAD_SITES, contributions, radarSite } from "../../src/lib/radarSites.ts";
 
 test("a radar is found by its node code, whichever network it reports through", () => {
   assert.equal(radarSite("deisn")?.name, "Isen");
@@ -79,4 +79,20 @@ test("a radar the table does not know keeps its code", () => {
   const [unknown] = contributions(["xxabc"], 50, 10);
   assert.equal(unknown.name, "XXABC");
   assert.equal(unknown.distanceKm, null);
+});
+
+test("a NEXRAD radar is found by its ICAO in lower case, every one of them from the backend's list", () => {
+  assert.equal(Object.keys(NEXRAD_SITES).length, 158);
+  assert.equal(radarSite("kokx")?.name, "KOKX");
+  assert.equal(radarSite("KTLX")?.name, "KTLX");
+  // Not the three letters of the Weather Service's own id, which would read as DWD's bare codes.
+  assert.equal(radarSite("okx"), undefined);
+  // No Level III from Corpus Christi, and New Orleans has been silent; Kunsan is the Air Force's.
+  assert.equal(radarSite("kcri"), undefined);
+  assert.equal(radarSite("klix"), undefined);
+  assert.ok(radarSite("rkjk"));
+  for (const site of Object.values(NEXRAD_SITES)) {
+    assert.equal(site.lowestDeg, 0.5);
+    assert.equal(site.rangeKm, 250);
+  }
 });

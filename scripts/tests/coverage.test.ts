@@ -12,7 +12,8 @@ import {
   hrRadarExtent, ieBordersNearDwd, ieExclusiveCoverage, ieRadarExtent, ltBordersNearDwd, ltExclusiveCoverage,
   ltRadarExtent, nlBordersNearDwd, nlExclusiveCoverage, nlRadarExtent, noBordersNearDwd, noExclusiveCoverage,
   noRadarExtent, plBordersNearDwd, plExclusiveCoverage, plRadarExtent, radarCoverageInv, seBordersNearDwd,
-  seExclusiveCoverage, seRadarExtent, skBordersNearDwd, skExclusiveCoverage, skRadarExtent,
+  seExclusiveCoverage, seRadarExtent, skBordersNearDwd, skExclusiveCoverage, skRadarExtent, usBordersNearDwd,
+  usExclusiveCoverage, usRadarExtent,
 } from "../../src/layers/extents.ts";
 
 /**
@@ -35,6 +36,7 @@ const NETWORKS = [
   { code: "fi", extent: fiRadarExtent, coverage: fiExclusiveCoverage, hole: fiBordersNearDwd },
   { code: "se", extent: seRadarExtent, coverage: seExclusiveCoverage, hole: seBordersNearDwd },
   { code: "no", extent: noRadarExtent, coverage: noExclusiveCoverage, hole: noBordersNearDwd },
+  { code: "us", extent: usRadarExtent, coverage: usExclusiveCoverage, hole: usBordersNearDwd },
 ];
 
 /**
@@ -88,16 +90,15 @@ const ISLANDS = WASH_RINGS.filter((ring) => !PARTS.includes(ring));
 
 const at = (lat: number, lon: number) => fromLonLat([lon, lat]);
 
-test("the no-radar wash has a hole for the continent and one for Ireland, touching nowhere", () => {
-  assert.equal(PARTS.length, 2);
-  const munich = at(48.14, 11.58);
-  const dublin = at(53.35, -6.26);
-  assert.deepEqual(PARTS.map((ring) => insideRings([ring], munich)).sort(), [false, true]);
-  assert.deepEqual(PARTS.map((ring) => insideRings([ring], dublin)).sort(), [false, true]);
-  // Disjoint: no point of either lies inside the other.
-  const [one, other] = PARTS;
-  assert.ok(!one.some((point) => insideRings([other], point)));
-  assert.ok(!other.some((point) => insideRings([one], point)));
+test("the no-radar wash has a hole for the continent, one for Ireland and one for the United States, touching nowhere", () => {
+  assert.equal(PARTS.length, 3);
+  for (const city of [at(48.14, 11.58), at(53.35, -6.26), at(39.10, -94.58)]) {
+    assert.deepEqual(PARTS.map((ring) => insideRings([ring], city)).sort(), [false, false, true]);
+  }
+  // Disjoint: no point of any lies inside another.
+  for (const one of PARTS) {
+    for (const other of PARTS) if (one !== other) assert.ok(!one.some((point) => insideRings([other], point)));
+  }
 });
 
 /** The ground no radar reaches though radars ring it (the backend's known holes): a point inside each. */
@@ -106,6 +107,12 @@ const KNOWN_ISLANDS = {
   "the northern Apennines south-west of Bologna": at(44.26, 11.02),
   "the Baltic between Gotland, Latvia and Estonia": at(57.68, 20.30),
   "the fells west of Arjeplog": at(66.16, 16.75),
+  "the Great Basin north of Las Vegas": at(38.08, -116.58),
+  "the high desert of south-eastern Oregon": at(43.01, -119.59),
+  "the badlands of eastern Montana": at(46.06, -104.92),
+  "the Four Corners": at(36.74, -109.52),
+  "the Powder River Basin": at(44.52, -105.98),
+  "the Gila wilderness": at(33.54, -108.77),
 };
 
 test("the wash rings the islands no radar reaches, and only those", () => {
@@ -121,11 +128,15 @@ test("the wash is open over every network's radars and drawn where none reaches"
     Munich: at(48.14, 11.58), Dublin: at(53.35, -6.26), Belfast: at(54.60, -5.93), Amsterdam: at(52.37, 4.90),
     Copenhagen: at(55.68, 12.57), Helsinki: at(60.17, 24.94), Tromsø: at(69.65, 18.96), Riga: at(56.95, 24.11),
     Zagreb: at(45.81, 15.98), Kiruna: at(67.86, 20.23),
+    "New York": at(40.71, -74.01), "Oklahoma City": at(35.47, -97.52), Miami: at(25.76, -80.19),
+    Seattle: at(47.61, -122.33), Toronto: at(43.65, -79.38),
   };
   for (const [name, point] of Object.entries(open)) assert.ok(!washed(point), `${name} is washed`);
   const none = {
     Manchester: at(53.48, -2.24), Birmingham: at(52.49, -1.89), Glasgow: at(55.86, -4.25),
     Bucharest: at(44.43, 26.10), Madrid: at(40.42, -3.70),
+    // MRMS's grid reaches past the US radars' circles, which are all the wash opens.
+    Calgary: at(51.05, -114.07), "Mexico City": at(19.43, -99.13), Anchorage: at(61.22, -149.90),
   };
   for (const [name, point] of Object.entries(none)) assert.ok(washed(point), `${name} is not washed`);
 });
@@ -156,6 +167,18 @@ test("wherever a network draws inside DWD's outline, DWD's tiles are holed for i
     for (const network of DRAWN[i]) {
       const holed = insideRings(network.hole, point) || nearEdge(network.hole, point, SIMPLIFIED_M);
       assert.ok(holed, `${network.code} draws over DWD at ${point}`);
+    }
+  }
+});
+
+test("the United States draws where the wash is open over it, and nowhere else", () => {
+  // A coarser grid than Europe's: the country is several times its size.
+  for (let lat = 20.5; lat <= 54.5; lat += 0.5) {
+    for (let lon = -129.5; lon <= -60.5; lon += 0.5) {
+      const point = fromLonLat([lon, lat]);
+      const draws = insideRings(usExclusiveCoverage, point);
+      if (draws === !washed(point)) continue;
+      assert.ok(nearEdge(WASH_RINGS, point, SIMPLIFIED_M), `${draws ? "washed out" : "open with no radar"} at ${lat}, ${lon}`);
     }
   }
 });

@@ -20,8 +20,7 @@ import { TIME_KEY } from "../lib/StrikeManagerV2";
 import { archiveStrikes } from "../lib/ArchiveStrikes";
 import type { ArchiveWindow } from "../lib/archive";
 import { fetchLightningLayer, fetchLightningSince } from "../api";
-import { noaaBREF } from "../layers/noaa";
-import NetworkRadarLayer, { EUROPE } from "../layers/network";
+import NetworkRadarLayer, { EUROPE, UNITED_STATES } from "../layers/network";
 import { whenVisible } from "../lib/wakeup";
 import type { NetworkEvent } from "../api/events";
 
@@ -58,11 +57,12 @@ export default class LightningCapability extends Capability {
   private liveStrikes: Coalescer<{ lon: number; lat: number; time: number }> | null = null;
 
   /**
-   * The merged European composite, drawn faintly under the strikes so each
-   * strike shows up inside its storm. Only the newest frame, as the radar
-   * map's live step draws it, in the reader's palette.
+   * The merged European composite and the United States' own, drawn faintly
+   * under the strikes so each strike shows up inside its storm. Only the
+   * newest frames, as the radar map's live step draws them, in the reader's
+   * palette.
    */
-  private readonly rain: NetworkRadarLayer;
+  private readonly rain: NetworkRadarLayer[];
 
   private networkHandler: ((event: NetworkEvent) => void) | null = null;
 
@@ -85,7 +85,7 @@ export default class LightningCapability extends Capability {
       showForecastPlaybutton.set(false);
       if (this.past) return;
       this.fetchLightning();
-      void this.rain.refresh(this.nb);
+      this.refreshRain();
     }, additionalLayers);
 
     if (args.cmap) super.setCmap(args.cmap);
@@ -94,14 +94,15 @@ export default class LightningCapability extends Capability {
     this.nb = args.nanobar;
     this.socketio = args.socket;
 
-    map.addLayer(noaaBREF());
-
-    this.rain = new NetworkRadarLayer(map, EUROPE, undefined, RAIN_UNDERLAY_OPACITY);
-    this.unsubscribePalette = radarColorScheme.subscribe((palette) => this.rain.setPalette(palette));
-    // A new merged frame every few minutes, announced like any network's.
+    this.rain = [EUROPE, UNITED_STATES].map((network) => new NetworkRadarLayer(map, network, undefined, RAIN_UNDERLAY_OPACITY));
+    this.unsubscribePalette = radarColorScheme.subscribe((palette) => {
+      for (const rain of this.rain) rain.setPalette(palette);
+    });
+    // A new frame of either every few minutes, announced like any network's.
     this.networkHandler = ({ network }) => {
-      if (network !== EUROPE.code || this.past) return;
-      whenVisible("lightning:network:eu", () => { void this.rain.refresh(this.nb); });
+      const rain = this.rain.find((layer) => layer.network.code === network);
+      if (!rain || this.past) return;
+      whenVisible(`lightning:network:${network}`, () => { void rain.refresh(this.nb); });
     };
     this.socketio?.on("network", this.networkHandler);
 
@@ -118,15 +119,15 @@ export default class LightningCapability extends Capability {
     if (this.vectorsource) for (const layer of super.getMap().getAllLayers()) {
       if (layer.getSource() === this.vectorsource) layer.setVisible(live);
     }
-    // The merged composite under the strikes is the newest frame's, which a past window does not have.
-    this.rain.show(live, null);
+    // The composites under the strikes are the newest frames, which a past window does not have.
+    for (const rain of this.rain) rain.show(live, null);
     if (live) {
       this.archiveLayer?.getSource()?.clear();
       this.archiveLayer?.setVisible(false);
       // On screen, the newest at once; otherwise when switched to.
       if (was && get(sharedActiveCap) === "lightning") {
         void this.fetchLightning(true);
-        void this.rain.refresh(this.nb);
+        this.refreshRain();
       }
       return;
     }
@@ -162,7 +163,12 @@ export default class LightningCapability extends Capability {
       return;
     }
     void this.fetchLightning(true);
-    void this.rain.refresh(this.nb);
+    this.refreshRain();
+  }
+
+  /** The newest frame of each composite under the strikes. */
+  private refreshRain() {
+    for (const rain of this.rain) void rain.refresh(this.nb);
   }
 
   /** `backfill`: the tile set may be unchanged, but strikes since it may have been missed. */
@@ -237,6 +243,6 @@ export default class LightningCapability extends Capability {
     }
     this.unsubscribePalette?.();
     this.unsubscribePalette = null;
-    this.rain.destroy();
+    for (const rain of this.rain) rain.destroy();
   }
 }

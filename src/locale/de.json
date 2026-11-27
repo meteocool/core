@@ -16,7 +16,7 @@
   "connection_details": "Verbindungsdetails",
   "title": "Über meteocool",
   "text1": "meteocool ist eine kostenlose GIS-Plattform, die Wetterdaten sammelt und visualisiert, mit Schwerpunkt auf Unwettern. Sie ist für Mobilgeräte optimiert, und du kannst damit anrückendem Wetter hinterherjagen oder ihm ausweichen.",
-  "text2": "meteocool nutzt Radardaten der Wetterdienste von Deutschland (DWD), der Schweiz, Frankreich, Tschechien, Polen, Belgien, der Slowakei, Litauen, Estland, Irland, Kroatien, Dänemark, den Niederlanden, Finnland, Schweden und Norwegen sowie Echtzeit-Blitzdaten vom Projekt blitzortung.org.",
+  "text2": "meteocool nutzt Radardaten der Wetterdienste von Deutschland (DWD), der Schweiz, Frankreich, Tschechien, Polen, Belgien, der Slowakei, Litauen, Estland, Irland, Kroatien, Dänemark, den Niederlanden, Finnland, Schweden, Norwegen und den Vereinigten Staaten (NOAA/NWS, NOAA/NSSL MRMS) sowie Echtzeit-Blitzdaten vom Projekt blitzortung.org. meteocool verarbeitet diese Daten: Es projiziert sie um, teilt sie in Kacheln und berechnet daraus Vorhersagen. Weder die NOAA noch die anderen Wetterdienste befürworten meteocool.",
   "credits_help": {
     "header": "Danksagung & Hilfe",
     "text1": "meteocool ist ein Projekt von <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> und NessArt.",
@@ -137,6 +137,7 @@
   "lightning_unavailable": "Statistik momentan nicht verfügbar.",
   "radar_no_coverage": "Hier noch kein Radar",
   "radar_no_coverage_body": "Das Live-Radar stammt von den Wetterdiensten Deutschlands, der Schweiz, Frankreichs, Tschechiens, Polens, Belgiens, der Slowakei, Litauens, Estlands, Irlands, Kroatiens, Dänemarks, der Niederlande, Finnlands, Schwedens und Norwegens und deckt deshalb nur diese Länder ab. Blitze und die Wettermodelle funktionieren weltweit.",
+  "radar_no_coverage_body_us": "Das Live-Radar stammt von den Wetterdiensten Deutschlands, der Schweiz, Frankreichs, Tschechiens, Polens, Belgiens, der Slowakei, Litauens, Estlands, Irlands, Kroatiens, Dänemarks, der Niederlande, Finnlands, Schwedens, Norwegens und der Vereinigten Staaten und deckt deshalb nur diese Länder ab. Blitze und die Wettermodelle funktionieren weltweit.",
   "forecast_no_coverage": "Keine Vorhersage hier",
   "forecast_no_coverage_body": "Die Regenvorhersage kommt vom Deutschen Wetterdienst und deckt deshalb nur Deutschland und die Umgebung ab. Das Radar anderswo zeigt nur Vergangenheit und Gegenwart.",
   "forecast_no_coverage_body_nowcast": "Weder die Vorhersage des Deutschen Wetterdienstes noch der meteocool-Nowcast deckt zu dieser Zeit diesen Kartenausschnitt ab. Das Radar zeigt dort nur Vergangenheit und Gegenwart.",

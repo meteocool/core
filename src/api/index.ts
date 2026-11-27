@@ -17,7 +17,7 @@ import { noteTransientFailure } from "../lib/recovery";
 import type { components as ApiSchemas } from "./generated/api";
 import type { components as DataSchemas } from "./generated/data";
 import type { CountryNetwork } from "./events";
-import type { AlternativeProduct } from "../lib/observedProduct";
+import type { AlternativeProduct, UsColumnProduct } from "../lib/observedProduct";
 import { GROUPS_ABSENT } from "../lib/stormGroups";
 
 type Schemas = ApiSchemas["schemas"];
@@ -277,10 +277,10 @@ async function request<T>(
 
 /**
  * What `/v3/radar/timeseries?products=` may ask for: another observed
- * product's past, or `nowcast`, meteocool's own run for each network around
- * DWD (lib/nowcast.ts).
+ * product's past, the United States' own column products', or `nowcast`,
+ * meteocool's own run for each network around DWD (lib/nowcast.ts).
  */
-export type TimeseriesProduct = AlternativeProduct | "nowcast";
+export type TimeseriesProduct = AlternativeProduct | UsColumnProduct | "nowcast";
 
 /**
  * Radar and nowcast tile metadata for each timestep in the current window,
@@ -495,6 +495,50 @@ export function fetchNorwegianRadar(nanobar?: Progress) {
     nanobar,
     "/v3/radar/norway",
     () => apiClient.GET("/v3/radar/norway", {}),
+    { optional: true },
+  );
+}
+
+/**
+ * The most recent composite of the United States: NOAA's MRMS mosaic, a
+ * frame every four minutes, its tiles to zoom 7. `optional` for the reason
+ * Switzerland's is, and because an environment may not serve it at all.
+ */
+export function fetchUsRadar(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/us",
+    () => apiClient.GET("/v3/radar/us", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent column maximum of the United States, RVP6 as Europe's; `optional` as `fetchUsRadar`'s. */
+export function fetchUsColumnMaximum(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/us/colmax",
+    () => apiClient.GET("/v3/radar/us/colmax", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent 18 dBZ echo top of the United States, `height-250m-u8` as Europe's; `optional` as `fetchUsRadar`'s. */
+export function fetchUsEchoTop18(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/us/echotop18",
+    () => apiClient.GET("/v3/radar/us/echotop18", {}),
+    { optional: true },
+  );
+}
+
+/** The most recent vertically integrated liquid of the United States, `vil-0.5kg-u8` as Europe's; `optional` as `fetchUsRadar`'s. */
+export function fetchUsVerticallyIntegratedLiquid(nanobar?: Progress) {
+  return request(
+    nanobar,
+    "/v3/radar/us/vil",
+    () => apiClient.GET("/v3/radar/us/vil", {}),
     { optional: true },
   );
 }

@@ -19,16 +19,17 @@ export type SnowEvent = Schemas["SnowRefresh"];
 /** A new KONRAD3D run landed. The payload carries no cells; it only says to refetch them. */
 export type CellsEvent = Schemas["CellsRefresh"];
 /**
- * One EUMETNET network's composite was re-rendered, or the merged one (`eu`), the column maximum of every
+ * One network's composite was re-rendered, or the merged one (`eu`), the column maximum of every
  * network (`colmax`), one of what its pass reads up the column (`echotop18`, `echotop45`, `echotop50`,
- * `vil`) or DWD's DMAX (`dmax`); refetch only that frame.
+ * `vil`), the United States' own of those (`us_colmax`, `us_echotop18`, `us_vil`) or DWD's DMAX
+ * (`dmax`); refetch only that frame.
  */
 export type NetworkEvent = Schemas["NetworkRefresh"];
 /** What shares the `network` event without being a country's own composite: each one frame, refetched by its route. */
 export const SHARED_NETWORK_EVENTS = [
-  "eu", "colmax", "echotop18", "echotop45", "echotop50", "vil", "dmax",
+  "eu", "colmax", "echotop18", "echotop45", "echotop50", "vil", "dmax", "us_colmax", "us_echotop18", "us_vil",
 ] as const satisfies readonly NetworkEvent["network"][];
-/** One of the fifteen national networks with a composite of their own: none of `SHARED_NETWORK_EVENTS`. */
+/** One of the national networks with a composite of their own, the United States' included: none of `SHARED_NETWORK_EVENTS`. */
 export type CountryNetwork = Exclude<NetworkEvent["network"], (typeof SHARED_NETWORK_EVENTS)[number]>;
 /**
  * One network's run of meteocool's own nowcast is complete: a

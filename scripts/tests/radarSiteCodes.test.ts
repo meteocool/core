@@ -14,3 +14,10 @@ test("a radar's country is its code's", () => {
   assert.equal(countryOf("bewid"), "be");
   assert.equal(countryOf("ess"), "de");
 });
+
+test("a NEXRAD radar is the United States', whatever its ICAO starts with", () => {
+  assert.equal(siteCode("kokx"), "kokx");
+  assert.equal(countryOf("kokx"), "us");
+  assert.equal(countryOf("pgua"), "us");
+  assert.equal(countryOf("rkjk"), "us");
+});

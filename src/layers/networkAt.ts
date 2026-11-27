@@ -7,6 +7,7 @@ import {
   frExclusiveCoverage, frRadarExtent, hrExclusiveCoverage, hrRadarExtent, ieExclusiveCoverage, ieRadarExtent,
   ltExclusiveCoverage, ltRadarExtent, nlExclusiveCoverage, nlRadarExtent, noExclusiveCoverage, noRadarExtent,
   plExclusiveCoverage, plRadarExtent, seExclusiveCoverage, seRadarExtent, skExclusiveCoverage, skRadarExtent,
+  usExclusiveCoverage, usRadarExtent,
 } from "./extents";
 import type { CountryNetwork } from "../api/events";
 
@@ -27,6 +28,7 @@ const COVERAGE: [CountryNetwork, number[][][]][] = [
   ["fi", fiExclusiveCoverage],
   ["se", seExclusiveCoverage],
   ["no", noExclusiveCoverage],
+  ["us", usExclusiveCoverage],
 ];
 
 /**
@@ -65,7 +67,7 @@ export function networkAt(lat: number, lon: number): CountryNetwork | undefined 
 const EXTENT: Record<CountryNetwork, Extent> = {
   ch: chRadarExtent, fr: frRadarExtent, cz: czRadarExtent, pl: plRadarExtent, be: beRadarExtent, sk: skRadarExtent,
   lt: ltRadarExtent, ee: eeRadarExtent, ie: ieRadarExtent, hr: hrRadarExtent, dk: dkRadarExtent, nl: nlRadarExtent,
-  fi: fiRadarExtent, se: seRadarExtent, no: noRadarExtent,
+  fi: fiRadarExtent, se: seRadarExtent, no: noRadarExtent, us: usRadarExtent,
 };
 
 const RINGS = Object.fromEntries(COVERAGE) as Record<CountryNetwork, number[][][]>;

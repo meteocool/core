@@ -6,7 +6,7 @@ import {
   eeRadarExtent4326, fiExclusiveCoverage, fiRadarExtent4326, frExclusiveCoverage, frRadarExtent4326, hrExclusiveCoverage,
   hrRadarExtent4326, ieExclusiveCoverage, ieRadarExtent4326, ltExclusiveCoverage, ltRadarExtent4326, nlExclusiveCoverage,
   nlRadarExtent4326, noExclusiveCoverage, noRadarExtent4326, plExclusiveCoverage, plRadarExtent4326, seExclusiveCoverage,
-  seRadarExtent4326, skExclusiveCoverage, skRadarExtent4326,
+  seRadarExtent4326, skExclusiveCoverage, skRadarExtent4326, usExclusiveCoverage, usRadarExtent4326,
 } from "./extents";
 import { insideRings, networkAt } from "./networkAt";
 import type { Coverage, DomainCoverage, Extent4326 } from "../lib/status";
@@ -55,6 +55,7 @@ export const STATUS_COVERAGE: Coverage = {
   fi: ground(fiRadarExtent4326, fiExclusiveCoverage),
   se: ground(seRadarExtent4326, seExclusiveCoverage),
   no: ground(noRadarExtent4326, noExclusiveCoverage),
+  us: ground(usRadarExtent4326, usExclusiveCoverage),
 };
 
 /** Whether one of these domains' ground is at a point: the networks' own, or Germany's. */

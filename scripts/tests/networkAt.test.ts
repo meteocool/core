@@ -232,3 +232,25 @@ test("Ireland's nowcast covers Ireland's ground", () => {
     assert.equal(drawnByAny(NOWCAST_DOMAINS, fromLonLat([lon, lat])), true);
   }
 });
+
+/** The United States: its radars' 250 km circles on MRMS's grid, with no neighbour to share a seam with. */
+const UNITED_STATES: Place[] = [
+  ["New York", 40.71, -74.01, "us"],
+  ["Dallas", 32.78, -96.80, "us"],
+  ["Los Angeles", 34.05, -118.24, "us"],
+  ["Chicago", 41.88, -87.63, "us"],
+  ["Miami", 25.76, -80.19, "us"],
+  ["Seattle", 47.61, -122.33, "us"],
+  ["Toronto", 43.65, -79.38, "us", "Buffalo's 250 km"],
+  ["Monterrey", 25.69, -100.32, undefined, "Brownsville 290"],
+  ["Mexico City", 19.43, -99.13, undefined],
+  ["Winnipeg", 49.90, -97.14, undefined, "Grand Forks 263"],
+  ["Honolulu", 21.31, -157.86, undefined, "off MRMS's grid"],
+  ["Anchorage", 61.22, -149.90, undefined, "off it too"],
+  ["San Juan", 18.47, -66.11, undefined, "off it too"],
+];
+
+test("the United States draws where its radars reach on MRMS's grid, and nowhere past it", () => {
+  assert.deepEqual(drawnAt(UNITED_STATES), expected(UNITED_STATES));
+  assert.equal(drawnByAny(NOWCAST_DOMAINS, fromLonLat([-97.52, 35.47])), true); // Oklahoma City
+});

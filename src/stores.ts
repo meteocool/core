@@ -265,6 +265,13 @@ export const nowcastCoverage = writable<{ withRun: CountryNetwork[]; shown: Coun
  */
 export const stalledNetworks = writable<string[]>([]);
 /**
+ * Whether the backend serves the United States: true once its composite has
+ * answered with a frame. Until then its ground stays under the no-radar
+ * wash (layers/dwd.ts), and the forecast is not sampled from it, since an
+ * environment without it draws nothing there.
+ */
+export const unitedStatesServed = writable<boolean>(false);
+/**
  * "How the radar works" is open, from the radar product menu's "?". Held up
  * here, not in the menu: the tray the menu lives in can go while it is open.
  */

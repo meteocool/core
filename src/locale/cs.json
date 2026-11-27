@@ -16,7 +16,7 @@
   "connection_details": "Podrobnosti připojení",
   "title": "O aplikaci meteocool",
   "text1": "meteocool je bezplatná GIS platforma, která shromažďuje a zobrazuje meteorologická data se zaměřením na nebezpečné počasí. Je optimalizovaná pro mobilní zařízení a můžeš s ní blížící se počasí pronásledovat, nebo se mu vyhnout.",
-  "text2": "meteocool využívá radarová data meteorologických služeb Německa (DWD), Švýcarska, Francie, Česka, Polska, Belgie, Slovenska, Litvy, Estonska, Irska, Chorvatska, Dánska, Nizozemska, Finska, Švédska a Norska a blesky v reálném čase z projektu blitzortung.org.",
+  "text2": "meteocool využívá radarová data meteorologických služeb Německa (DWD), Švýcarska, Francie, Česka, Polska, Belgie, Slovenska, Litvy, Estonska, Irska, Chorvatska, Dánska, Nizozemska, Finska, Švédska, Norska a Spojených států (NOAA/NWS, NOAA/NSSL MRMS) a blesky v reálném čase z projektu blitzortung.org. meteocool tato data zpracovává: převádí je do jiné projekce, dělí na dlaždice a počítá z nich předpovědi. NOAA ani ostatní meteorologické služby meteocool nepodporují ani nedoporučují.",
   "credits_help": {
     "header": "Poděkování a nápověda",
     "text1": "meteocool pro tebe vytvořili <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> a NessArt.",
@@ -137,6 +137,7 @@
   "lightning_unavailable": "Statistiky momentálně nejsou k dispozici.",
   "radar_no_coverage": "Zde zatím není radar",
   "radar_no_coverage_body": "Radar v reálném čase pochází od meteorologických služeb Německa, Švýcarska, Francie, Česka, Polska, Belgie, Slovenska, Litvy, Estonska, Irska, Chorvatska, Dánska, Nizozemska, Finska, Švédska a Norska, proto pokrývá jen tyto země. Blesky a předpovědní modely fungují po celém světě.",
+  "radar_no_coverage_body_us": "Radar v reálném čase pochází od meteorologických služeb Německa, Švýcarska, Francie, Česka, Polska, Belgie, Slovenska, Litvy, Estonska, Irska, Chorvatska, Dánska, Nizozemska, Finska, Švédska, Norska a Spojených států, proto pokrývá jen tyto země. Blesky a předpovědní modely fungují po celém světě.",
   "forecast_no_coverage": "Tady není předpověď",
   "forecast_no_coverage_body": "Předpověď srážek pochází od německé meteorologické služby, proto pokrývá jen Německo a jeho okolí. Radar jinde ukazuje jen minulost a současnost.",
   "forecast_no_coverage_body_nowcast": "Předpověď německé meteorologické služby ani nowcast meteocool v tuto dobu nepokrývá tuto část mapy. Radar tam ukazuje jen minulost a současnost.",

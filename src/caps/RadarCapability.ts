@@ -14,7 +14,7 @@ import { decodeAheadParallel, previewParallel } from "../lib/gpuBudget";
 import { getForViewAndSize, getIntersection, isEmpty } from "ol/extent";
 import NetworkRadarLayer, {
   AROUND_DMAX, EUROPE, EUROPE_COLUMN_MAXIMUM, EUROPE_ECHO_TOP_18, EUROPE_ECHO_TOP_45, EUROPE_ECHO_TOP_50, EUROPE_VIL, NETWORKS,
-  NOWCAST_NETWORKS,
+  NOWCAST_NETWORKS, UNITED_STATES, US_COLUMN_MAXIMUM, US_ECHO_TOP_18, US_VIL,
 } from "../layers/network";
 import LatestFrame from "../layers/latestFrame";
 import { networkAt } from "../layers/networkAt";
@@ -59,6 +59,7 @@ import {
   archiveWindow,
   playbackRunning,
   radarCrossfade,
+  unitedStatesServed,
 } from "../stores";
 import type { Map } from "ol";
 import type BaseLayer from "ol/layer/Base";
@@ -76,10 +77,10 @@ import { isOutdated, showsLatestFrame } from "../lib/freshness";
 import { lastPublishedStep, newestObservation } from "../lib/timeline";
 import {
   DEFAULT_PRODUCT, OBSERVED_PRODUCTS, WHOLE_PRODUCTS, aroundFrame, drawnProduct, fallsBehind, givesUpChoice, isWholeProduct,
-  scanRange, stepFrame, timeseriesProducts,
+  scanRange, stepFrame, timeseriesProducts, unitedStatesDraws, unitedStatesTimeseriesProducts,
 } from "../lib/observedProduct";
 import type {
-  AlternativeProduct, NewestScans, ObservedProduct, ScanRange, WholeProduct,
+  AlternativeProduct, NewestScans, ObservedProduct, ScanRange, UsColumnProduct, WholeProduct,
 } from "../lib/observedProduct";
 import {
   NOWCAST_PRODUCT, chartFrames, domainsAt, domainsWithRun, lastStepWithRuns, nowcastRuns,
@@ -250,6 +251,14 @@ export default class RadarCapability extends Capability {
   private wholes: Record<WholeProduct, NetworkRadarLayer>;
 
   /**
+   * The United States' own column products, each drawn over its ground in
+   * place of its composite while Europe's counterpart is drawn
+   * (`unitedStatesDraws`). Their newest frames are fetched whatever is
+   * drawn, as the wholes' are.
+   */
+  private usColumns: Record<UsColumnProduct, NetworkRadarLayer>;
+
+  /**
    * DWD's column maximum, newest frame: drawn through DWD's own layer, on
    * HX's grid and with HX's holes, while it is the drawn product; see
    * `dwdFrame`. Fetched whatever is drawn, like the merged composite.
@@ -283,7 +292,7 @@ export default class RadarCapability extends Capability {
    * The chosen product's frame for each observed step it has one for, from
    * the same response as the grid when the request asked for it.
    */
-  private productGrid: Partial<Record<AlternativeProduct, Record<number, RadarFrame>>> = {};
+  private productGrid: Partial<Record<AlternativeProduct | UsColumnProduct, Record<number, RadarFrame>>> = {};
 
   /**
    * Each network's composite for each observed step it has one for, from the
@@ -304,6 +313,11 @@ export default class RadarCapability extends Capability {
 
   /** The network the grid in hand was sampled for, whose run the chart's forecast bars come from. */
   private gridNetwork: CountryNetwork | null = null;
+
+  /** Whether the backend serves the United States (`unitedStatesServed`): only then is it asked about by name. */
+  private usServed = false;
+
+  private unsubscribeUsServed: (() => void) | null = null;
 
 
   /** Mirror of the radarStale store, so the layer can be dimmed without a get(). */
@@ -416,6 +430,11 @@ export default class RadarCapability extends Capability {
       echotop50: new NetworkRadarLayer(map, EUROPE_ECHO_TOP_50),
       vil: new NetworkRadarLayer(map, EUROPE_VIL),
     };
+    this.usColumns = {
+      us_colmax: new NetworkRadarLayer(map, US_COLUMN_MAXIMUM),
+      us_echotop18: new NetworkRadarLayer(map, US_ECHO_TOP_18),
+      us_vil: new NetworkRadarLayer(map, US_VIL),
+    };
     this.around = new NetworkRadarLayer(map, AROUND_DMAX);
     this.nowcasts = NOWCAST_NETWORKS.map((network) => new NetworkRadarLayer(map, network));
     this.latest = { ...this.wholes, dmax: this.dmax };
@@ -426,6 +445,17 @@ export default class RadarCapability extends Capability {
       const wanted = productsKey(this.timeseriesRequest());
       if (this.serverGrid && wanted && wanted !== this.gridProducts) this.reloadRadar();
       this.productsChanged();
+    });
+    /* Once the United States turns out to be served, the timeseries is asked
+       for again if what it would be asked with changed: its column products'
+       past, or the network a point in it is sampled from. Never before: an
+       API that does not know it refuses a request naming it. */
+    this.unsubscribeUsServed = unitedStatesServed.subscribe((served) => {
+      if (served === this.usServed) return;
+      this.usServed = served;
+      if (!this.serverGrid || this.past) return;
+      const products = productsKey(this.timeseriesRequest());
+      if (products !== this.gridProducts || this.getPosition()?.network === UNITED_STATES.code) this.reloadRadar();
     });
     /* The networks follow the scrubber: their own newest frame on the live
        one, the grid's composite on any other past step, nothing on a forecast
@@ -617,6 +647,11 @@ export default class RadarCapability extends Capability {
             this.refreshColumnMaximum();
             return;
           }
+          const usColumn = this.usColumns[network as UsColumnProduct];
+          if (usColumn) {
+            this.refreshUsColumn(usColumn);
+            return;
+          }
           this.networks.find((layer) => layer.network.code === network)?.refresh(this.nanobar);
         });
       };
@@ -639,6 +674,7 @@ export default class RadarCapability extends Capability {
         this.downloadCurrentRadar(),
         ...this.networks.map((network) => network.refresh(this.nanobar)),
         ...Object.values(this.wholes).map((whole) => this.refreshWhole(whole)),
+        ...Object.values(this.usColumns).map((layer) => this.refreshUsColumn(layer)),
         this.refreshColumnMaximum(),
         this.snowRequest,
       ]);
@@ -844,13 +880,15 @@ export default class RadarCapability extends Capability {
     // or a product of all of theirs on the steps it stands in for them.
     if (whole) needs.push(...ofNetwork(this.wholes[whole.product], whole.frame, viewExtent, resolution));
     else if (around) needs.push(...ofNetwork(this.around, around, viewExtent, resolution));
-    else {
-      const live = !this.past && showsLatestFrame(step, this.getMostRecentObservation());
-      for (const network of this.networks) {
-        const own = live ? network.current() : this.networkGrid[network.network.code]?.[step];
-        if (own) needs.push(...ofNetwork(network, own, viewExtent, resolution));
-      }
+    const live = !this.past && showsLatestFrame(step, this.getMostRecentObservation());
+    const us = this.unitedStatesOn(step);
+    for (const network of this.networks) {
+      // Europe's own where no product of all of theirs stands in; the United States' by its own (`unitedStatesOn`).
+      if (network.network.code === UNITED_STATES.code ? us !== "own" : whole || around) continue;
+      const own = live ? network.current() : this.networkGrid[network.network.code]?.[step];
+      if (own) needs.push(...ofNetwork(network, own, viewExtent, resolution));
     }
+    if (us && us !== "own") needs.push(...ofNetwork(us.layer, us.frame, viewExtent, resolution));
     // Each network's nowcast on a forecast step it has a lead for: WN's tiles are holes there.
     const domains = this.nowcastDomainsAt(step);
     for (const layer of this.nowcasts) {
@@ -1128,9 +1166,9 @@ export default class RadarCapability extends Capability {
     for (const network of this.networkLayers()) network.setFade(fade);
   }
 
-  /** Every network's layer: each country's, the wholes', the one around DWD's and the nowcasts'. */
+  /** Every network's layer: each country's, the wholes', the United States' columns', the one around DWD's and the nowcasts'. */
   private networkLayers(): NetworkRadarLayer[] {
-    return [...this.networks, ...Object.values(this.wholes), this.around, ...this.nowcasts];
+    return [...this.networks, ...Object.values(this.wholes), ...Object.values(this.usColumns), this.around, ...this.nowcasts];
   }
 
   /** Each network's newest composite, where it is fresh enough to draw: what the live step shows. */
@@ -1184,6 +1222,7 @@ export default class RadarCapability extends Capability {
     if (this.past) return;
     for (const network of this.networks) network.refresh(this.nanobar);
     for (const whole of Object.values(this.wholes)) this.refreshWhole(whole);
+    for (const layer of Object.values(this.usColumns)) this.refreshUsColumn(layer);
     this.refreshColumnMaximum();
   }
 
@@ -1191,6 +1230,13 @@ export default class RadarCapability extends Capability {
   private async refreshWhole(whole: NetworkRadarLayer) {
     await whole.refresh(this.nanobar);
     this.productsChanged();
+  }
+
+  /** One of the United States' column products, newest frame, and the step on screen shown again with it. */
+  private async refreshUsColumn(layer: NetworkRadarLayer) {
+    await layer.refresh(this.nanobar);
+    const shown = get(capTimeIndicator);
+    this.showNetworks(shown, showsLatestFrame(shown, this.getMostRecentObservation()));
   }
 
   /** DMAX's newest frame, and whatever that changes on the map. */
@@ -1257,7 +1303,9 @@ export default class RadarCapability extends Capability {
    * is the archive's and not a feed.
    */
   private refreshStalled(scans: NewestScans = this.newestScans()) {
-    const feeds = this.networks.map((layer) => ({
+    // An environment that does not serve the United States has no feed of it to stop.
+    const fed = this.networks.filter((layer) => this.usServed || layer.network.code !== UNITED_STATES.code);
+    const feeds = fed.map((layer) => ({
       code: layer.network.code as CountryNetwork,
       newestScan: layer.current()?.upstream_time ?? null,
       answered: layer.answered(),
@@ -1393,6 +1441,27 @@ export default class RadarCapability extends Capability {
   }
 
   /**
+   * What the United States draws on a step, by the drawn product
+   * (`unitedStatesDraws`): its own composite, the frame of one of its column
+   * products and the layer drawing it, or nothing. Its own composite where
+   * the column product has no frame for an observed step, as the default
+   * stands in for Europe's; nothing on a forecast step but its nowcast.
+   */
+  private unitedStatesOn(step: number): "own" | { layer: NetworkRadarLayer; frame: RadarFrame } | null {
+    const draws = unitedStatesDraws(this.drawn);
+    if (draws === null || draws === "own") return draws;
+    const frame = this.clientGrid?.[step];
+    const found = stepFrame(
+      draws,
+      draws,
+      { observed: frame?.source === "observation" && Boolean(frame.url), live: this.isLiveStep(step), key: step },
+      this.productGrid[draws],
+      this.usColumns[draws].current(),
+    );
+    return found ? { layer: this.usColumns[draws], frame: found } : "own";
+  }
+
+  /**
    * Point every network layer at the step on screen.
    *
    * On an observed step where a product of every network's is drawn, that
@@ -1407,8 +1476,13 @@ export default class RadarCapability extends Capability {
     const whole = this.wholeFrame(shown);
     const around = whole ? null : this.aroundFrame(shown);
     const own = !whole && !around;
+    const us = this.unitedStatesOn(shown);
     for (const network of this.networks) {
-      network.show(live && own, own ? this.networkGrid[network.network.code]?.[shown] ?? null : null);
+      const drawsOwn = network.network.code === UNITED_STATES.code ? us === "own" : own;
+      network.show(live && drawsOwn, drawsOwn ? this.networkGrid[network.network.code]?.[shown] ?? null : null);
+    }
+    for (const layer of Object.values(this.usColumns)) {
+      layer.show(false, us && us !== "own" && us.layer === layer ? us.frame : null);
     }
     this.around.show(false, around);
     // The frame itself, the live one included: `alternativeFrame` has
@@ -1466,7 +1540,11 @@ export default class RadarCapability extends Capability {
 
   /** What the timeseries is asked for with: the chosen product's past, and the nowcast runs. */
   private timeseriesRequest(): TimeseriesProduct[] {
-    const products: TimeseriesProduct[] = timeseriesProducts(this.chosen);
+    const products: TimeseriesProduct[] = [
+      ...timeseriesProducts(this.chosen),
+      // Only from an API that serves the United States: one that does not refuses the name.
+      ...(this.usServed ? unitedStatesTimeseriesProducts(this.chosen) : []),
+    ];
     // A past window has observed steps only.
     return this.past ? products : [...products, NOWCAST_PRODUCT];
   }
@@ -1480,7 +1558,9 @@ export default class RadarCapability extends Capability {
     const at = this.inspectLatlon ?? this.latlon;
     if (!at) return undefined;
     const [lat, lon] = at;
-    const network = networkAt(lat, lon);
+    const found = networkAt(lat, lon);
+    // The United States only once it is served: an API without it refuses the name.
+    const network = found === UNITED_STATES.code && !this.usServed ? undefined : found;
     return network ? { lat, lon, network } : { lat, lon };
   }
 
@@ -1792,10 +1872,13 @@ export default class RadarCapability extends Capability {
     window.clearTimeout(this.snowAtTimer);
     for (const network of this.networks) network.destroy();
     for (const whole of Object.values(this.wholes)) whole.destroy();
+    for (const layer of Object.values(this.usColumns)) layer.destroy();
     this.around.destroy();
     for (const nowcast of this.nowcasts) nowcast.destroy();
     nowcastCoverage.set(null);
     stalledNetworksStore.set([]);
+    this.unsubscribeUsServed?.();
+    this.unsubscribeUsServed = null;
     this.unsubscribeVerdict?.();
     this.unsubscribeVerdict = null;
     drawnEncoding.set(RVP6_ENCODING);

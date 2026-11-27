@@ -6,8 +6,9 @@ simplified the same way, so the wash and the exclusive coverages in
 `spec/coverage.json` are drawn from the same circles. Run it with the
 backend's sources importable, passing the path of src/layers/extents.ts.
 
-The union is several parts that touch nowhere (the continent, and Ireland,
-whose radars reach no other network's), and a part may have islands inside
+The union is several parts that touch nowhere (the continent; Ireland,
+whose radars reach no other network's; and the United States, an ocean
+away from both), and a part may have islands inside
 it that no radar reaches though radars ring them. Each part is one hole in
 the world, wound clockwise; each island a ring inside it, wound
 anticlockwise. OpenLayers winds every ring after the world's as a hole
@@ -25,7 +26,7 @@ from pyproj import Geod, Transformer
 from shapely.geometry import LinearRing, MultiPolygon, Point, Polygon
 from shapely.ops import transform
 
-from src import coverage, openradar
+from src import coverage, nexrad, openradar
 
 START = 'export const radarCoverageInv = fromExtent(\n  transformExtent([-180, -90, 180, 90], "EPSG:4326", "EPSG:3857"),\n);\n'
 END = "\n/**\n"
@@ -64,6 +65,9 @@ def name(part: Polygon) -> str:
     ireland = [coverage.to_mercator(Point(site.lon, site.lat)) for site in openradar.IRELAND.sites.values()]
     if any(part.contains(site) for site in ireland):
         return "Ireland, whose radars reach no other network's"
+    united_states = [coverage.to_mercator(Point(site.lon, site.lat)) for site in nexrad.all_sites().values()]
+    if any(part.contains(site) for site in united_states):
+        return "the United States, its radars an ocean away from every other network's"
     return "the continent, every network but Ireland's"
 
 

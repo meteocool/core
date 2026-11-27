@@ -16,7 +16,7 @@
   "connection_details": "Szczegóły połączenia",
   "title": "O meteocool",
   "text1": "meteocool to bezpłatna platforma GIS, która zbiera i wizualizuje dane pogodowe, przede wszystkim o groźnych zjawiskach. Jest zoptymalizowana pod urządzenia mobilne, a ty możesz z niej korzystać, żeby gonić nadciągającą pogodę albo jej unikać.",
-  "text2": "meteocool korzysta z danych radarowych służb meteorologicznych Niemiec (DWD), Szwajcarii, Francji, Czech, Polski, Belgii, Słowacji, Litwy, Estonii, Irlandii, Chorwacji, Danii, Holandii, Finlandii, Szwecji i Norwegii oraz z danych o wyładowaniach w czasie rzeczywistym z projektu blitzortung.org.",
+  "text2": "meteocool korzysta z danych radarowych służb meteorologicznych Niemiec (DWD), Szwajcarii, Francji, Czech, Polski, Belgii, Słowacji, Litwy, Estonii, Irlandii, Chorwacji, Danii, Holandii, Finlandii, Szwecji, Norwegii i Stanów Zjednoczonych (NOAA/NWS, NOAA/NSSL MRMS) oraz z danych o wyładowaniach w czasie rzeczywistym z projektu blitzortung.org. meteocool przetwarza te dane: przelicza je do innego odwzorowania, dzieli na kafelki i liczy na ich podstawie prognozy. Ani NOAA, ani pozostałe służby meteorologiczne nie popierają ani nie polecają meteocool.",
   "credits_help": {
     "header": "Podziękowania i pomoc",
     "text1": "meteocool tworzą dla ciebie <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> i NessArt.",
@@ -137,6 +137,7 @@
   "lightning_unavailable": "Statystyki obecnie niedostępne.",
   "radar_no_coverage": "Tu jeszcze nie ma radaru",
   "radar_no_coverage_body": "Radar na żywo pochodzi ze służb meteorologicznych Niemiec, Szwajcarii, Francji, Czech, Polski, Belgii, Słowacji, Litwy, Estonii, Irlandii, Chorwacji, Danii, Holandii, Finlandii, Szwecji i Norwegii, więc obejmuje tylko te kraje. Wyładowania i modele prognostyczne działają na całym świecie.",
+  "radar_no_coverage_body_us": "Radar na żywo pochodzi ze służb meteorologicznych Niemiec, Szwajcarii, Francji, Czech, Polski, Belgii, Słowacji, Litwy, Estonii, Irlandii, Chorwacji, Danii, Holandii, Finlandii, Szwecji, Norwegii i Stanów Zjednoczonych, więc obejmuje tylko te kraje. Wyładowania i modele prognostyczne działają na całym świecie.",
   "forecast_no_coverage": "Brak prognozy w tym miejscu",
   "forecast_no_coverage_body": "Prognoza opadów pochodzi z niemieckiej służby meteorologicznej, więc obejmuje tylko Niemcy i ich okolice. Radar w innych miejscach pokazuje tylko przeszłość i teraźniejszość.",
   "forecast_no_coverage_body_nowcast": "Ani prognoza niemieckiej służby meteorologicznej, ani nowcast meteocool nie obejmuje o tej porze tej części mapy. Radar pokazuje tam tylko przeszłość i teraźniejszość.",

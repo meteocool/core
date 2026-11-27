@@ -3,14 +3,14 @@ import type { PreviewJob, TileJob } from "./valueTiles";
 import LatestFrame from "./latestFrame";
 import { radarDrawing } from "./radarDrawing";
 import type { RadarDrawing } from "./radarDrawing";
-import { compositeDim } from "../stores";
+import { compositeDim, unitedStatesServed } from "../stores";
 import { createEmpty, extend, getIntersection, isEmpty } from "ol/extent";
 import type { Map } from "ol";
 import type { Extent } from "ol/extent";
 import {
   chmiAttribution, dhmzAttribution, dmiAttribution, dwdAttribution, fmiAttribution, imgwAttribution, kaurAttribution,
   knmiAttribution, lhmtAttribution, meteoFranceAttribution, meteoSwissAttribution, metEireannAttribution,
-  metNorwayAttribution, rmiVmmAttribution, shmuAttribution, smhiAttribution,
+  metNorwayAttribution, noaaAttribution, rmiVmmAttribution, shmuAttribution, smhiAttribution,
 } from "./attributions";
 import {
   beExclusiveCoverage,
@@ -44,6 +44,8 @@ import {
   seRadarExtent,
   skExclusiveCoverage,
   skRadarExtent,
+  usExclusiveCoverage,
+  usRadarExtent,
 } from "./extents";
 import { tileSourceUrl } from "./dwd";
 import { maskPath } from "./tileMask";
@@ -55,12 +57,13 @@ import {
   fetchBelgianRadar, fetchCroatianRadar, fetchCzechRadar, fetchDanishRadar, fetchDutchRadar, fetchEchoTop18, fetchEchoTop45,
   fetchEchoTop50, fetchEstonianRadar, fetchEuropeColumnMaximum, fetchEuropeRadar, fetchFinnishRadar, fetchFrenchRadar,
   fetchIrishRadar, fetchLithuanianRadar, fetchNorwegianRadar, fetchPolishRadar, fetchSlovakRadar, fetchSwedishRadar,
-  fetchSwissRadar, fetchVerticallyIntegratedLiquid,
+  fetchSwissRadar, fetchUsColumnMaximum, fetchUsEchoTop18, fetchUsRadar, fetchUsVerticallyIntegratedLiquid,
+  fetchVerticallyIntegratedLiquid,
 } from "../api";
 import type { Progress, RadarFrame } from "../api";
 import type { NetworkCode } from "./networkHoles";
 
-/** One EUMETNET network, as the map draws it. */
+/** One network, as the map draws it: a EUMETNET member's, a product of all of theirs, or the United States'. */
 export interface Network {
   /** What the backend files it under: the socket event's `network`, the `reflectivity_{code}` collection. */
   code: NetworkCode;
@@ -72,7 +75,15 @@ export interface Network {
   coverage: number[][][] | null;
   /** The bucket its frames' tiles are in: `meteoradar` unless said otherwise. */
   bucket?: string;
+  /**
+   * The deepest zoom its tiles are cut to: 8 unless said otherwise. Deeper,
+   * the map overzooms these rather than asking for tiles that do not exist.
+   */
+  maxZoom?: number;
 }
+
+/** The zoom the networks' tiles are cut to unless one says otherwise (`Network.maxZoom`). */
+export const NETWORK_MAX_ZOOM = 8;
 
 export const SWITZERLAND: Network = {
   code: "ch",
@@ -194,11 +205,30 @@ export const NORWAY: Network = {
   coverage: noExclusiveCoverage,
 };
 
-/** In the coverage document's priority order (`spec/coverage.json`), after DWD. */
-export const NETWORKS: Network[] = [
+/**
+ * The United States: NOAA's MRMS mosaic of every NEXRAD radar, on its own
+ * 0.01° grid, a frame every four minutes. About a kilometre a cell, a pixel
+ * at zoom 7, so its tiles stop there and zoom 8 overzooms them. Not one of
+ * Europe's: no product of every network's (`EUROPE` and those after it)
+ * holds it, so it draws beside them as beside the networks' own.
+ */
+export const UNITED_STATES: Network = {
+  code: "us",
+  fetch: fetchUsRadar,
+  attribution: noaaAttribution,
+  extent: usRadarExtent,
+  coverage: usExclusiveCoverage,
+  maxZoom: 7,
+};
+
+/** The European networks, in the coverage document's priority order (`spec/coverage.json`), after DWD. */
+const EUROPEAN_NETWORKS: Network[] = [
   SWITZERLAND, FRANCE, CZECHIA, POLAND, BELGIUM, SLOVAKIA, LITHUANIA, ESTONIA, IRELAND, CROATIA, DENMARK, NETHERLANDS,
   FINLAND, SWEDEN, NORWAY,
 ];
+
+/** Every network with a composite of its own, in the coverage document's priority order: Europe's, then the United States. */
+export const NETWORKS: Network[] = [...EUROPEAN_NETWORKS, UNITED_STATES];
 
 /**
  * Every network's lowest tilts on one grid, DWD's included: the merged
@@ -209,9 +239,9 @@ export const NETWORKS: Network[] = [
 export const EUROPE: Network = {
   code: "eu",
   fetch: fetchEuropeRadar,
-  attribution: [dwdAttribution, ...NETWORKS.map((network) => network.attribution)].join(" "),
-  // The merged composite's grid is the union of every network's.
-  extent: [dwdRadarExtent, ...NETWORKS.map((network) => network.extent)].reduce(
+  attribution: [dwdAttribution, ...EUROPEAN_NETWORKS.map((network) => network.attribution)].join(" "),
+  // The merged composite's grid is the union of every European network's.
+  extent: [dwdRadarExtent, ...EUROPEAN_NETWORKS.map((network) => network.extent)].reduce(
     (whole, one) => extend(whole, one), createEmpty(),
   ),
   coverage: null,
@@ -253,9 +283,21 @@ export const EUROPE_VIL: Network = { ...EUROPE_COLUMN_MAXIMUM, code: "vil", fetc
  */
 export const AROUND_DMAX: Network = {
   ...EUROPE_COLUMN_MAXIMUM,
-  extent: NETWORKS.map((network) => network.extent).reduce((whole, one) => extend(whole, one), createEmpty()),
-  coverage: NETWORKS.flatMap((network) => network.coverage ?? []),
+  extent: EUROPEAN_NETWORKS.map((network) => network.extent).reduce((whole, one) => extend(whole, one), createEmpty()),
+  coverage: EUROPEAN_NETWORKS.flatMap((network) => network.coverage ?? []),
 };
+
+/**
+ * The United States' own column maximum, and the 18 dBZ echo top and VIL
+ * read up the same columns: drawn over its ground where Europe's are drawn
+ * over Europe, cut to its coverage as its composite is. It has no 45 or 50
+ * dBZ echo top.
+ */
+export const US_COLUMN_MAXIMUM: Network = { ...UNITED_STATES, code: "us_colmax", fetch: fetchUsColumnMaximum };
+
+export const US_ECHO_TOP_18: Network = { ...UNITED_STATES, code: "us_echotop18", fetch: fetchUsEchoTop18 };
+
+export const US_VIL: Network = { ...UNITED_STATES, code: "us_vil", fetch: fetchUsVerticallyIntegratedLiquid };
 
 /** For a layer that is only ever handed its frames. */
 const handedFrames = async (): Promise<null> => null;
@@ -275,7 +317,7 @@ export const NOWCAST_NETWORKS: Network[] = NETWORKS.map((network) => ({
 }));
 
 /**
- * One EUMETNET network's composite, drawn on its own (layers/radarDrawing.ts).
+ * One network's composite, drawn on its own (layers/radarDrawing.ts).
  *
  * Two frames, from two places. The live frame is its own: fetched here and
  * replaced whenever a radar reports, on the network's own socket event, which
@@ -358,6 +400,8 @@ export default class NetworkRadarLayer {
   async refresh(nanobar?: Progress) {
     const frame = await this.latest.refresh(nanobar);
     if (!frame) return; // nothing composited yet, or the request failed
+    // The environment serves the United States: its ground is radar's now.
+    if (this.network.code === UNITED_STATES.code) unitedStatesServed.set(true);
 
     this.apply();
     this.onLiveFrame?.();
@@ -479,7 +523,7 @@ export default class NetworkRadarLayer {
       keep: this.network.coverage ? maskPath(this.network.coverage) : null,
       attributions: [this.network.attribution],
       minZoom: 3,
-      maxZoom: 8,
+      maxZoom: this.network.maxZoom ?? NETWORK_MAX_ZOOM,
       tileSize: 512,
       transition: 0,
       interpolate: false,

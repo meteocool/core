@@ -32,10 +32,11 @@ export interface paths {
          * What the archive covers.
          * @description The oldest and newest observed step a client may ask the timeline for.
          *
-         *     Observed frames and their tiles are kept a month. A window between
-         *     `since` and `until`, on the five-minute grid, is served by
-         *     `/v3/radar/timeseries` with `start` and `end` as it is served live, with
-         *     observed steps only. 404 while nothing is kept yet.
+         *     A window between `since` and `until`, on the five-minute grid, is served
+         *     by `/v3/radar/timeseries` with `start` and `end` as it is served live,
+         *     with observed steps only, and so is everything else a past window reads.
+         *     A client offers what this says, never a length of its own. 404 while
+         *     nothing is kept yet.
          */
         get: operations["coverage_v3_archive_get"];
         put?: never;
@@ -314,8 +315,9 @@ export interface paths {
          *     in words, in `lang`, with times for the device to fill in.
          *
          *     Without `departures`: from now, floored to five minutes, every five
-         *     minutes for as long as the trip still ends inside the forecast -- and
-         *     at least the first -- at most 48.
+         *     minutes for as long as the trip still ends inside the forecast. Longer
+         *     trips keep partial departures while data remains; unknown sections
+         *     never count as dry or earn a departure recommendation. At most 48.
          *
          *     Only with a push token in `X-Push-Token`, within its quota, and a few
          *     routes at a time: one waiting too long for its turn is answered 503.
@@ -338,9 +340,12 @@ export interface paths {
          * The motion arrows' vector tile set.
          * @description The newest tile set of the arrows, and the field of each domain they were drawn from.
          *
-         *     The arrows are `/{bucket}/{tile_id}/{z}/{x}/{y}.pbf` on the assets host:
-         *     points with `e` and `n`, the motion east and north in km/h, one block
-         *     size a zoom. A 404 is no field anywhere yet.
+         *     The arrows are `/{bucket}/{tile_id}/{z}/{x}/{y}.pbf` on the assets host,
+         *     zooms 0 to 8: points with `e` and `n`, the motion east and north in km/h,
+         *     and `level`, the block an arrow stands for (2^level cells of about 5.5 km
+         *     a side). The map draws level `10 - z` at zoom z, 0 past zoom 10 and 6
+         *     below zoom 4; past zoom 8 it draws the zoom-8 tiles bigger and picks the
+         *     level from them. A 404 is no field anywhere yet.
          */
         get: operations["layer_v3_motion_layer_get"];
         put?: never;
@@ -437,7 +442,7 @@ export interface paths {
         };
         /**
          * Which network's composite is drawn where.
-         * @description Each EUMETNET network's exclusive coverage, and what of it and its country is cut out of DWD's tiles.
+         * @description Each network's exclusive coverage, and what of it and its country is cut out of DWD's tiles.
          *
          *     Inside a network's own borders only that network draws; outside every
          *     border the nearest radar that reaches does, whatever its network, DWD's
@@ -970,7 +975,9 @@ export interface paths {
          *     a client drawing that one instead: DWD's column maximum, `dmax`, the
          *     merged composite, `merged`, the column maximum of every network,
          *     `colmax`, or one of that pass's column products: an echo top,
-         *     `echotop18`, `echotop45` or `echotop50`, or `vil`. Asked for rather than
+         *     `echotop18`, `echotop45` or `echotop50`, or `vil`; or the United States'
+         *     column maximum, 18 dBZ echo top or vertically integrated liquid from
+         *     MRMS, `us_colmax`, `us_echotop18` or `us_vil`. Asked for rather than
          *     always sent, since each frame carries its tile index and most clients
          *     draw none of them. The chart is still read from HX and the networks,
          *     whichever is drawn; a column product's frames carry no reading.
@@ -988,6 +995,108 @@ export interface paths {
          *     the apps show text rather than work it out.
          */
         get: operations["timeseries_v3_radar_timeseries_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/us": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * United States reflectivity tile metadata.
+         * @description The newest United States reflectivity composite -- one frame, not a timeseries.
+         *
+         *     NOAA's MRMS near-ground reflectivity (SeamlessHSR), the mosaic of every
+         *     US radar, as NOAA publishes it on its own 0.01 degree grid: about 1 km a
+         *     cell, a frame every four minutes, stamped with MRMS's valid time, which
+         *     is all a mosaic says of when its radars scanned. Its quality control is
+         *     NOAA's. See `/switzerland` for why this is a route of its own.
+         */
+        get: operations["united_states_v3_radar_us_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/us/colmax": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * United States column-maximum reflectivity tile metadata.
+         * @description The newest United States column maximum -- one frame, not a timeseries.
+         *
+         *     NOAA's MRMS composite reflectivity: the strongest echo above each cell, on
+         *     the composite's grid and stamped with its frame. Refetched on the
+         *     `network` socket event (`us_colmax`); its past is in `/timeseries` when
+         *     asked for (`products=us_colmax`).
+         */
+        get: operations["united_states_colmax_v3_radar_us_colmax_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/us/echotop18": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * United States 18 dBZ echo top tile metadata.
+         * @description The newest United States 18 dBZ echo top -- one frame, not a timeseries.
+         *
+         *     NOAA's MRMS echo top: how high above sea level each cell's echo reaches
+         *     18 dBZ, on the composite's grid and stamped with its frame. Its tiles are
+         *     `height-250m-u8`. Refetched on the `network` socket event
+         *     (`us_echotop18`); its past is in `/timeseries` when asked for
+         *     (`products=us_echotop18`).
+         */
+        get: operations["united_states_echotop18_v3_radar_us_echotop18_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v3/radar/us/vil": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * United States vertically integrated liquid tile metadata.
+         * @description The newest United States vertically integrated liquid -- one frame, not a timeseries.
+         *
+         *     NOAA's MRMS VIL, kg m⁻², on the composite's grid and stamped with its
+         *     frame. Its tiles are `vil-0.5kg-u8`. Refetched on the `network` socket
+         *     event (`us_vil`); its past is in `/timeseries` when asked for
+         *     (`products=us_vil`).
+         */
+        get: operations["united_states_vil_v3_radar_us_vil_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1141,6 +1250,11 @@ export interface components {
              * @description The newest observed step, unix seconds, on the five-minute grid.
              */
             until: number;
+            /**
+             * Volumes Since
+             * @description The oldest step `/cells/volumes` answers with a storm's 3D volume, unix seconds, on the five-minute grid: the volumes are kept for less long than the frames in some environments, and a moment before this has no 3D clouds. A step after it without any had no storm. Null while no volume is kept.
+             */
+            volumes_since?: number | null;
         };
         /**
          * CellsRefresh
@@ -1235,7 +1349,7 @@ export interface components {
             name: string;
             /**
              * Points
-             * @description [lat, lon] in the order travelled, up to 200 km.
+             * @description [lat, lon] in the order travelled.
              */
             points: components["schemas"]["Coordinate"][];
             /**
@@ -1290,7 +1404,7 @@ export interface components {
             crs: string;
             /**
              * Domains
-             * @description Each EUMETNET network, by domain. DWD's (`de`) is wherever its grid reaches and none of these.
+             * @description Each network, by domain: the European ones, and the United States (`us`), which has no neighbour. DWD's (`de`) is wherever its grid reaches and none of these.
              */
             domains: {
                 [key: string]: components["schemas"]["NetworkCoverage"];
@@ -1555,7 +1669,10 @@ export interface components {
         Longitude: number;
         /**
          * Mesocyclone
-         * @description One DWD mesocyclone detection. The `mesocyclones` event carries a list.
+         * @description One DWD mesocyclone detection.
+         *
+         *     The `mesocyclones` event and `/mesocyclones/all/` carry a list of these
+         *     and of `RotationSignature`, told apart by `source`.
          */
         Mesocyclone: {
             /**
@@ -1578,6 +1695,13 @@ export interface components {
              * @description EPSG:3857 easting, in metres
              */
             lon: number;
+            /**
+             * Source
+             * @description Whose detection: DWD's mesocyclone product
+             * @default dwd
+             * @constant
+             */
+            source: "dwd";
             /**
              * Time
              * @description Detection id: milliseconds since the epoch, plus an index
@@ -1651,7 +1775,7 @@ export interface components {
         };
         /**
          * NetworkRefresh
-         * @description A nudge that one EUMETNET network's composite, or another frame with a route of its own, has been re-rendered.
+         * @description A nudge that one network's composite, or another frame with a route of its own, has been re-rendered.
          *
          *     Deliberately not a `Poke`, for the reason `CellsRefresh` is not one: the
          *     frontend's `poke` handler reloads DWD's whole radar timeseries, and a
@@ -1661,10 +1785,10 @@ export interface components {
         NetworkRefresh: {
             /**
              * Network
-             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network, and from the same pass its echo tops at 18, 45 and 50 dBZ, `echotop18`, `echotop45` and `echotop50`, and its vertically integrated liquid, `vil`
+             * @description Which frame: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `ie` Met Eireann, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `us` the United States from NOAA's MRMS, `eu` the merged composite of every network, `dmax` DWD's column maximum, `colmax` meteocool's column maximum of every network, and from the same pass its echo tops at 18, 45 and 50 dBZ, `echotop18`, `echotop45` and `echotop50`, and its vertically integrated liquid, `vil`; and the United States' column maximum, 18 dBZ echo top and vertically integrated liquid from MRMS, `us_colmax`, `us_echotop18` and `us_vil`
              * @enum {string}
              */
-            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "eu" | "dmax" | "colmax" | "echotop18" | "echotop45" | "echotop50" | "vil";
+            network: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "us" | "eu" | "dmax" | "colmax" | "echotop18" | "echotop45" | "echotop50" | "vil" | "us_colmax" | "us_echotop18" | "us_vil";
         };
         /**
          * NowcastRefresh
@@ -1680,10 +1804,10 @@ export interface components {
         NowcastRefresh: {
             /**
              * Domain
-             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `ie` Met Eireann
+             * @description Which network's run: `ch` MeteoSwiss, `fr` Meteo-France, `cz` CHMI, `pl` IMGW, `be` RMI and VMM, `sk` SHMU, `lt` LHMT, `ee` KAUR, `hr` DHMZ, `dk` DMI, `nl` KNMI, `fi` FMI, `se` SMHI, `no` MET Norway, `ie` Met Eireann, `us` the United States (NOAA's MRMS)
              * @enum {string}
              */
-            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "ie";
+            domain: "ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "ie" | "us";
             /**
              * Issued At
              * @description The run's issue time, unix seconds: the five-minute slot it starts from
@@ -1920,7 +2044,7 @@ export interface components {
             } | null;
             /**
              * Networks
-             * @description meteocool's own composites of the EUMETNET networks (`ch`, `fr`, `cz`, `pl`), each keyed by the observed steps of `frames` it has a composite for -- the one measured nearest the step, and on the newest step the newest one, while it is fresh. None of them has a forecast, so no forecast step is ever here.
+             * @description meteocool's own composites of the EUMETNET networks (`ch`, `fr`, `cz`, `pl`, ...), and the United States' from NOAA's MRMS (`us`), each keyed by the observed steps of `frames` it has a composite for -- the one measured nearest the step, and on the newest step the newest one, while it is fresh. None of them has a forecast, so no forecast step is ever here.
              */
             networks?: {
                 [key: string]: {
@@ -1929,7 +2053,7 @@ export interface components {
             };
             /**
              * Products
-             * @description The observed products asked for with `products` -- `dmax`, DWD's column maximum, `merged`, meteocool's composite of every network, `colmax`, its column maximum of every network, and that pass's echo tops, `echotop18`, `echotop45` and `echotop50`, and vertically integrated liquid, `vil` -- keyed like `networks`: the frame measured nearest each observed step (`dmax`, `colmax` and its column products only on their own step), and on the newest step the newest one, while it is fresh. A column product's tiles are of its own encoding (`values.encoding`) and carry no `dbz`. With `products=nowcast`, meteocool's own nowcast (experimental): `nowcast_ch`, `nowcast_fr`, `nowcast_cz` and `nowcast_pl`, each that network's newest complete run issued in the last 30 minutes, its steps keyed by the step they are valid at and shaped as WN's are in `frames` (`source` `nowcast_phys`, tiles in the nowcast bucket, `upstream_time` the run's issue time); with `lat`, `lon` and `network`, that network's steps carry `dbz` at the point. A network without a fresh run is absent; Germany has none here. Empty unless asked for.
+             * @description The observed products asked for with `products` -- `dmax`, DWD's column maximum, `merged`, meteocool's composite of every network, `colmax`, its column maximum of every network, and that pass's echo tops, `echotop18`, `echotop45` and `echotop50`, and vertically integrated liquid, `vil`, and the United States' MRMS column maximum, 18 dBZ echo top and VIL, `us_colmax`, `us_echotop18` and `us_vil` -- keyed like `networks`: the frame measured nearest each observed step (`dmax`, `colmax` and its column products only on their own step), and on the newest step the newest one, while it is fresh. A column product's tiles are of its own encoding (`values.encoding`) and carry no `dbz`. With `products=nowcast`, meteocool's own nowcast (experimental): `nowcast_ch`, `nowcast_fr`, `nowcast_cz` and `nowcast_pl`, each that network's newest complete run issued in the last 30 minutes, its steps keyed by the step they are valid at and shaped as WN's are in `frames` (`source` `nowcast_phys`, tiles in the nowcast bucket, `upstream_time` the run's issue time); with `lat`, `lon` and `network`, that network's steps carry `dbz` at the point. A network without a fresh run is absent; Germany has none here. Empty unless asked for.
              */
             products?: {
                 [key: string]: {
@@ -1968,7 +2092,7 @@ export interface components {
              * @description The least wet departure, the earliest of equals.
              */
             best: number | null;
-            /** @description `dry`: every departure is. `leave_by`: the first is dry, a later one is not; `at` is the last of the first dry ones. `wait_until`: the first is wet, a later one dry; `at` is the first dry one. `least_wet`: none is dry; `at` is the least wet. `unknown`: no departure has a reading. */
+            /** @description `dry`: every departure is. `leave_by`: the first is dry, a later one is not; `at` is the last of the first dry ones. `wait_until`: the first is wet, a later one dry; `at` is the first dry one. `least_wet`: none is dry; `at` is the least wet. `unknown`: no departures, or any part is unknown. */
             kind: components["schemas"]["RouteAdviceKind"];
         };
         /**
@@ -1994,7 +2118,7 @@ export interface components {
             dbz: (number | null)[];
             /**
              * Dry
-             * @description `wet` is 0.
+             * @description Every sample is known and `wet` is 0; false if any part is unknown.
              */
             dry: boolean;
             /**
@@ -2004,7 +2128,7 @@ export interface components {
             peak: number;
             /**
              * Wet
-             * @description Seconds of the trip at or above the threshold, each sample its share of it.
+             * @description Known seconds at or above the threshold; unknown samples are not counted.
              */
             wet: number;
         };
@@ -2053,7 +2177,7 @@ export interface components {
          * @description A trip, and when the traveller could leave.
          */
         RouteRequest: {
-            /** @description Default: from now, floored to five minutes, every five minutes for as long as the trip still ends inside the forecast, at most 48. */
+            /** @description Default: from now, floored to five minutes, every five minutes for as long as the trip still ends inside the forecast, at most 48. Longer trips keep partial departures while data remains. */
             departures?: components["schemas"]["DepartureWindow"] | null;
             /**
              * Details
@@ -2070,7 +2194,7 @@ export interface components {
             lang: components["schemas"]["Language"];
             /**
              * Points
-             * @description [lat, lon] in the order travelled, up to 200 km.
+             * @description [lat, lon] in the order travelled.
              */
             points: components["schemas"]["Coordinate"][];
             /**
@@ -3589,8 +3713,8 @@ export interface operations {
                 end?: number;
                 lat?: number;
                 lon?: number;
-                network?: ("ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no") | null;
-                products?: ("dmax" | "merged" | "colmax" | "echotop18" | "echotop45" | "echotop50" | "vil" | "nowcast")[] | null;
+                network?: ("ch" | "fr" | "cz" | "pl" | "be" | "sk" | "lt" | "ee" | "ie" | "hr" | "dk" | "nl" | "fi" | "se" | "no" | "us") | null;
+                products?: ("dmax" | "merged" | "colmax" | "echotop18" | "echotop45" | "echotop50" | "vil" | "us_colmax" | "us_echotop18" | "us_vil" | "nowcast")[] | null;
                 threshold?: number | null;
                 lang?: components["schemas"]["Language"];
                 details?: boolean;
@@ -3617,6 +3741,86 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    united_states_v3_radar_us_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    united_states_colmax_v3_radar_us_colmax_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    united_states_echotop18_v3_radar_us_echotop18_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
+                };
+            };
+        };
+    };
+    united_states_vil_v3_radar_us_vil_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RadarFrame"];
                 };
             };
         };

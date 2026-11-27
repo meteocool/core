@@ -3,6 +3,7 @@ import test from "node:test";
 import {
   DEFAULT_PRODUCT, FALLBACK_BEHIND_S, OBSERVED_PRODUCTS, PRODUCT_GROUPS, WHOLE_PRODUCTS, ageMinutes, ageSpan, aroundFrame,
   drawnProduct, givesUpChoice, fallsBehind, isWholeProduct, scanRange, parseObservedProduct, stepFrame, timeseriesProducts,
+  unitedStatesDraws, unitedStatesTimeseriesProducts,
 } from "../../src/lib/observedProduct.ts";
 import type { ColumnProduct, NewestScans } from "../../src/lib/observedProduct.ts";
 
@@ -212,4 +213,23 @@ test("every product of every network is drawn whole; HX and DMAX keep DWD's grid
   }
   assert.ok(!isWholeProduct("hx"));
   assert.ok(!isWholeProduct("dmax"));
+});
+
+test("the United States draws its own counterpart of what is drawn, and nothing it has none of", () => {
+  assert.equal(unitedStatesDraws("hx"), "own");
+  assert.equal(unitedStatesDraws("merged"), "own");
+  assert.equal(unitedStatesDraws("colmax"), "us_colmax");
+  assert.equal(unitedStatesDraws("dmax"), "us_colmax");
+  assert.equal(unitedStatesDraws("echotop18"), "us_echotop18");
+  assert.equal(unitedStatesDraws("vil"), "us_vil");
+  assert.equal(unitedStatesDraws("echotop45"), null);
+  assert.equal(unitedStatesDraws("echotop50"), null);
+});
+
+test("the timeseries is asked for the United States' column product beside Europe's", () => {
+  assert.deepEqual(unitedStatesTimeseriesProducts("hx"), []);
+  assert.deepEqual(unitedStatesTimeseriesProducts("merged"), []);
+  assert.deepEqual(unitedStatesTimeseriesProducts("dmax"), ["us_colmax"]);
+  assert.deepEqual(unitedStatesTimeseriesProducts("vil"), ["us_vil"]);
+  assert.deepEqual(unitedStatesTimeseriesProducts("echotop50"), []);
 });

@@ -16,7 +16,7 @@
   "connection_details": "Ryšio informacija",
   "title": "Apie meteocool",
   "text1": "meteocool – nemokama GIS platforma, kuri renka ir vaizduoja orų duomenis, ypač apie pavojingus reiškinius. Ji pritaikyta mobiliesiems įrenginiams: gali ja naudotis, kad galėtum vytis artėjančius orus arba jų išvengti.",
-  "text2": "meteocool naudoja Vokietijos (DWD), Šveicarijos, Prancūzijos, Čekijos, Lenkijos, Belgijos, Slovakijos, Lietuvos, Estijos, Airijos, Kroatijos, Danijos, Nyderlandų, Suomijos, Švedijos ir Norvegijos meteorologijos tarnybų radarų duomenis bei realaus laiko žaibų duomenis iš projekto blitzortung.org.",
+  "text2": "meteocool naudoja Vokietijos (DWD), Šveicarijos, Prancūzijos, Čekijos, Lenkijos, Belgijos, Slovakijos, Lietuvos, Estijos, Airijos, Kroatijos, Danijos, Nyderlandų, Suomijos, Švedijos, Norvegijos ir Jungtinių Valstijų (NOAA/NWS, NOAA/NSSL MRMS) meteorologijos tarnybų radarų duomenis bei realaus laiko žaibų duomenis iš projekto blitzortung.org. meteocool šiuos duomenis apdoroja: perprojektuoja, suskaido į plyteles ir pagal juos skaičiuoja prognozes. Nei NOAA, nei kitos meteorologijos tarnybos meteocool neremia ir nerekomenduoja.",
   "credits_help": {
     "header": "Padėkos ir pagalba",
     "text1": "meteocool tau kuria <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> ir NessArt.",
@@ -137,6 +137,7 @@
   "lightning_unavailable": "Statistika šiuo metu nepasiekiama.",
   "radar_no_coverage": "Čia radaro dar nėra",
   "radar_no_coverage_body": "Tiesioginis radaras gaunamas iš Vokietijos, Šveicarijos, Prancūzijos, Čekijos, Lenkijos, Belgijos, Slovakijos, Lietuvos, Estijos, Airijos, Kroatijos, Danijos, Nyderlandų, Suomijos, Švedijos ir Norvegijos meteorologijos tarnybų, todėl apima tik šias šalis. Žaibai ir prognozių modeliai veikia visame pasaulyje.",
+  "radar_no_coverage_body_us": "Tiesioginis radaras gaunamas iš Vokietijos, Šveicarijos, Prancūzijos, Čekijos, Lenkijos, Belgijos, Slovakijos, Lietuvos, Estijos, Airijos, Kroatijos, Danijos, Nyderlandų, Suomijos, Švedijos, Norvegijos ir Jungtinių Valstijų meteorologijos tarnybų, todėl apima tik šias šalis. Žaibai ir prognozių modeliai veikia visame pasaulyje.",
   "forecast_no_coverage": "Čia prognozės nėra",
   "forecast_no_coverage_body": "Kritulių prognozę teikia Vokietijos meteorologijos tarnyba, todėl ji apima tik Vokietiją ir jos apylinkes. Kitur radaras rodo tik praeitį ir dabartį.",
   "forecast_no_coverage_body_nowcast": "Šiuo metu šios žemėlapio dalies neapima nei Vokietijos meteorologijos tarnybos prognozė, nei meteocool trumpalaikė prognozė. Radaras čia rodo tik praeitį ir dabartį.",

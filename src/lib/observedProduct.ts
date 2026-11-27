@@ -24,6 +24,10 @@
  * The choice holds on every observed step. A forecast step is WN's whatever
  * was chosen: none of the others forecasts.
  *
+ * The United States is none of Europe's: its own composite stands for the
+ * lowest scans, and its own column maximum, 18 dBZ echo top and VIL for
+ * theirs (`unitedStatesDraws`).
+ *
  * Pure, with no store and no clock: RadarCapability holds the frames, and the
  * picker in the tray reads what it publishes.
  */
@@ -158,8 +162,8 @@ export function drawnProduct(chosen: ObservedProduct, scans: NewestScans): Obser
  * network's history does.
  */
 export function stepFrame<F>(
-  product: AlternativeProduct,
-  drawn: ObservedProduct,
+  product: AlternativeProduct | UsColumnProduct,
+  drawn: ObservedProduct | UsColumnProduct,
   step: { observed: boolean; live: boolean; key: number },
   history: Record<number, F> | undefined,
   liveFrame: F | null,
@@ -167,6 +171,40 @@ export function stepFrame<F>(
   if (drawn !== product || !step.observed) return null;
   if (step.live) return liveFrame ?? history?.[step.key] ?? null;
   return history?.[step.key] ?? null;
+}
+
+/** The United States' own column products, as the timeseries' `products=` and the `network` event name them. */
+export type UsColumnProduct = "us_colmax" | "us_echotop18" | "us_vil";
+
+/**
+ * What the United States draws while a product is drawn: its own composite
+ * (`own`) for the lowest scans, HX's or the merged; its own column maximum
+ * for either column maximum, Europe's or DMAX; its own 18 dBZ echo top and
+ * VIL for Europe's. Null for the 45 and 50 dBZ echo tops, which it has no
+ * product for: drawing its reflectivity under a legend in kilometres would
+ * read as heights.
+ */
+export function unitedStatesDraws(drawn: ObservedProduct): "own" | UsColumnProduct | null {
+  switch (drawn) {
+    case "hx":
+    case "merged":
+      return "own";
+    case "colmax":
+    case "dmax":
+      return "us_colmax";
+    case "echotop18":
+      return "us_echotop18";
+    case "vil":
+      return "us_vil";
+    default:
+      return null;
+  }
+}
+
+/** The United States' column products whose past the timeseries is asked for with, beside `timeseriesProducts`'. */
+export function unitedStatesTimeseriesProducts(chosen: ObservedProduct): UsColumnProduct[] {
+  const draws = unitedStatesDraws(chosen);
+  return draws === null || draws === "own" ? [] : [draws];
 }
 
 /** Whole minutes since a scan, for the picker; null where there is none. */

@@ -8,7 +8,12 @@
  * files, so the distances here are the ones the volume was
  * georeferenced with. Volumes from before every network joined name
  * DWD's radars by their bare three-letter code; those resolve too.
+ *
+ * The United States' NEXRAD radars go by their ICAO in lower case
+ * (`kokx`), in site mode and in the volumes alike; they are read from the
+ * backend's site list, `spec/nexrad_sites.json`, copied byte for byte.
  */
+import nexrad from "../../spec/nexrad_sites.json" with { type: "json" };
 
 export interface RadarSite {
   /** Where it stands, which is what its operator calls it. */
@@ -45,6 +50,17 @@ const DUTCH = { lowestDeg: 0.3, rangeKm: 250 };
 const FINNISH = { lowestDeg: 0.3, rangeKm: 250 };
 const SWEDISH = { lowestDeg: 0.5, rangeKm: 240 };
 const NORWEGIAN = { lowestDeg: 0.5, rangeKm: 240 };
+// Every WSR-88D's lowest tilt, read to the 250 km the coverage draws it to.
+const NEXRAD = { lowestDeg: 0.5, rangeKm: 250 };
+
+/**
+ * The NEXRAD radars with Level III products, by their ICAO in lower case,
+ * each named by its ICAO, which is what the Weather Service calls it.
+ */
+export const NEXRAD_SITES: Record<string, RadarSite> = Object.fromEntries(nexrad.sites.map((site) => [
+  site.icao.toLowerCase(),
+  { name: site.icao, lat: site.lat, lon: site.lon, heightM: site.height_m, ...NEXRAD },
+]));
 
 export const RADAR_SITES: Record<string, RadarSite> = {
   deasb: { name: "Borkum", lat: 53.564129, lon: 6.748317, heightM: 36.2, ...DWD },
@@ -180,6 +196,8 @@ export const RADAR_SITES: Record<string, RadarSite> = {
   norst: { name: "Røst", lat: 67.5307, lon: 12.0986, heightM: 17.0, ...NORWEGIAN },
   nosmn: { name: "Sømna", lat: 65.21989, lon: 11.9926, heightM: 315.0, ...NORWEGIAN },
   nosta: { name: "Stad", lat: 62.187076, lon: 5.127454, heightM: 508.0, ...NORWEGIAN },
+
+  ...NEXRAD_SITES,
 };
 
 /** The lowest elevation in DWD's volume scan, in degrees. */
@@ -205,9 +223,14 @@ export function siteCode(code: string): string {
   return RADAR_SITES[lower] || !RADAR_SITES[`de${lower}`] ? lower : `de${lower}`;
 }
 
-/** The radar's country, ISO 3166 alpha-2 in lower case, from its node code. */
+/**
+ * The radar's country, ISO 3166 alpha-2 in lower case, from its node code;
+ * `us` for a NEXRAD radar, whose ICAO says nothing of it, Guam's and Korea's
+ * among them, being the United States' network's.
+ */
 export function countryOf(code: string): string {
-  return siteCode(code).slice(0, 2);
+  const site = siteCode(code);
+  return site in NEXRAD_SITES ? "us" : site.slice(0, 2);
 }
 
 /** Great-circle distance, in kilometres. */

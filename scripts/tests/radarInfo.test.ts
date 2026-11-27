@@ -6,7 +6,10 @@ import {
   infoFileOf, infoText, sourceLabels, textFileOf, textLanguage, withTexts,
   type RadarFactsFile, type RadarInfo, type RadarTextFile,
 } from "../../src/lib/radarInfo.ts";
-import { RADAR_SITES } from "../../src/lib/radarSites.ts";
+import { NEXRAD_SITES, RADAR_SITES } from "../../src/lib/radarSites.ts";
+
+/** The radars described: every European one. The NEXRAD radars have no entries yet, and the card says nothing of one without. */
+const DESCRIBED = Object.keys(RADAR_SITES).filter((code) => !(code in NEXRAD_SITES));
 import { LOCALES } from "../../src/locale/choose.ts";
 
 const ROOT = path.join(import.meta.dirname, "..", "..");
@@ -65,8 +68,8 @@ test("a radar's texts are in its country's file", () => {
   assert.equal(infoFileOf("isn"), "radar-info-de");
 });
 
-test("every radar there is has an entry, in its country's file", () => {
-  for (const code of Object.keys(RADAR_SITES)) {
+test("every European radar there is has an entry, in its country's file", () => {
+  for (const code of DESCRIBED) {
     assert.ok(files[infoFileOf(code)]?.[code], `${code} has no entry in ${infoFileOf(code)}.json`);
   }
 });
@@ -82,7 +85,7 @@ test("every entry is a radar there is, in its own country's file", () => {
 
 test("every radar has a text of a few sentences in every language the app speaks", () => {
   for (const language of LOCALES) {
-    for (const code of Object.keys(RADAR_SITES)) {
+    for (const code of DESCRIBED) {
       const text = texts[textFileOf(code, language)]?.[code] ?? "";
       assert.ok(text.length >= 60, `${code}'s ${language} text is missing or too short`);
       assert.ok(text.length <= 600, `${code}'s ${language} text runs to ${text.length} characters`);

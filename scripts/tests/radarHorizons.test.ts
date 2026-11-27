@@ -2,16 +2,17 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import file from "../../src/lib/radarHorizons.json";
 import { loadHorizons, smoothed } from "../../src/lib/radarHorizons.ts";
-import { RADAR_SITES } from "../../src/lib/radarSites.ts";
+import { NEXRAD_SITES, RADAR_SITES } from "../../src/lib/radarSites.ts";
 
 /**
  * The radars' terrain-limited reach, as the backend computed it and as
  * the minimap draws it.
  */
 
-test("every radar the site table knows has a horizon, a range a degree", () => {
+/* The NEXRAD radars have none yet: the minimap draws theirs without one. */
+test("every European radar the site table knows has a horizon, a range a degree", () => {
   const sites = file.sites as Record<string, number[]>;
-  for (const code of Object.keys(RADAR_SITES)) {
+  for (const code of Object.keys(RADAR_SITES).filter((site) => !(site in NEXRAD_SITES))) {
     assert.ok(sites[code], `${code} has no horizon`);
     assert.equal(sites[code].length, 360, code);
   }

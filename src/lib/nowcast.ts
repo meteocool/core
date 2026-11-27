@@ -15,10 +15,11 @@ import type { CountryNetwork } from "../api/events";
 
 /**
  * The networks with a nowcast of their own, in the order the map lists them.
- * Ireland's since Dublin's clutter map was rebuilt from two dry days.
+ * Ireland's since Dublin's clutter map was rebuilt from two dry days; the
+ * United States' from its MRMS mosaic.
  */
 export const NOWCAST_DOMAINS: readonly CountryNetwork[] = [
-  "ch", "fr", "cz", "pl", "be", "sk", "lt", "ee", "hr", "dk", "nl", "fi", "se", "no", "ie",
+  "ch", "fr", "cz", "pl", "be", "sk", "lt", "ee", "hr", "dk", "nl", "fi", "se", "no", "ie", "us",
 ];
 
 /** The `products` value that asks for the runs. */

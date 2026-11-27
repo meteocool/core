@@ -2,7 +2,8 @@ import Feature from "ol/Feature";
 import Fill from "ol/style/Fill";
 import Style from "ol/style/Style";
 import LinearRing from "ol/geom/LinearRing";
-import type Polygon from "ol/geom/Polygon";
+import Polygon from "ol/geom/Polygon";
+import { containsExtent } from "ol/extent";
 import { derived } from "svelte/store";
 import TileLayer from "./webglTile";
 import VectorLayer from "ol/layer/Vector";
@@ -16,9 +17,9 @@ import {
   beExclusiveCoverage, chExclusiveCoverage, czExclusiveCoverage, dkExclusiveCoverage, dwdCoverageInv, dwdRadarExtent,
   eeExclusiveCoverage, fiExclusiveCoverage, frExclusiveCoverage, hrExclusiveCoverage, ltExclusiveCoverage,
   ieExclusiveCoverage, nlExclusiveCoverage, noExclusiveCoverage, plExclusiveCoverage, radarCoverageInv, seExclusiveCoverage,
-  skExclusiveCoverage,
+  skExclusiveCoverage, usExclusiveCoverage, usRadarExtent,
 } from "./extents";
-import { nowcastCoverage, onForecastStep } from "../stores";
+import { nowcastCoverage, onForecastStep, unitedStatesServed } from "../stores";
 import type { CountryNetwork } from "../api/events";
 import { isDarkBasemap, watchBasemap } from "./casing";
 import { tileBaseUrl } from "../urls";
@@ -165,6 +166,7 @@ const NOWCAST_GROUND: Record<CountryNetwork, number[][][]> = {
   se: seExclusiveCoverage,
   no: noExclusiveCoverage,
   ie: ieExclusiveCoverage,
+  us: usExclusiveCoverage,
 };
 
 /** A scratch canvas the cut wash is drawn on before it is laid on the map's. */
@@ -249,22 +251,45 @@ function nowcastWashGeometry(networks: readonly CountryNetwork[]): { geometry: P
  * well (`cutWash`). One module-level subscription, as for the colour above.
  */
 const forecastWashes = new Set<Feature>();
-let washGeometry: Polygon = radarCoverageInv;
+/** The washes that never follow the player: the observed one, whatever step it is on. */
+const observedWashes = new Set<Feature>();
+
+/**
+ * The observed wash with the United States washed too: every hole of
+ * `radarCoverageInv` but its, which lie inside its grid. What an
+ * environment that does not serve the United States draws, rather than
+ * leaving clear a country it draws nothing over, which reads as dry.
+ */
+const radarCoverageInvWithoutUs = (() => {
+  const geometry = new Polygon([radarCoverageInv.getLinearRing(0)!.getCoordinates()]);
+  for (let i = 1; i < radarCoverageInv.getLinearRingCount(); i += 1) {
+    const ring = radarCoverageInv.getLinearRing(i)!;
+    if (!containsExtent(usRadarExtent, ring.getExtent())) geometry.appendLinearRing(ring);
+  }
+  return geometry;
+})();
+
+let observedGeometry: Polygon = radarCoverageInvWithoutUs;
+let washGeometry: Polygon = observedGeometry;
 let washStyle: Style | undefined;
 /** How many of the cut wash's rings, after the world's, `cutWash` erases together, ground by ground. */
 let washGroups: number[] = [];
 
-derived([onForecastStep, nowcastCoverage], ([forecast, nowcast]) => ({ forecast, runs: nowcast?.shown ?? [] }))
-  .subscribe(({ forecast, runs }) => {
-    const cut = forecast && runs.length > 0 ? nowcastWashGeometry(runs) : null;
-    washGeometry = !forecast ? radarCoverageInv : cut ? cut.geometry : dwdCoverageInv;
-    washGroups = cut?.groups ?? [];
-    washStyle = cut ? cutWash : undefined;
-    forecastWashes.forEach((feature) => {
-      feature.setGeometry(washGeometry);
-      feature.setStyle(washStyle);
-    });
+derived(
+  [onForecastStep, nowcastCoverage, unitedStatesServed],
+  ([forecast, nowcast, served]) => ({ forecast, runs: nowcast?.shown ?? [], served }),
+).subscribe(({ forecast, runs, served }) => {
+  observedGeometry = served ? radarCoverageInv : radarCoverageInvWithoutUs;
+  const cut = forecast && runs.length > 0 ? nowcastWashGeometry(runs) : null;
+  washGeometry = !forecast ? observedGeometry : cut ? cut.geometry : dwdCoverageInv;
+  washGroups = cut?.groups ?? [];
+  washStyle = cut ? cutWash : undefined;
+  forecastWashes.forEach((feature) => {
+    feature.setGeometry(washGeometry);
+    feature.setStyle(washStyle);
   });
+  observedWashes.forEach((feature) => feature.setGeometry(observedGeometry));
+});
 
 /**
  * The dark wash over everywhere no network reaches.
@@ -275,12 +300,14 @@ derived([onForecastStep, nowcastCoverage], ([forecast, nowcast]) => ({ forecast,
  */
 export const radolanOverlay = ({ followsForecast = false } = {}) => {
   const feature = new Feature({
-    geometry: followsForecast ? washGeometry : radarCoverageInv,
+    geometry: followsForecast ? washGeometry : observedGeometry,
     name: "DarkOverlay",
   });
   if (followsForecast) {
     feature.setStyle(washStyle);
     forecastWashes.add(feature);
+  } else {
+    observedWashes.add(feature);
   }
   const layer = new VectorLayer({
     zIndex: 1000,

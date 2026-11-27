@@ -1,7 +1,7 @@
 import {
   beBordersNearDwd, chBorders, czBordersNearDwd, dkBordersNearDwd, eeBordersNearDwd, fiBordersNearDwd, frBordersNearDwd,
   hrBordersNearDwd, ieBordersNearDwd, ltBordersNearDwd, nlBordersNearDwd, noBordersNearDwd, plBordersNearDwd,
-  seBordersNearDwd, skBordersNearDwd,
+  seBordersNearDwd, skBordersNearDwd, usBordersNearDwd,
 } from "./extents";
 import { maskPath } from "./tileMask";
 import type { NetworkEvent } from "../api/events";
@@ -13,7 +13,7 @@ import type { NetworkEvent } from "../api/events";
 export type NetworkCode = Exclude<NetworkEvent["network"], "dmax">;
 
 /**
- * DWD tiles with the EUMETNET networks' ground cut out of them: their
+ * DWD tiles with the other networks' ground cut out of them: their
  * countries, and beyond every border the ground one of their radars is the
  * nearest to (`extents.ts`).
  *
@@ -50,6 +50,8 @@ export const HOLES = ([
   ["fi", fiBordersNearDwd],
   ["se", seBordersNearDwd],
   ["no", noBordersNearDwd],
+  // Empty: the United States is an ocean from any DWD radar.
+  ["us", usBordersNearDwd],
 ] as [NetworkCode, number[][][]][]).map(([code, rings]) => ({ code, ...maskPath(rings) }));
 
 /** Every network: what the live frame is holed for. */

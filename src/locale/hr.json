@@ -16,7 +16,7 @@
   "connection_details": "Detalji veze",
   "title": "O aplikaciji meteocool",
   "text1": "meteocool je besplatna GIS platforma koja prikuplja i vizualizira meteorološke podatke, s naglaskom na opasne vremenske pojave. Prilagođena je mobilnim uređajima, a možeš je koristiti da loviš nadolazeće nevrijeme ili da ga izbjegneš.",
-  "text2": "meteocool koristi radarske podatke meteoroloških službi Njemačke (DWD), Švicarske, Francuske, Češke, Poljske, Belgije, Slovačke, Litve, Estonije, Irske, Hrvatske, Danske, Nizozemske, Finske, Švedske i Norveške te munje u stvarnom vremenu iz projekta blitzortung.org.",
+  "text2": "meteocool koristi radarske podatke meteoroloških službi Njemačke (DWD), Švicarske, Francuske, Češke, Poljske, Belgije, Slovačke, Litve, Estonije, Irske, Hrvatske, Danske, Nizozemske, Finske, Švedske, Norveške i Sjedinjenih Američkih Država (NOAA/NWS, NOAA/NSSL MRMS) te munje u stvarnom vremenu iz projekta blitzortung.org. meteocool obrađuje te podatke: preprojicira ih, dijeli na pločice i iz njih izračunava prognoze. Ni NOAA ni ostale meteorološke službe ne podržavaju niti preporučuju meteocool.",
   "credits_help": {
     "header": "Zasluge i pomoć",
     "text1": "meteocool ti donose <a href=\"https://github.com/v4lli\">Valentin</a>, <a href=\"https://github.com/pew\">Jonas</a>, <a href=\"https://github.com/Wheedman\">Jeremias</a>, <a href=\"https://github.com/Nina2244\">Nina</a>, <a href=\"https://github.com/Flowm\">Flo</a> i NessArt.",
@@ -137,6 +137,7 @@
   "lightning_unavailable": "Statistika trenutačno nije dostupna.",
   "radar_no_coverage": "Ovdje još nema radara",
   "radar_no_coverage_body": "Radar uživo dolazi od meteoroloških službi Njemačke, Švicarske, Francuske, Češke, Poljske, Belgije, Slovačke, Litve, Estonije, Irske, Hrvatske, Danske, Nizozemske, Finske, Švedske i Norveške, pa pokriva samo te zemlje. Munje i prognostički modeli rade u cijelom svijetu.",
+  "radar_no_coverage_body_us": "Radar uživo dolazi od meteoroloških službi Njemačke, Švicarske, Francuske, Češke, Poljske, Belgije, Slovačke, Litve, Estonije, Irske, Hrvatske, Danske, Nizozemske, Finske, Švedske, Norveške i Sjedinjenih Američkih Država, pa pokriva samo te zemlje. Munje i prognostički modeli rade u cijelom svijetu.",
   "forecast_no_coverage": "Ovdje nema prognoze",
   "forecast_no_coverage_body": "Prognoza kiše dolazi od njemačke meteorološke službe, pa pokriva samo Njemačku i okolno područje. Drugdje radar prikazuje samo prošlost i sadašnjost.",
   "forecast_no_coverage_body_nowcast": "Ni prognoza njemačke meteorološke službe ni kratkoročna prognoza meteocoola trenutačno ne pokrivaju ovaj dio karte. Radar ondje prikazuje samo prošlost i sadašnjost.",

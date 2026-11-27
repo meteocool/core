@@ -43,7 +43,14 @@ export const fmiAttribution = `© ${link("https://en.ilmatieteenlaitos.fi/open-d
 export const smhiAttribution = `© ${link("https://www.smhi.se/", "SMHI")}`;
 /** MET Norway: NLOD 2.0 and CC BY 4.0 on its own terms, which this links; the imprint names both. */
 export const metNorwayAttribution = `© ${link("https://www.met.no/en/free-meteorological-data/Licensing-and-crediting", "MET Norway")}`;
-export const noaaAttribution = link("https://www.weather.gov/disclaimer", "NOAA/NWS");
+/**
+ * The United States: NOAA's NEXRAD radars, through the National Weather
+ * Service, and NSSL's MRMS mosaic of them. NOAA's terms ask that data
+ * changed from its own not be passed off as the original and that nothing
+ * suggest NOAA endorses its use: both credits link its disclaimer, and the
+ * imprint says what meteocool does to the data.
+ */
+export const noaaAttribution = `${link("https://www.weather.gov/disclaimer", "NOAA/NWS")}, ${link("https://www.nssl.noaa.gov/projects/mrms/", "NOAA/NSSL MRMS")}`;
 export const blitzortungAttribution = `© ${link("https://www.blitzortung.org/", "Blitzortung.org")}`;
 export const mapterhornAttribution = `© ${link("https://mapterhorn.com/attribution", "Mapterhorn")}`;
 export const protomapsAttribution = `© ${link("https://protomaps.com", "Protomaps")}`;
