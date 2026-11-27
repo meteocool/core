@@ -385,7 +385,7 @@ test.describe("on a desktop", () => {
       });
     });
 
-    test("the controls' card stays up until a finger is first on a flight control", async ({ page }) => {
+    test("the touch hints stay up until a finger is first on a flight control", async ({ page }) => {
       test.slow();
       await page.goto(MAP_3D);
       await page.getByRole("button", { name: "Studio", exact: true }).click({ timeout: 90_000 });
@@ -398,11 +398,14 @@ test.describe("on a desktop", () => {
       // A finger on the view brings the touch controls up, and flies nothing.
       await page.touchscreen.tap(700, 120);
       await expect(page.getByRole("group", { name: "Touch controls" })).toBeVisible();
-      await expect(help(page)).toBeVisible();
+      // Shown, not told: no card of keys, a finger panning the view and arrows on the controls in turn.
+      const hints = page.locator(".pan-hint, .pad-hint, .lever-hint");
+      await expect(hints.first()).toBeVisible();
+      await expect(help(page)).toBeHidden();
       // A thumb on the stick, even held still in its middle, is flying.
       const stick = await page.getByLabel("Stick: nose up and down, roll left and right").boundingBox();
       await page.touchscreen.tap(stick!.x + stick!.width / 2, stick!.y + stick!.height / 2);
-      await expect(help(page)).toBeHidden();
+      await expect(hints).toHaveCount(0);
     });
 
     test("a thumb whose lifting was never heard lets the stick go to the next one, and the strip asks before starting again", async ({ page }) => {

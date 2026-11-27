@@ -258,7 +258,7 @@ test("on a phone held sideways, the page is a phone's: one that scrolls, the map
   expect(words!.y).toBeLessThan(map!.y + map!.height);
   expect(await landing(page).evaluate((element) => element.scrollHeight > element.clientHeight)).toBe(true);
   await landing(page).evaluate((element) => { element.scrollTop = element.scrollHeight; });
-  await expect(page.getByRole("heading", { level: 2 }).first()).toBeInViewport();
+  await expect(landing(page).locator(".brief .note.small")).toBeInViewport();
   // On a wide window the map is the whole screen behind the words again.
   await page.setViewportSize({ width: 1280, height: 800 });
   await expect.poll(() => page.evaluate(() => document.getElementById("map")?.parentElement === document.body)).toBe(true);
