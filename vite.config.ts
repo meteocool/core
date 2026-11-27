@@ -142,6 +142,10 @@ export default defineConfig(({ mode }) => {
             // meteoair's board and its card, loaded when a flight goes on the
             // board (components/studio/Studio.svelte): left to first use.
             "**/meteoairBoard-*",
+            // What draws the other aircraft of the board's airspace, fetched
+            // once the first is heard (board/trafficDraw.ts): left to first
+            // use, as their model is (models are never precached).
+            "**/trafficDraw-*",
           ],
         },
       }),

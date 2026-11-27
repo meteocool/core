@@ -396,6 +396,9 @@
         "landed": "Landed",
         "butter": "Butter landing"
       },
+      "traffic": {
+        "label": "{callsign} · {km} km"
+      },
       "board": {
         "label": "Board",
         "title": "This flight on today's board: the score that counts",

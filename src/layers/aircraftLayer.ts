@@ -19,7 +19,19 @@ import type { WeatherPass, WeatherView } from "./weatherPass";
 export type { AircraftScreen, AircraftView } from "./aircraftRenderer";
 export type { WeatherView } from "./weatherPass";
 
+/**
+ * Other aircraft, drawn into the same picture before the flight's own
+ * (layers/trafficPass.ts, loaded only once there are any): the own
+ * cockpit and airframe then cover whatever of them is behind it. It sets
+ * what it needs of the picture itself, and leaves the depth to be cleared.
+ */
+export interface TrafficPass {
+  draw(gl: WebGL2RenderingContext): void;
+}
+
 export interface AircraftLayer extends CustomLayerInterface {
+  /** The other aircraft to draw, or none. */
+  setTraffic(traffic: TrafficPass | null): void;
   setView(view: AircraftView | null): void;
   setScreens(screens: AircraftScreen[]): void;
   /** The weather going past the eye this frame (weatherPass.ts): under the aircraft, and from outside round it too; none for null. */
@@ -32,6 +44,8 @@ export function makeAircraftLayer(id: string, base: string): AircraftLayer {
   let screens: AircraftScreen[] = [];
   let weatherPass: WeatherPass | null = null;
   let weather: WeatherView | null = null;
+  let traffic: TrafficPass | null = null;
+  let context: WebGL2RenderingContext | null = null;
 
   return {
     id,
@@ -50,7 +64,12 @@ export function makeAircraftLayer(id: string, base: string): AircraftLayer {
       weather = next;
     },
 
+    setTraffic(next) {
+      traffic = next;
+    },
+
     onAdd(map: GlMap, gl: WebGLRenderingContext | WebGL2RenderingContext) {
+      context = gl as WebGL2RenderingContext;
       const mine = makeAircraftRenderer(gl as WebGL2RenderingContext);
       renderer = mine;
       weatherPass = makeWeatherPass(gl as WebGL2RenderingContext);
@@ -72,6 +91,8 @@ export function makeAircraftLayer(id: string, base: string): AircraftLayer {
     },
 
     render() {
+      // The other aircraft first: under the weather round the eye, and under the flight's own.
+      if (traffic && context) traffic.draw(context);
       // The weather outside first: the aircraft is drawn over it, and from the cockpit hides all of it but what the windows show.
       if (weather) weatherPass?.draw(weather);
       // The core of a storm seen through, over the cloud round the eye that would hide it, and under the aircraft.

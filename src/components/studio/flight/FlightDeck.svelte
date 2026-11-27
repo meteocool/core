@@ -510,6 +510,10 @@ const WARNINGS = {
           bind:this={marks[index]} on:click={() => pilot.inspect(index)}><i></i><span></span><span></span></button>
       {/each}
     </div>
+    {#if board}
+      <!-- The callsigns over the other aircraft near, from the board's airspace. -->
+      <svelte:component this={board.Labels} {board} {pilot} />
+    {/if}
     <dl class="readouts">
       <div class="corner-nw" class:boarded={board !== null}>
         <dt>{$_("studio.flight.readout.speed")}</dt><dd bind:this={readouts.speed}></dd>
@@ -603,7 +607,7 @@ const WARNINGS = {
     <FlightKeys close={() => pilot.act("help")} />
   {:else if status.view === "outside"}
     <!-- Where the keys' card stands while that is up. -->
-    <FlightMinimap {pilot} bind:this={minimap} />
+    <FlightMinimap {pilot} traffic={board?.traffic ?? null} bind:this={minimap} />
     <FlightHorizon bind:this={horizon} />
   {/if}
 

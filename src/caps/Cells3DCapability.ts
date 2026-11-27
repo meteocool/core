@@ -90,7 +90,7 @@ import type { StudioCamera } from "../lib/studio/scene";
 import { studioFlying, studioFov, studioOpen, studioPlanes, studioSelectedPlane } from "../lib/studio/store";
 import type { FlightCut, FlightEye, FlightPose, FlightSupport, InspectMode, StormTileInfo, StudioSupport } from "../lib/studio/director";
 import type { SectionPlane } from "../lib/studio/planes";
-import type { AircraftLayer, AircraftScreen, AircraftView, WeatherView } from "../layers/aircraftLayer";
+import type { AircraftLayer, AircraftScreen, AircraftView, TrafficPass, WeatherView } from "../layers/aircraftLayer";
 import type { StormMark } from "../lib/studio/flight/marks";
 import type { CoarsePlace, Lookout } from "../lib/studio/flight/selection";
 
@@ -1091,6 +1091,8 @@ export default class Cells3DCapability extends Capability {
 
   /** The aircraft, drawn while flying, and how it was last asked to be; see `setAircraft`. */
   private aircraftLayer: AircraftLayer | null = null;
+  /** Other aircraft drawn with it; see `setTraffic`. */
+  private trafficPass: TrafficPass | null = null;
   private aircraftView: AircraftView | null = null;
   private aircraftScreens: AircraftScreen[] = [];
   private flightWeather: WeatherView | null = null;
@@ -3242,6 +3244,7 @@ export default class Cells3DCapability extends Capability {
     this.aircraftView = null;
     this.aircraftScreens = [];
     this.flightWeather = null;
+    this.trafficPass = null;
     this.cloudsLayer?.setGlow(null);
     this.setFlightQuality(1);
     studioFlying.set(false);
@@ -3352,6 +3355,7 @@ export default class Cells3DCapability extends Capability {
     this.aircraftLayer.setView(this.aircraftView);
     this.aircraftLayer.setScreens(this.aircraftScreens);
     this.aircraftLayer.setWeather(this.flightWeather);
+    this.aircraftLayer.setTraffic(this.trafficPass);
     gl.addLayer(this.aircraftLayer);
   }
 
@@ -3465,6 +3469,11 @@ export default class Cells3DCapability extends Capability {
 
   reflectivityAt(lon: number, lat: number, altitude: number): number | null {
     return this.flightSupport?.reflectivityAt([...this.cutaways.values()].map(({ cutaway }) => cutaway), lon, lat, altitude) ?? null;
+  }
+
+  setTraffic(traffic: TrafficPass | null): void {
+    this.trafficPass = this.flight ? traffic : null;
+    this.aircraftLayer?.setTraffic(this.trafficPass);
   }
 
   setFlightWeather(weather: WeatherView | null, glow: { lon: number; lat: number; km: number; brightness: number } | null = null): void {

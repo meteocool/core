@@ -330,6 +330,14 @@ export interface EffectsPass {
    * Leaves the blend on, the depth read and not written.
    */
   draw(effects: AircraftEffects, modelView: ArrayLike<number>, projection: ArrayLike<number>, light: Vec3, near: [number, number]): void;
+  /**
+   * Draw `count` sprites made already (`effectSprites`'s, `SPRITE_FLOATS`
+   * each, in `sprites`), as `draw` does; tested against the depth there, or
+   * over everything where `depth` is false.
+   */
+  drawSprites(
+    sprites: Float32Array, count: number, modelView: ArrayLike<number>, projection: ArrayLike<number>, light: Vec3, near: [number, number], depth?: boolean,
+  ): void;
   dispose(): void;
 }
 
@@ -354,39 +362,52 @@ export function makeEffectsPass(gl: WebGL2RenderingContext, compile: (vertex: st
   const sorted = new Float32Array(MAX_SPRITES * SPRITE_FLOATS);
   const depth = new Float32Array(MAX_SPRITES);
   const order = new Uint16Array(MAX_SPRITES);
+  const modelViewIn = new Float32Array(16);
+  const projectionIn = new Float32Array(16);
+
+  function drawSprites(
+    sprites: Float32Array, made: number, modelView: ArrayLike<number>, projection: ArrayLike<number>, light: Vec3, near: [number, number], tested = true,
+  ): void {
+    const count = Math.min(made, MAX_SPRITES);
+    if (!count) return;
+    // The farthest first: smoke covers what is behind it, and has to be laid over it.
+    for (let i = 0; i < count; i++) {
+      const at = i * SPRITE_FLOATS;
+      depth[i] = modelView[2] * sprites[at] + modelView[6] * sprites[at + 1] + modelView[10] * sprites[at + 2] + modelView[14];
+      order[i] = i;
+    }
+    order.subarray(0, count).sort((a, b) => depth[a] - depth[b]);
+    for (let i = 0; i < count; i++) {
+      sorted.set(sprites.subarray(order[i] * SPRITE_FLOATS, (order[i] + 1) * SPRITE_FLOATS), i * SPRITE_FLOATS);
+    }
+    const sun: [number, number] = [0, 1].map((row) => modelView[row] * light[0] + modelView[4 + row] * light[1] + modelView[8 + row] * light[2]) as [number, number];
+
+    gl.useProgram(program);
+    modelViewIn.set(modelView);
+    projectionIn.set(projection);
+    gl.uniformMatrix4fv(uniforms.uModelView, false, modelViewIn);
+    gl.uniformMatrix4fv(uniforms.uProjection, false, projectionIn);
+    gl.uniform2f(uniforms.uNear, near[0], near[1]);
+    gl.uniform2f(uniforms.uSun, sun[0], sun[1]);
+    gl.bindVertexArray(vao);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferSubData(gl.ARRAY_BUFFER, 0, sorted, 0, count * SPRITE_FLOATS);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    if (tested) gl.enable(gl.DEPTH_TEST);
+    else gl.disable(gl.DEPTH_TEST);
+    gl.depthMask(false);
+    gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count);
+    gl.bindVertexArray(null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+  }
 
   return {
     draw(effects, modelView, projection, light, near) {
-      const count = effectSprites(effects, sprites);
-      if (!count) return;
-      // The farthest first: smoke covers what is behind it, and has to be laid over it.
-      for (let i = 0; i < count; i++) {
-        const at = i * SPRITE_FLOATS;
-        depth[i] = modelView[2] * sprites[at] + modelView[6] * sprites[at + 1] + modelView[10] * sprites[at + 2] + modelView[14];
-        order[i] = i;
-      }
-      order.subarray(0, count).sort((a, b) => depth[a] - depth[b]);
-      for (let i = 0; i < count; i++) {
-        sorted.set(sprites.subarray(order[i] * SPRITE_FLOATS, (order[i] + 1) * SPRITE_FLOATS), i * SPRITE_FLOATS);
-      }
-      const sun: [number, number] = [0, 1].map((row) => modelView[row] * light[0] + modelView[4 + row] * light[1] + modelView[8 + row] * light[2]) as [number, number];
-
-      gl.useProgram(program);
-      gl.uniformMatrix4fv(uniforms.uModelView, false, new Float32Array(modelView));
-      gl.uniformMatrix4fv(uniforms.uProjection, false, new Float32Array(projection));
-      gl.uniform2f(uniforms.uNear, near[0], near[1]);
-      gl.uniform2f(uniforms.uSun, sun[0], sun[1]);
-      gl.bindVertexArray(vao);
-      gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-      gl.bufferSubData(gl.ARRAY_BUFFER, 0, sorted, 0, count * SPRITE_FLOATS);
-      gl.enable(gl.BLEND);
-      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-      gl.enable(gl.DEPTH_TEST);
-      gl.depthMask(false);
-      gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, count);
-      gl.bindVertexArray(null);
-      gl.bindBuffer(gl.ARRAY_BUFFER, null);
+      drawSprites(sprites, effectSprites(effects, sprites), modelView, projection, light, near);
     },
+
+    drawSprites,
 
     dispose() {
       gl.deleteBuffer(buffer);

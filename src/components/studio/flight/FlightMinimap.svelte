@@ -31,8 +31,11 @@ import type { Pilot, Telemetry } from "../../../lib/studio/flight/pilot";
 import { prepare } from "./instruments";
 import { drawChart, RANGES_NM, shiftSince, TileStore, tilesOver, tileUrl, tileZoom } from "./minimap";
 import type { Chart, ChartContent, ChartStrike, Tile } from "./minimap";
+import type { TrafficShared } from "../../../lib/studio/flight/airspace/shared";
 
 export let pilot: Pilot;
+/** The other aircraft of the board's airspace, marked on the map; none without a board. */
+export let traffic: TrafficShared | null = null;
 
 /** How long a strike on the ground stays on the map, and a flicker in the cloud, seconds flown. */
 const STRIKE_S = 45;
@@ -45,6 +48,7 @@ const TRACK_JUMP_M = 8000;
 /** The picture is drawn again once it has moved this far, screen pixels, and this often whatever has moved, ms. */
 const REDRAW_PX = 0.6;
 const REDRAW_MS = 500;
+const TRAFFIC_REDRAW_MS = 250;
 /** How often the slower things are asked again, ms: which radar is on the ground, which storms are marked. */
 const SLOW_MS = 1000;
 
@@ -155,13 +159,14 @@ export function draw(telemetry: Telemetry): void {
     lon: state.lon, lat: state.lat, heading: state.heading, headingUp, rangeNm: RANGES_NM[range], radius: size / 2,
   };
   const ratio = Math.min(window.devicePixelRatio || 1, 2);
-  if (!stale && now - drawnAt < REDRAW_MS && shiftSince(chart, drawn) * ratio < REDRAW_PX) return;
+  // Other aircraft move on their own: the map is drawn again for them at least every so often.
+  if (!stale && now - drawnAt < (traffic?.traffic.list.length ? TRAFFIC_REDRAW_MS : REDRAW_MS) && shiftSince(chart, drawn) * ratio < REDRAW_PX) return;
   const context = prepare(canvas, size, size);
   if (!context) return;
   const radar = radarOver(chart, ratio, now);
   const { time } = telemetry;
   const inspected = telemetry.marks.find((seen) => seen.inspected)?.mark ?? null;
-  drawChart(context, chart, {
+  const charted = drawChart(context, chart, {
     radar,
     storms: templates.length ? null : telemetry.storms,
     cores,
@@ -172,7 +177,9 @@ export function draw(telemetry: Telemetry): void {
     strikes: strikes.map((strike): ChartStrike => ({
       lon: strike.lon, lat: strike.lat, ground: strike.ground, age: (time - strike.born) / (strike.ground ? STRIKE_S : FLICKER_S),
     })),
+    others: traffic?.traffic.list ?? [],
   });
+  if (traffic) traffic.charted = charted;
   drawn = chart;
   drawnAt = now;
   stale = false;

@@ -65,7 +65,7 @@ import type { Bolt } from "../../../layers/weatherPass";
 import { FlightSound } from "./sound";
 import { alarmsOf, alarmStep, NO_ALARMS, silence, silencedOf } from "./alarms";
 import type { AlarmMemory } from "./alarms";
-import type { AircraftScreen } from "../../../layers/aircraftLayer";
+import type { AircraftScreen, TrafficPass } from "../../../layers/aircraftLayer";
 import { COCKPIT_CONTROLS, controlAlong, onQuad, touchAlong } from "./cockpit";
 import type { CockpitControl, CockpitPick, ScreenTouch } from "./cockpit";
 import { chartStorms } from "./efb";
@@ -343,6 +343,37 @@ export interface Telemetry {
   flown: number;
 }
 
+/**
+ * How the eye sees the world this frame, for what else is drawn into the
+ * same picture: the other aircraft of the airspace (layers/trafficPass.ts).
+ * Written by every frame in place; the aircraft's frame is the one
+ * `modelView` takes to the camera (the seat's, shaken by rough air).
+ */
+export interface Sight {
+  /** Where the aircraft is, and how its frame is turned in the world's. */
+  lon: number;
+  lat: number;
+  altitude: number;
+  attitude: FlightAttitude;
+  /** Its frame to the camera's (see `Eye.modelView`), and the lens, degrees. */
+  modelView: ArrayLike<number>;
+  fov: number;
+  /** The view as it is seen (a wreck is watched from outside). */
+  view: FlightView;
+  /** Towards the sun, north, east and down. */
+  sun: Vec3;
+  /** How much of the sun reaches the aircraft, how light the sky is, 0 to 1; the cloud round the eye, 0 to 1, and its rain. */
+  sunlight: number;
+  daylight: number;
+  cloud: number;
+  rain: number;
+  /** The outside air's temperature, degrees C, and the share of its full sharpness the flight is drawn at. */
+  temperature: number;
+  quality: number;
+  /** Whether the flight is on a phone or a tablet. */
+  handheld: boolean;
+}
+
 /** How long a bonus earned is said, seconds. */
 const FEAT_SHOWN_S = 3;
 
@@ -382,6 +413,19 @@ export class Pilot {
   private airTime = 0;
   /** What the airframe has been through, and what has come off it (damage.ts); and how many flights there have been, which is its chance's seed. */
   private damage: Damage = intact();
+
+  /** What has happened to the airframe, as it is now: for what is said of it to others (lib/studio/flight/airspace/look.ts). */
+  get airframe(): Readonly<Damage> {
+    return this.damage;
+  }
+
+  /** How the eye sees the world this frame; null before the first. */
+  sight: Sight | null = null;
+
+  /** Draw other aircraft into the flight's picture, under its own (layers/aircraftLayer.ts); none for null. */
+  setTraffic(traffic: TrafficPass | null): void {
+    this.stage.setTraffic(traffic);
+  }
   private flights = 1;
   /**
    * A wreck being watched before the cut: since when and until when,
@@ -1901,6 +1945,23 @@ export class Pilot {
       cockpit: this.levers,
       ...wrecked,
     }, outside ? [] : this.screens);
+    const sight = this.sight ?? (this.sight = {
+      lon: 0, lat: 0, altitude: 0, attitude: { heading: 0, pitch: 0, roll: 0 }, modelView: eye.modelView, fov: this.fov, view,
+      sun: SUN, sunlight: 1, daylight: 1, cloud: 0, rain: 0, temperature: 0, quality: 1, handheld: isHandheld(),
+    });
+    sight.lon = state.lon;
+    sight.lat = state.lat;
+    sight.altitude = state.altitude;
+    sight.attitude = outside ? pose : shaken;
+    sight.modelView = eye.modelView;
+    sight.fov = this.fov;
+    sight.view = view;
+    sight.sunlight = this.telemetry.sun;
+    sight.daylight = this.telemetry.sky;
+    sight.cloud = cloud;
+    sight.rain = this.telemetry.rain;
+    sight.temperature = this.telemetry.temperature;
+    sight.quality = this.sharpness.quality;
     this.telemetry.marks = view === "clean" ? [] : this.seen(eye, view === "cockpit");
     this.telemetry.rays = view === "clean" ? null : this.beams(eye, view === "cockpit");
 

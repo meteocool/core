@@ -8,8 +8,14 @@
  * it: the board's score beside the cockpit's (BoardReadout), its notices
  * (BoardNote), the card with the day's top twenty (BoardCard) and the card
  * for the check the board may ask of the reader (BoardCheck).
+ *
+ * And, while the flight is on the board, its airspace: the other aircraft
+ * near it (lib/studio/flight/airspace/session.ts), their callsigns over
+ * them (TrafficLabels) and their marks on the chart. What draws them, and
+ * the model they are drawn as, come only once one has been heard
+ * (trafficDraw.ts).
  */
-import { readable, writable } from "svelte/store";
+import { get, readable, writable } from "svelte/store";
 import type { Readable, Writable } from "svelte/store";
 import type { Component } from "svelte";
 import { v3APIBaseUrl } from "../../../../urls";
@@ -25,6 +31,15 @@ import BoardReadout from "./BoardReadout.svelte";
 import BoardNote from "./BoardNote.svelte";
 import BoardCard from "./BoardCard.svelte";
 import BoardCheck from "./BoardCheck.svelte";
+import TrafficLabels from "./TrafficLabels.svelte";
+import { flightStatus } from "../../../../lib/studio/store";
+import { broken } from "../../../../lib/studio/flight/damage";
+import { AirspaceSession } from "../../../../lib/studio/flight/airspace/session";
+import { blankOwn, writeOwn } from "../../../../lib/studio/flight/airspace/own";
+import { sharedOf } from "../../../../lib/studio/flight/airspace/shared";
+import type { TrafficShared } from "../../../../lib/studio/flight/airspace/shared";
+import { syntheticSky } from "../../../../lib/studio/flight/airspace/synthetic";
+import { airspaceUrl } from "../../../../lib/studio/flight/airspace/wire";
 
 /** The cockpit's own score and feats, as the card shows them beside the board's: a few times a second, not every frame. */
 export interface CockpitScore {
@@ -43,11 +58,22 @@ export interface BoardDeck {
   /** The check the board may ask of the reader: whether it is asking, where it is drawn, and the way out. */
   check: Pick<TurnstileSource, "asking" | "place" | "skip">;
   Check: Component<{ board: BoardDeck }>;
+  /** The other aircraft of the airspace: what is heard of them and what was drawn, and the callsigns over the near ones. */
+  traffic: TrafficShared;
+  Labels: Component<{ board: BoardDeck; pilot: Pilot }>;
   /** The flight over: off the board, and everything let go of. */
   leave(): void;
 }
 
 const COCKPIT_EVERY_MS = 400;
+/** The most aircraft a synthetic sky (`?traffic=`) is filled with. */
+const SYNTHETIC_MOST = 1000;
+
+/** How many aircraft the page asks its sky be filled with, for measuring: `?traffic=300`; none without. */
+function syntheticCount(): number {
+  const asked = Number(new URLSearchParams(window.location.search).get("traffic"));
+  return Number.isInteger(asked) && asked > 0 ? Math.min(asked, SYNTHETIC_MOST) : 0;
+}
 
 function storage(): Storage | null {
   try {
@@ -79,7 +105,57 @@ export function joinBoard(pilot: Pilot, sitekey: string): BoardDeck {
     shownAt = now;
     set({ points: telemetry.score.points, feats: telemetry.score.feats });
   }));
-  const stopFrames = pilot.onFrame((telemetry) => session.frame(frameOf(telemetry)));
+  const airspace = new AirspaceSession({
+    socketUrl: airspaceUrl(base, window.location),
+    WebSocket: typeof window.WebSocket === "function" ? window.WebSocket : null,
+    now: () => performance.now(),
+    setTimeout: (run, ms) => window.setTimeout(run, ms),
+    clearTimeout: (timer) => window.clearTimeout(timer as number | undefined),
+  });
+  const traffic = sharedOf(airspace.traffic);
+  const own = blankOwn();
+  let ownWritten = false;
+  let status = get(flightStatus);
+  const stopStatus = flightStatus.subscribe((next) => { status = next; });
+  let stopDrawing: (() => void) | null = null;
+  let left = false;
+  /** What draws the aircraft, fetched once the first has been heard. */
+  const drawWhenHeard = () => {
+    if (traffic.renderer !== "none" || !traffic.traffic.list.length) return;
+    traffic.renderer = "loading";
+    import("./trafficDraw").then(({ drawTraffic }) => drawTraffic(pilot, traffic)).then((stop) => {
+      if (left) {
+        stop();
+        return;
+      }
+      stopDrawing = stop;
+      traffic.renderer = "ready";
+    }, (error: unknown) => {
+      traffic.renderer = "failed";
+      console.warn("The other aircraft cannot be drawn", error);
+    });
+  };
+  const stopFrames = pilot.onFrame((telemetry) => {
+    session.frame(frameOf(telemetry));
+    writeOwn(own, telemetry, status, pilot.airframe);
+    ownWritten = true;
+    airspace.frame(own, Boolean(telemetry.state.crash) || broken(pilot.airframe), session.onBoard());
+    drawWhenHeard();
+  });
+  const synthetic = syntheticCount();
+  const stopSynthetic = synthetic ? syntheticSky(synthetic, airspace.traffic, () => (ownWritten ? own : null), () => performance.now(), (run, ms) => {
+    const timer = window.setInterval(run, ms);
+    return () => window.clearInterval(timer);
+  }) : null;
+  // Within reach of the console and of a test: what is heard, and what was drawn of it last frame.
+  (window as unknown as { flightTraffic?: object }).flightTraffic = {
+    get heard() { return traffic.traffic.list.length; },
+    get drawn() { return { ...traffic.drawn }; },
+    get charted() { return traffic.charted; },
+    get renderer() { return traffic.renderer; },
+    get labels() { return traffic.labels.filter((label) => label.shown).map((label) => label.callsign); },
+    get joined() { return airspace.id; },
+  };
   const hidden = () => session.pageHidden();
   const shown = (event: PageTransitionEvent) => { if (event.persisted) session.pageShown(); };
   window.addEventListener("pagehide", hidden);
@@ -93,8 +169,17 @@ export function joinBoard(pilot: Pilot, sitekey: string): BoardDeck {
     Card: BoardCard,
     check: tokens,
     Check: BoardCheck,
+    traffic,
+    Labels: TrafficLabels,
     leave() {
+      left = true;
       stopFrames();
+      stopStatus();
+      stopSynthetic?.();
+      airspace.leave();
+      stopDrawing?.();
+      stopDrawing = null;
+      delete (window as unknown as { flightTraffic?: object }).flightTraffic;
       window.removeEventListener("pagehide", hidden);
       window.removeEventListener("pageshow", shown);
       session.leave();

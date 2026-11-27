@@ -187,6 +187,22 @@ export class BoardSession {
     if (away) this.schedule(boarded, AWAY_SEND_MS);
   }
 
+  /**
+   * The board's flight under way and the pilot flying it, for the airspace
+   * (lib/studio/flight/airspace/session.ts) to join; null while there is
+   * none, or once it is over. The same object while it lasts.
+   */
+  onBoard(): { pilot: string; flight: string } | null {
+    const boarded = this.boarded;
+    if (!boarded || boarded.over || !this.pilot || this.left) return null;
+    if (this.shownBoard?.flight !== boarded.id || this.shownBoard.pilot !== this.pilot.pilot) {
+      this.shownBoard = { pilot: this.pilot.pilot, flight: boarded.id };
+    }
+    return this.shownBoard;
+  }
+
+  private shownBoard: { pilot: string; flight: string } | null = null;
+
   /** The page going away: the flight ends with what has gathered, on a request that outlives the page. */
   pageHidden(): void {
     const boarded = this.boarded;

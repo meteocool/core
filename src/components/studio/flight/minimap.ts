@@ -259,6 +259,8 @@ export interface ChartContent<Picture = CanvasImageSource> {
   /** Where the aircraft has been, the oldest first. */
   track: ReadonlyArray<readonly [number, number]>;
   strikes: readonly ChartStrike[];
+  /** Other aircraft heard of, each where it is drawn now; none where not said. */
+  others?: ReadonlyArray<{ shown: { lon: number; lat: number; heading: number; opacity: number } }>;
 }
 
 const HALO = "rgba(5, 7, 10, 0.85)";
@@ -267,6 +269,8 @@ const INK = "#f2f4f7";
 const CUT_ACCENT = "#ff9e1c";
 const RING = "rgba(242, 244, 247, 0.34)";
 const STRIKE = "#ffe14a";
+/** Other aircraft, as a navigation display draws traffic. */
+const OTHER = "#4fd8ff";
 /** The aircraft on the map, nose to tail, pixels. */
 const AIRCRAFT_PX = 22;
 
@@ -301,7 +305,7 @@ function diamond(context: CanvasRenderingContext2D, x: number, y: number, half: 
  * Draw the map into a square of `2 * chart.radius`, cleared and scaled to
  * CSS pixels already (instruments.ts `prepare`).
  */
-export function drawChart(context: CanvasRenderingContext2D, chart: Chart, content: ChartContent): void {
+export function drawChart(context: CanvasRenderingContext2D, chart: Chart, content: ChartContent): number {
   const { radius } = chart;
   const up = upOf(chart) * RADIANS;
   const scale = perMetre(chart);
@@ -424,6 +428,31 @@ export function drawChart(context: CanvasRenderingContext2D, chart: Chart, conte
       context.stroke();
     }
   }
+  // Other aircraft: small hollow chevrons pointing their way, in cyan, never the own aircraft's white.
+  let charted = 0;
+  for (const { shown } of content.others ?? []) {
+    if (shown.opacity <= 0.05) continue;
+    const [x, y] = place(chart, shown.lon, shown.lat);
+    if (Math.hypot(x, y) > radius - 3) continue;
+    charted += 1;
+    context.save();
+    context.translate(x, y);
+    context.rotate(shown.heading * RADIANS - up);
+    context.globalAlpha = Math.min(1, shown.opacity);
+    context.beginPath();
+    context.moveTo(0, -5);
+    context.lineTo(3.8, 4);
+    context.lineTo(0, 2);
+    context.lineTo(-3.8, 4);
+    context.closePath();
+    context.lineWidth = 3;
+    context.strokeStyle = HALO;
+    context.stroke();
+    context.lineWidth = 1.4;
+    context.strokeStyle = OTHER;
+    context.stroke();
+    context.restore();
+  }
   context.restore();
 
   // The storm flown at, and the line to it: on the rim where it is beyond it.
@@ -488,4 +517,5 @@ export function drawChart(context: CanvasRenderingContext2D, chart: Chart, conte
   context.fillStyle = "#fff";
   context.fill();
   context.restore();
+  return charted;
 }

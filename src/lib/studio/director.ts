@@ -18,7 +18,7 @@ import {
 import type { Moment, Scene, SceneState, StudioCamera } from "./scene";
 import { viewCamera } from "./camera";
 import type { ViewName } from "./camera";
-import type { AircraftScreen, AircraftView, WeatherView } from "../../layers/aircraftLayer";
+import type { AircraftScreen, AircraftView, TrafficPass, WeatherView } from "../../layers/aircraftLayer";
 import type { StormMark } from "./flight/marks";
 import logoUrl from "../../assets/logo.svg";
 import { download, loadImage, RECORD_FPS, startRecording } from "./record";
@@ -146,6 +146,8 @@ export interface Stage {
    * lightning is: a place, its height in km, and how bright, 0 to 1.
    */
   setFlightWeather(weather: WeatherView | null, glow?: { lon: number; lat: number; km: number; brightness: number } | null): void;
+  /** Other aircraft, drawn into the flight's picture under its own (layers/aircraftLayer.ts); none for null. */
+  setTraffic(traffic: TrafficPass | null): void;
   /** Every lightning strike within `km` of a place since `since`, ms since the epoch: where, and when. */
   strikesNear(lon: number, lat: number, km: number, since: number): Array<{ lon: number; lat: number; at: number }>;
   /** Every lightning strike the map holds since `since`, ms since the epoch, wherever it struck; outside a flight too. */
