@@ -43,6 +43,7 @@ import { FEET, KNOTS, radarColour } from "./instruments";
 import { CockpitScreens } from "./cockpitScreens";
 import { cloudsTime } from "../../../stores";
 import { MARKS_SHOWN } from "../../../lib/studio/flight/marks";
+import { overCloseUp } from "../../../lib/studio/flight/airspace/shared";
 import { RAYS_MOST } from "../../../lib/studio/flight/radarRays";
 import { drawRays } from "./rays";
 import type { Pilot, Telemetry } from "../../../lib/studio/flight/pilot";
@@ -82,6 +83,15 @@ let throttle: HTMLOutputElement | null = null;
    as the view ever carries, each put where its storm is every frame, and
    out of sight where there is none for it. */
 const MARKS = Array.from({ length: MARKS_SHOWN }, (_unused, index) => index);
+/*
+ * What a pilot's card (board/TrafficLabels.svelte) docks clear of: the
+ * readouts, the buttons, the cards and the alerts, the bar a storm is looked
+ * into with, the chart and the horizon, and under a finger the controls.
+ */
+const KEEP_CLEAR = [
+  ".readouts > div", ".corner > *", ".muted", ".inspect", ".popups > *", ".landing", ".credits", ".rec",
+  ":scope > .flight-minimap", ":scope > .flight-horizon", ".touch .left > *", ".touch .stick", ".touch .strip", ".touch .handle", ".touch .said",
+].join(", ");
 let marks: Array<HTMLElement | null> = MARKS.map(() => null);
 /* The beams from the radars that saw the storm looked into (./rays.ts), and a label at each radar's end. */
 let rays: HTMLCanvasElement | null = null;
@@ -104,11 +114,21 @@ function peelTrack(coreDbz: number, colormap: string): string {
   }).join(", ")})`;
 }
 
+/**
+ * Whether a label that far left, up, right and down of a point of the view
+ * (CSS pixels) is over the close-up of a pilot picked (board/TrafficLabels.svelte):
+ * the view is drawn there, and nothing of the page's may show over it.
+ */
+function overPicture(x: number, y: number, left: number, up: number, right: number, down: number, width: number, height: number): boolean {
+  const closeUp = board?.traffic.closeUp;
+  return Boolean(closeUp && overCloseUp(closeUp, x - left / width, y - up / height, x + right / width, y + down / height));
+}
+
 function drawMarks(telemetry: Telemetry): void {
   marks.forEach((element, index) => {
     if (!element) return;
     const seen = telemetry.marks[index];
-    if (!seen) {
+    if (!seen || overPicture(seen.x, seen.y, 6, 8, 170, 48, element.parentElement!.clientWidth, element.parentElement!.clientHeight)) {
       if (element.style.opacity !== "0") {
         element.style.opacity = "0";
         element.style.pointerEvents = "none";
@@ -152,12 +172,17 @@ function drawBeams(telemetry: Telemetry): void {
   const diamond = shape ? { x: shape.left + shape.width / 2 - box.left, y: shape.top + shape.height / 2 - box.top } : null;
   const anchor = seen ? { x: seen.x * box.width, y: seen.y * box.height } : null;
   drawRays(rays, telemetry.rays, telemetry.time, diamond, anchor);
+  // Not over the close-up of a pilot picked: the view is drawn there.
+  const closeUp = board?.traffic.closeUp;
+  if (closeUp && closeUp.id !== null && closeUp.rect.w > 0) {
+    rays.getContext("2d")?.clearRect(closeUp.rect.x * box.width, closeUp.rect.y * box.height, closeUp.rect.w * box.width, closeUp.rect.h * box.height);
+  }
   const beams = telemetry.rays?.beams ?? [];
   const grown = telemetry.rays ? telemetry.rays.still || telemetry.time - telemetry.rays.since > 0.9 : false;
   radars.forEach((element, slot) => {
     if (!element) return;
     const beam = beams[slot];
-    if (!beam?.dish || !grown) {
+    if (!beam?.dish || !grown || overPicture(beam.dish.x, beam.dish.y, 4, 6, 130, 26, box.width, box.height)) {
       if (element.style.opacity !== "0") element.style.opacity = "0";
       return;
     }
@@ -555,7 +580,7 @@ const WARNINGS = {
     </div>
     {#if board}
       <!-- The callsigns over the other aircraft near, from the board's airspace. -->
-      <svelte:component this={board.Labels} {board} {pilot} />
+      <svelte:component this={board.Labels} {board} {pilot} keepClear={KEEP_CLEAR} />
     {/if}
     <dl class="readouts">
       <div class="corner-nw" class:boarded={board !== null} bind:clientWidth={nwWidth} bind:clientHeight={nwHeight}>

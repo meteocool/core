@@ -43,9 +43,11 @@ function watchRequests(page: Page): string[] {
   return urls;
 }
 
-const boardish = (url: string) => /\/v3\/air(\/|$)|challenges\.cloudflare\.com|\/flight\/board\/|\/flight\/airspace\/|meteoairBoard|trafficDraw|trafficPass|a320-light/.test(url);
+const boardish = (url: string) => /\/v3\/air(\/|$)|challenges\.cloudflare\.com|\/flight\/board\/|\/flight\/airspace\/|meteoairBoard|trafficDraw|trafficPass|closeUp|a320-light/.test(url);
 /** What draws other aircraft, and their model: fetched only once one has been heard. */
-const trafficish = (url: string) => /trafficDraw|trafficPass|a320-light/.test(url);
+const trafficish = (url: string) => /trafficDraw|trafficPass|closeUp|a320-light/.test(url);
+/** The close-up of the pilot picked, as the page reports it; null for none. */
+const closeUp = (page: Page) => page.evaluate(() => (window as any).flightTraffic?.closeUp ?? null);
 const flightTraffic = (page: Page) => page.evaluate(() => {
   const traffic = (window as any).flightTraffic;
   if (!traffic) return null;
@@ -235,16 +237,37 @@ test.describe("in flight, on a desktop", () => {
     await page.keyboard.press("KeyH");
     await expect(page.getByRole("group", { name: "Map around the aircraft" })).toBeVisible();
     await expect.poll(async () => (await flightTraffic(page))?.charted, { timeout: 30_000 }).toBe(2);
-    // The one ahead has a pin, as a storm has its mark; picked, it says whose aircraft it is and where they stand today.
+    // The one ahead has a pin, as a storm has its mark; picked, its pilot's card: whose aircraft it is, where they stand today,
+    // and their aircraft close up, drawn in the room the card leaves for it.
     await expect.poll(() => page.evaluate(() => (window as any).flightTraffic?.labels as string[] | undefined), { timeout: 30_000 }).toContain("OE-KXR");
     const pin = deck(page).locator(".traffic-pins .pin").filter({ hasText: "OE-KXR" });
-    await expect(pin.locator(".pop")).toBeHidden();
+    const card = deck(page).getByRole("region", { name: "OE-KXR, followed" });
+    await expect(card).toHaveCount(0);
+    expect(await closeUp(page)).toBeNull();
     // It moves with its aircraft: picked where it is, not where it was.
     await pin.dispatchEvent("click");
-    await expect(pin.locator(".pop")).toBeVisible();
-    await expect(pin.locator(".pop")).toContainText("Rank 1 today · 5,120 points");
-    await pin.dispatchEvent("click");
-    await expect(pin.locator(".pop")).toBeHidden();
+    await expect(card).toBeVisible();
+    await expect(card).toContainText("Rank 1 today · 5,120 points");
+    await expect(card.getByRole("img", { name: "OE-KXR's aircraft, live" })).toBeVisible();
+    await expect.poll(async () => (await closeUp(page))?.frames ?? 0, { timeout: 30_000 }).toBeGreaterThan(3);
+    const drawing = await closeUp(page);
+    expect(drawing).toMatchObject({ id: 42, callsign: "OE-KXR" });
+    // The full model where the flight has the room, the light one where not; served empty here, the full model draws nothing, so the light one.
+    expect(["full", "light"]).toContain(drawing.model);
+    expect(drawing.drawCalls).toBeGreaterThan(1);
+    expect(drawing.rect.w).toBeGreaterThan(0);
+
+    // Its aircraft goes behind: its pin leaves the view, its card stays, still drawing it.
+    scriptBoard(page, {}, { aircraft: [{ id: 41, callsign: "F-BSKE", north: 1500, east: 0 }, { id: 42, callsign: "OE-KXR", north: 0, east: -4000 }] });
+    await expect.poll(() => page.evaluate(() => (window as any).flightTraffic?.labels as string[]), { timeout: 30_000 }).not.toContain("OE-KXR");
+    const before = (await closeUp(page))!.frames;
+    await expect.poll(async () => (await closeUp(page))?.frames ?? 0, { timeout: 30_000 }).toBeGreaterThan(before + 3);
+    await expect(card).toBeVisible();
+
+    // Closed, it is drawn no more.
+    await card.getByRole("button", { name: "Stop following this pilot" }).dispatchEvent("click");
+    await expect(card).toHaveCount(0);
+    expect(await closeUp(page)).toBeNull();
   });
 
   test("an airspace that refuses the socket leaves the flight and the board as they were", async ({ page }) => {

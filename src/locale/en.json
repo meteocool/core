@@ -399,7 +399,19 @@
       "traffic": {
         "pin_title": "Who is flying this aircraft",
         "rank": "Rank {rank} today · {points} points",
-        "unranked": "Not in today's top twenty"
+        "unranked": "Not in today's top twenty",
+        "card": "{callsign}, followed",
+        "shot": "{callsign}'s aircraft, live",
+        "close": "Stop following this pilot",
+        "gone": "Out of range",
+        "doing": {
+          "blew": "Blew up",
+          "broke": "Breaking up",
+          "slid": "Crashed",
+          "burning": "On fire",
+          "paused": "Paused",
+          "ground": "On the ground"
+        }
       },
       "board": {
         "label": "Board",

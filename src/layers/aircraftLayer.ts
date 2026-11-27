@@ -27,6 +27,13 @@ export type { WeatherView } from "./weatherPass";
  */
 export interface TrafficPass {
   draw(gl: WebGL2RenderingContext): void;
+  /**
+   * And once everything else is drawn, over all of it: what goes over the
+   * picture in a rectangle of its own (a close-up of one of them), which may
+   * have the flight's own model drawn there (`AircraftRenderer.drawInset`);
+   * no model for none yet.
+   */
+  drawOver?(gl: WebGL2RenderingContext, own: Pick<AircraftRenderer, "drawInset"> | null): void;
 }
 
 export interface AircraftLayer extends CustomLayerInterface {
@@ -100,6 +107,7 @@ export function makeAircraftLayer(id: string, base: string): AircraftLayer {
       const drew = view && renderer ? renderer.draw(view, screens) : false;
       // From outside, what goes past nearer than the aircraft is over it, and what is beyond it behind it.
       if (weather) weatherPass?.drawNear(weather, OUTSIDE_RANGE, drew);
+      if (traffic?.drawOver && context) traffic.drawOver(context, renderer);
     },
   };
 }

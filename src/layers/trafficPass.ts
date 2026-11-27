@@ -28,7 +28,8 @@ import { skyLighting } from "./aircraftRenderer";
 import { effectSprites, makeEffectsPass, MAX_SPRITES, SPRITE_FLOATS } from "./aircraftEffects";
 import type { AircraftEffects } from "./aircraftRenderer";
 import type { EffectsPass } from "./aircraftEffects";
-import { perspective, inAircraft } from "../lib/studio/flight/view";
+import { perspective, perspectiveInto, inAircraft } from "../lib/studio/flight/view";
+import { BREAKS } from "../lib/studio/flight/model";
 import { throughWindows } from "../lib/studio/flight/cockpit";
 import type { Sight } from "../lib/studio/flight/pilot";
 import { AS_LIGHT, AS_MODEL, AS_SILHOUETTE, BURNING_M, budgetFor, choose, LIGHT_FROM_M, MODEL_M, SILHOUETTE_M } from "../lib/studio/flight/airspace/budget";
@@ -41,10 +42,12 @@ import { Sky } from "../lib/studio/flight/airspace/sky";
 import { contrailStrength, SEGMENT_FLOATS, Trail, TRAIL_S, warmerThanStandard } from "../lib/studio/flight/airspace/trails";
 import type { OtherAircraft } from "../lib/studio/flight/airspace/traffic";
 import { GEAR_DOWN, ON_GROUND } from "../lib/studio/flight/airspace/wire";
+import { blankChaseView, ChaseCamera, CLOSE_UP_FOV, CloseUpLook, lostBits, ModelChoice } from "../lib/studio/flight/airspace/closeUp";
+import type { AircraftRenderer } from "./aircraftRenderer";
 
 type Vec3 = [number, number, number];
 
-/** Floats an instance of the model or the silhouette takes: where (3), its forward and right (3 each), how much is seen, gear down, a number of its own. */
+/** Floats an instance of the model or the silhouette takes: where (3), its forward and right (3 each), how much is seen, gear down, what of it is gone. */
 const INSTANCE_FLOATS = 12;
 /** Floats a light takes: where (3), how bright (1), a number of its own (1). */
 const LIGHT_FLOATS = 5;
@@ -79,10 +82,14 @@ uniform vec3 uSun;
 uniform vec3 uLighting;
 out vec3 vColour;
 out float vOpacity;
+out vec3 vPlace;
+out float vLost;
 void main() {
   vec3 body = aPlace.xyz * uExtent;
   // The gear folded away where its aircraft has it up: all of it to one point, which draws nothing.
   if (aPlace.w > 0.5 && aLook.y < 0.5) body = vec3(0.0, 0.0, 1.0);
+  vPlace = body;
+  vLost = aLook.z;
   vec3 down = cross(aForward, aRight);
   vec3 world = aAt + aForward * body.x + aRight * body.y + down * body.z;
   vec3 normal = normalize(aForward * aNormal.x + aRight * aNormal.y + down * aNormal.z);
@@ -97,8 +104,17 @@ const MODEL_FRAGMENT = `#version 300 es
 precision highp float;
 in vec3 vColour;
 in float vOpacity;
+in vec3 vPlace;
+in float vLost;
+// Where the wings and the tail come off, metres (model.ts's BREAKS): a wing or a tail its aircraft has lost is not drawn.
+uniform vec2 uBreaks;
 out vec4 colour;
 void main() {
+  int lost = int(vLost + 0.5);
+  if (lost != 0) {
+    int piece = vPlace.x < uBreaks.y ? 4 : vPlace.y < -uBreaks.x ? 1 : vPlace.y > uBreaks.x ? 2 : 0;
+    if ((lost & piece) != 0) discard;
+  }
   colour = vec4(vColour * vOpacity, vOpacity);
 }`;
 
@@ -170,6 +186,46 @@ void main() {
   colour = vec4(uColour * a, a);
 }`;
 
+/** The close-up's sky: one triangle over its rectangle, each pixel the sky or the ground the way it looks. */
+const SKY_VERTEX = `#version 300 es
+out vec2 vAt;
+void main() {
+  vec2 corner = vec2(float((gl_VertexID << 1) & 2), float(gl_VertexID & 2));
+  vAt = corner * 2.0 - 1.0;
+  gl_Position = vec4(vAt, 0.0, 1.0);
+}`;
+
+const SKY_FRAGMENT = `#version 300 es
+precision highp float;
+in vec2 vAt;
+// The camera's forward, right and down in the world's north, east and down; how far the lens reaches across and up.
+uniform mat3 uTurn;
+uniform vec2 uLens;
+// Towards the sun, north, east and down; how light the sky is and how much of the sun gets through, 0 to 1 each.
+uniform vec3 uSun;
+uniform vec2 uLight;
+out vec4 colour;
+void main() {
+  vec3 way = normalize(uTurn * vec3(1.0, vAt.x * uLens.x, -vAt.y * uLens.y));
+  float up = -way.z;
+  // Blue overhead, paler towards the horizon, with a haze along it; the ground under it a grey-green that darkens below.
+  vec3 haze = vec3(0.72, 0.79, 0.86);
+  vec3 sky = mix(haze, vec3(0.17, 0.37, 0.69), smoothstep(0.0, 0.6, up));
+  float toward = max(dot(way, uSun), 0.0);
+  sky += vec3(1.0, 0.93, 0.8) * (pow(toward, 8.0) * 0.22 + pow(toward, 400.0) * 0.9) * uLight.y;
+  vec3 ground = mix(vec3(0.47, 0.51, 0.49), vec3(0.23, 0.28, 0.24), smoothstep(0.0, 0.4, -up));
+  vec3 seen = up >= 0.0 ? sky : mix(haze * 0.9, ground, smoothstep(0.0, 0.05, -up));
+  colour = vec4(seen * (0.22 + 0.78 * uLight.x), 1.0);
+}`;
+
+/** The close-up's lenses, near and far, metres: the aircraft's, and its contrail's and fire's. */
+const CLOSE_MODEL_RANGE: [number, number] = [2, 2000];
+const CLOSE_FAR_RANGE: [number, number] = [2, 60_000];
+/** The most of a contrail's segments the close-up draws. */
+const CLOSE_SEGMENTS = 256;
+/** How near the eye a close-up's smoke and flame begin to be drawn, and from where in full, metres. */
+const CLOSE_FADE: [number, number] = [2, 12];
+
 function compile(gl: WebGL2RenderingContext, vertex: string, fragment: string): WebGLProgram {
   const program = gl.createProgram()!;
   for (const [type, source] of [[gl.VERTEX_SHADER, vertex], [gl.FRAGMENT_SHADER, fragment]] as const) {
@@ -226,7 +282,7 @@ const blankBurning = (): Burning => ({
   north: 0, east: 0, down: 0, forward: [1, 0, 0], right: [0, 1, 0], velocity: [0, 0, 0], burning: 0, strength: 0, fireBorn: 0, blast: null,
 });
 
-export function makeTrafficPass(source: TrafficSource, model: LightModel): TrafficPass & { dispose(): void } {
+export function makeTrafficPass(source: TrafficSource, model: LightModel): TrafficPass & { drawOver(gl: WebGL2RenderingContext, own: Pick<AircraftRenderer, "drawInset"> | null): void; dispose(): void } {
   const { shared } = source;
   const { traffic, drawn } = shared;
   let gl: WebGL2RenderingContext | null = null;
@@ -275,6 +331,23 @@ export function makeTrafficPass(source: TrafficSource, model: LightModel): Traff
   const head: Vec3 = [0, 0, 0];
   const origin: Vec3 = [0, 0, 0];
   let sky: Sky | null = null;
+  let warmer = 0;
+
+  // The close-up of the pilot picked: made when one first is, and nothing of it done while none is.
+  let skyProgram: WebGLProgram | null = null;
+  const chase = blankChaseView();
+  const camera = new ChaseCamera();
+  const look = new CloseUpLook(typeof matchMedia !== "undefined" && matchMedia("(prefers-reduced-motion: reduce)").matches);
+  const choice = new ModelChoice();
+  let closeUpOf: number | null = null;
+  let closeUpAt = 0;
+  const closeModel = new Float32Array(16);
+  const closeFar = new Float32Array(16);
+  const closeInstance = new Float32Array(INSTANCE_FLOATS);
+  const closeSegments = new Float32Array(CLOSE_SEGMENTS * SEGMENT_FLOATS);
+  const closeOrigin: Vec3 = [0, 0, 0];
+  const AT_IT: Vec3 = [0, 0, 0];
+  const closeLighting: Vec3 = [0, 0, 0];
 
   function grow(count: number): void {
     if (count <= capacity) return;
@@ -464,7 +537,7 @@ export function makeTrafficPass(source: TrafficSource, model: LightModel): Traff
       origin[1] = sky.north(sight.lat);
       origin[2] = sky.up(sight.altitude);
       const fog = sight.cloud / CLOUD_SEEN_M + sight.rain / RAIN_SEEN_M;
-      const warmer = warmerThanStandard(sight.temperature, sight.altitude);
+      warmer = warmerThanStandard(sight.temperature, sight.altitude);
       const budget = budgetFor(sight.quality, sight.handheld);
 
       // Where each is from the eye's aircraft, and how far.
@@ -524,7 +597,7 @@ export function makeTrafficPass(source: TrafficSource, model: LightModel): Traff
           // The silhouettes fade out as the lights fade in.
           out[at + 9] = kind === AS_SILHOUETTE ? seen * (1 - smooth((far - SILHOUETTE_M * 0.85) / (SILHOUETTE_M * 0.15))) : seen;
           out[at + 10] = shown.flags & GEAR_DOWN ? 1 : 0;
-          out[at + 11] = own;
+          out[at + 11] = lostBits(look);
         }
         if (kind === AS_LIGHT || (kind === AS_SILHOUETTE && far > LIGHT_FROM_M)) {
           const at = lightCount++ * LIGHT_FLOATS;
@@ -606,6 +679,7 @@ export function makeTrafficPass(source: TrafficSource, model: LightModel): Traff
         context.uniform3f(uniform(p.model, "uSun"), ...sight.sun);
         const [ambient, lit, away] = skyLighting(OUTSIDE_LIGHTING, sight.sunlight, sight.daylight);
         context.uniform3f(uniform(p.model, "uLighting"), ambient, lit, away);
+        context.uniform2f(uniform(p.model, "uBreaks"), BREAKS.wingRoot, BREAKS.tail);
         context.enable(context.DEPTH_TEST);
         context.depthFunc(context.LESS);
         context.depthMask(true);
@@ -658,11 +732,158 @@ export function makeTrafficPass(source: TrafficSource, model: LightModel): Traff
       drawn.cpuMs = performance.now() - started;
     },
 
+    drawOver(context, own) {
+      const closeUp = shared.closeUp;
+      const said = closeUp.drawn;
+      said.model = "none";
+      said.drawCalls = 0;
+      if (closeUp.id === null) {
+        closeUpOf = null;
+        return;
+      }
+      const sight = source.sight();
+      const aircraft = traffic.get(closeUp.id);
+      const { rect } = closeUp;
+      if (!sight || sight.view === "clean" || !aircraft || !sky || gl !== context || rect.w <= 0 || rect.h <= 0) return;
+      const started = performance.now();
+      const now = source.now();
+      const seconds = now / 1000;
+      // Another pilot picked: looked at from behind at once, as they are now.
+      if (closeUpOf !== closeUp.id) {
+        closeUpOf = closeUp.id;
+        camera.reset();
+        look.reset();
+        choice.reset();
+        said.frames = 0;
+        closeUpAt = now;
+      }
+      const dt = Math.min(Math.max((now - closeUpAt) / 1000, 0), 0.25);
+      closeUpAt = now;
+      const { shown } = aircraft;
+      camera.follow(shown, dt, sight.sun, chase);
+
+      // Its rectangle of the picture, which WebGL counts from the bottom.
+      const width = context.drawingBufferWidth;
+      const height = context.drawingBufferHeight;
+      const w = Math.round(rect.w * width);
+      const h = Math.round(rect.h * height);
+      const x = Math.round(rect.x * width);
+      const y = height - Math.round(rect.y * height) - h;
+      if (w < 2 || h < 2) return;
+      inset(context, x, y, w, h);
+      context.disable(context.STENCIL_TEST);
+      context.disable(context.CULL_FACE);
+      context.colorMask(true, true, true, true);
+      context.disable(context.BLEND);
+      context.disable(context.DEPTH_TEST);
+      context.depthMask(false);
+      let calls = 0;
+
+      // The sky and the ground behind it, as they lie from where the camera looks.
+      skyProgram ??= compile(context, SKY_VERTEX, SKY_FRAGMENT);
+      const aspect = w / h;
+      const tan = Math.tan((CLOSE_UP_FOV * Math.PI) / 360);
+      context.useProgram(skyProgram);
+      context.uniformMatrix3fv(uniform(skyProgram, "uTurn"), false, chase.turn);
+      context.uniform2f(uniform(skyProgram, "uLens"), tan * aspect, tan);
+      context.uniform3f(uniform(skyProgram, "uSun"), sight.sun[0], sight.sun[1], sight.sun[2]);
+      context.uniform2f(uniform(skyProgram, "uLight"), Math.min(Math.max(sight.daylight, 0), 1), Math.min(Math.max(sight.sunlight, 0), 1));
+      context.bindVertexArray(null);
+      context.drawArrays(context.TRIANGLES, 0, 3);
+      calls += 1;
+
+      // Its contrail, from where it is now back along where it has been.
+      perspectiveInto(closeFar, CLOSE_UP_FOV, aspect, CLOSE_FAR_RANGE[0], CLOSE_FAR_RANGE[1]);
+      const kept = keptOf(aircraft);
+      const airborne = (shown.flags & ON_GROUND) === 0;
+      const strength = airborne ? contrailStrength(shown.altitude, warmer) : 0;
+      if (kept.trail.count > 1) {
+        closeOrigin[0] = sky.east(shown.lon);
+        closeOrigin[1] = sky.north(shown.lat);
+        closeOrigin[2] = sky.up(shown.altitude);
+        const segmentCount = kept.trail.write(closeSegments, 0, CLOSE_SEGMENTS, sky, closeOrigin, AT_IT, strength * shown.opacity, seconds);
+        if (segmentCount) {
+          const p = programs!;
+          context.enable(context.BLEND);
+          context.blendFunc(context.ONE, context.ONE_MINUS_SRC_ALPHA);
+          context.useProgram(p.trail);
+          context.uniformMatrix4fv(uniform(p.trail, "uWorldView"), false, chase.worldView);
+          context.uniformMatrix4fv(uniform(p.trail, "uProjection"), false, closeFar);
+          context.uniform1f(uniform(p.trail, "uPixelAngle"), (2 * tan) / h);
+          context.uniform1f(uniform(p.trail, "uLasts"), TRAIL_S);
+          const day = 0.55 + 0.45 * Math.min(Math.max(sight.daylight, 0), 1);
+          context.uniform3f(uniform(p.trail, "uColour"), 0.95 * day, 0.96 * day, 0.98 * day);
+          upload(context, trailGl!, closeSegments, segmentCount, SEGMENT_FLOATS);
+          context.bindVertexArray(trailGl!.vao);
+          context.drawArraysInstanced(context.TRIANGLE_STRIP, 0, 4, segmentCount);
+          context.disable(context.BLEND);
+          calls += 1;
+        }
+      }
+
+      // The aircraft: the flight's own model where the device has the room for it, the light one where it has not.
+      const view = look.update(aircraft, chase, sight, seconds, dt);
+      let drewFull = 0;
+      if (choice.pick(sight.quality, sight.handheld, seconds) === "full" && own) {
+        drewFull = own.drawInset(view, x, y, w, h);
+        inset(context, x, y, w, h);
+      }
+      if (drewFull) {
+        calls += drewFull;
+        said.model = "full";
+      } else {
+        const p = programs!;
+        perspectiveInto(closeModel, CLOSE_UP_FOV, aspect, CLOSE_MODEL_RANGE[0], CLOSE_MODEL_RANGE[1]);
+        context.enable(context.DEPTH_TEST);
+        context.depthFunc(context.LESS);
+        context.depthMask(true);
+        context.clearDepth(1);
+        context.clear(context.DEPTH_BUFFER_BIT);
+        context.useProgram(p.model);
+        context.uniformMatrix4fv(uniform(p.model, "uWorldView"), false, chase.worldView);
+        context.uniformMatrix4fv(uniform(p.model, "uProjection"), false, closeModel);
+        context.uniform3f(uniform(p.model, "uExtent"), model.extent[0], model.extent[1], model.extent[2]);
+        context.uniform3f(uniform(p.model, "uSun"), sight.sun[0], sight.sun[1], sight.sun[2]);
+        skyLighting(OUTSIDE_LIGHTING, sight.sunlight, sight.daylight, closeLighting);
+        context.uniform3f(uniform(p.model, "uLighting"), closeLighting[0], closeLighting[1], closeLighting[2]);
+        context.uniform2f(uniform(p.model, "uBreaks"), BREAKS.wingRoot, BREAKS.tail);
+        closeInstance[0] = closeInstance[1] = closeInstance[2] = 0;
+        writeAxes(shown.heading, shown.pitch, shown.roll, closeInstance, 3);
+        closeInstance[9] = 1;
+        closeInstance[10] = view.gear > 0.5 ? 1 : 0;
+        closeInstance[11] = lostBits(aircraft.look);
+        // Into the start of the models' own instances: those are drawn already this frame, and written again the next.
+        upload(context, meshes!.model, closeInstance, 1, INSTANCE_FLOATS);
+        context.bindVertexArray(meshes!.model.vao);
+        context.drawElementsInstanced(context.TRIANGLES, meshes!.model.count, context.UNSIGNED_SHORT, 0, 1);
+        calls += 1;
+        if (view.effects) {
+          effects ??= makeEffectsPass(context, (vertex, fragment) => compile(context, vertex, fragment));
+          effects.draw(view.effects, chase.modelView, closeModel, chase.light, CLOSE_FADE);
+          calls += 1;
+        }
+        said.model = "light";
+      }
+
+      context.bindVertexArray(null);
+      context.bindBuffer(context.ARRAY_BUFFER, null);
+      context.disable(context.BLEND);
+      context.disable(context.SCISSOR_TEST);
+      context.depthMask(true);
+      context.viewport(0, 0, width, height);
+      said.callsign = aircraft.callsign;
+      said.frames += 1;
+      said.drawCalls = calls;
+      said.cpuMs = performance.now() - started;
+    },
+
     dispose() {
       const context = gl;
       gl = null;
       if (!context) return;
       for (const program of Object.values(programs ?? {})) context.deleteProgram(program);
+      if (skyProgram) context.deleteProgram(skyProgram);
+      skyProgram = null;
       for (const mesh of Object.values(meshes ?? {})) {
         context.deleteVertexArray(mesh.vao);
         for (const buffer of [mesh.vertices, mesh.indices, mesh.instances]) context.deleteBuffer(buffer);
@@ -687,6 +908,13 @@ export function makeTrafficPass(source: TrafficSource, model: LightModel): Traff
     if (start !== from * SPRITE_FLOATS) sprites.copyWithin(from * SPRITE_FLOATS, start, start + made * SPRITE_FLOATS);
     return from + made;
   }
+}
+
+/** Draw only into this rectangle of the picture (WebGL's pixels, from its lower left). */
+function inset(context: WebGL2RenderingContext, x: number, y: number, width: number, height: number): void {
+  context.viewport(x, y, width, height);
+  context.enable(context.SCISSOR_TEST);
+  context.scissor(x, y, width, height);
 }
 
 const smooth = (t: number) => {

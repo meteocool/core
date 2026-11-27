@@ -11,7 +11,7 @@
  *
  * And, while the flight is on the board, its airspace: the other aircraft
  * near it (lib/studio/flight/airspace/session.ts), their callsigns over
- * them (TrafficLabels) and their marks on the chart. What draws them, and
+ * them (TrafficLabels, with the card of the one picked and their aircraft close up) and their marks on the chart. What draws them, and
  * the model they are drawn as, come only once one has been heard
  * (trafficDraw.ts).
  */
@@ -60,7 +60,8 @@ export interface BoardDeck {
   Check: Component<{ board: BoardDeck }>;
   /** The other aircraft of the airspace: what is heard of them and what was drawn, and the callsigns over the near ones. */
   traffic: TrafficShared;
-  Labels: Component<{ board: BoardDeck; pilot: Pilot }>;
+  /** And the card of the pilot picked from them, with their aircraft close up, docked clear of what `keepClear` matches on the deck. */
+  Labels: Component<{ board: BoardDeck; pilot: Pilot; keepClear?: string }>;
   /** The flight over: off the board, and everything let go of. */
   leave(): void;
 }
@@ -155,6 +156,11 @@ export function joinBoard(pilot: Pilot, sitekey: string): BoardDeck {
     get renderer() { return traffic.renderer; },
     get labels() { return traffic.labels.filter((label) => label.shown).map((label) => label.callsign); },
     get joined() { return airspace.id; },
+    /** The close-up of the pilot picked: whose, drawn with which model, the frames drawn since, and what the last took; null for none. */
+    get closeUp() {
+      const { id, rect, drawn } = traffic.closeUp;
+      return id === null ? null : { id, ...drawn, rect: { ...rect } };
+    },
   };
   const hidden = () => session.pageHidden();
   const shown = (event: PageTransitionEvent) => { if (event.persisted) session.pageShown(); };

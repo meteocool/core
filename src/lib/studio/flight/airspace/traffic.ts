@@ -120,6 +120,11 @@ export class Traffic {
   private hearingClock = 0;
   private readonly hearOne = (aircraft: HeardAircraft) => this.hearAircraft(aircraft);
 
+  /** The aircraft with this number, while it is heard of; undefined once it has been forgotten. */
+  get(id: number): OtherAircraft | undefined {
+    return this.byId.get(id);
+  }
+
   setLimits(limits: AirspaceLimits): void {
     this.limits = limits;
   }
