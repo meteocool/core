@@ -40,6 +40,10 @@ A run never reaches a backend. `test.ts` gives every spec a page that:
   `echotop50`, `vil`) with the 404 a backend gives before their first frame,
   written by hand until a recording has them; `column-products.spec.ts`
   stands frames in for them itself;
+- answers the United States' composite and column products
+  (`/v3/radar/us`, `us/colmax`, `us/echotop18`, `us/vil`) with a 404,
+  written by hand: the recording is from before a backend served them, and
+  a page that finds none draws Europe alone, as demo does;
 - answers `/v3/status` from `fixtures/api/GET_v3_status.json`, written by
   hand until staging serves the route: every component `ok` for the
   recorded views, its times the recording's. `status.spec.ts` serves its own
