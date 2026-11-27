@@ -123,10 +123,33 @@ test("the aircraft's own gear folds into it: up, no wheel hangs below the belly;
     }
     return low;
   };
-  // The fuselage's lowest is a little over 2 m below its middle; the wheels stand 3.5 to 4 m below it.
+  // The belly's doors over the wells are 2.2 m below the fuselage's middle; the wheels stand 3.5 to 4 m below it.
   for (const part of ["gear.nose", "gear.left", "gear.right"]) {
-    assert.ok(lowest(0, part) < 2.1, `${part} up reaches ${lowest(0, part)} m down`);
+    assert.ok(lowest(0, part) < 2.2, `${part} up reaches ${lowest(0, part)} m down`);
     assert.ok(lowest(1, part) > 3.5, `${part} down reaches ${lowest(1, part)} m down`);
+  }
+});
+
+test("the main gear folds up under the wing's upper skin, its side stays as well", () => {
+  const bytes = readFileSync(new URL("../../public/models/a320/a320.bin", import.meta.url));
+  const model = parseModel(bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength));
+  const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+  // Posed as drawn, each part carried by the one it rides on.
+  const posed = posedParts(model.parts, { gear: 0, flaps: 0, spoilers: 0 }, identity, [0, 0, -1]);
+  for (const side of ["left", "right"]) {
+    assert.ok(model.parts[`gear.${side}Stay`], `gear.${side}Stay`);
+    let highest = Infinity;
+    for (const chunk of model.chunks.filter((one) => one.part?.startsWith(`gear.${side}`) && !one.part.includes("Door"))) {
+      const m = posed.get(chunk.part!)?.modelView ?? identity;
+      const view = new DataView(chunk.vertices.buffer, chunk.vertices.byteOffset, chunk.vertices.byteLength);
+      for (let i = 0; i < chunk.vertices.byteLength / VERTEX_BYTES; i++) {
+        const p = [0, 1, 2].map((k) => (view.getUint16(i * VERTEX_BYTES + k * 2, true) / 65535) * chunk.size[k] + chunk.min[k]);
+        const [, y, z] = [0, 1, 2].map((row) => m[row] * p[0] + m[4 + row] * p[1] + m[8 + row] * p[2] + m[12 + row]);
+        // Out over the wing, beside the fuselage: its upper skin there is 0.7 m below the fuselage's middle or lower.
+        if (Math.abs(y) > 2.3) highest = Math.min(highest, z);
+      }
+    }
+    assert.ok(highest > 0.6, `gear.${side} up stands ${highest} m below the middle, through the wing's top`);
   }
 });
 

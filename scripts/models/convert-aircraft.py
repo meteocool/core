@@ -23,7 +23,9 @@ their own: each with a hinge worked out from its own shape. The ailerons,
 the elevators and the rudder the model has only as meshes of the hull: they
 are taken out of it as parts once the file is written (`control_surfaces.py`),
 and so are the flight deck's levers, stick and pedals, with the thrust levers
-and the flap lever the model lacks made for it (`cockpit_controls.py`).
+and the flap lever the model lacks made for it (`cockpit_controls.py`); the
+main legs' side stays are taken out of the legs, to fold into the wing on
+their own (`gear_stays.py`).
 
 The outside is repainted on the way (`livery`): the airline's colours, titles
 and marks come off, the hull is left white, and ours go on: "meteowings"
@@ -52,6 +54,7 @@ from pxr import Usd, UsdGeom, UsdShade
 
 from cockpit_controls import lift_file
 from control_surfaces import cut_file
+from gear_stays import fold_file
 
 LENGTH_M = 37.57
 """An A320 from nose to tail, which the model is scaled to."""
@@ -159,8 +162,9 @@ def lining(up: float, down: float) -> list:
 
 GEAR = {
     "gear.nose": {"nodes": ("node28_003_208", "node66_001_322"), "axis": (0, 1, 0), "keys": leg(97)},
-    "gear.left": {"nodes": ("node2_008_199", "node37_003_210"), "axis": (1, 0, 0), "keys": leg(-88)},
-    "gear.right": {"nodes": ("node15_003_186", "node39_003_214"), "axis": (1, 0, 0), "keys": leg(88)},
+    # Turned short of level: their hinges are at the wing's upper skin, and a leg turned flat stands out through it.
+    "gear.left": {"nodes": ("node2_008_199", "node37_003_210"), "axis": (1, 0, 0), "keys": leg(-78)},
+    "gear.right": {"nodes": ("node15_003_186", "node39_003_214"), "axis": (1, 0, 0), "keys": leg(78)},
     # The doors along the main legs, hinged on the wing: they fold with the legs and shut the wing's slot over them.
     "gear.leftLegDoor": {"nodes": ("node54_001_312", "node4_005_239"), "axis": (1, 0, 0), "keys": leg(-90)},
     "gear.rightLegDoor": {"nodes": ("node58_001_316", "node8_005_243"), "axis": (1, 0, 0), "keys": leg(90)},
@@ -831,6 +835,7 @@ def main(scene: str, textures: str, out: str, logo_svg: str) -> None:
           f"{sum(c['indices'] for c in chunks) // 3} triangles, {(len(body) + len(header)) / 1e6:.1f} MB, scale {scale:.4f}")
     cut_file(str(out_dir / "a320.bin"))
     lift_file(str(out_dir / "a320.bin"))
+    fold_file(str(out_dir / "a320.bin"))
 
 
 if __name__ == "__main__":
