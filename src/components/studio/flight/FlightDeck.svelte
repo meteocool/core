@@ -720,6 +720,10 @@ const WARNINGS = {
     <!-- The day's board, on a card from the board's readout. -->
     <svelte:component this={board.Card} {board} />
   {/if}
+  {#if board}
+    <!-- The check the board may ask of the reader, in every view: unanswered, the flight is not on the board. -->
+    <svelte:component this={board.Check} {board} />
+  {/if}
   {#if status.leaving}
     <!-- Asked before a flight ends: Escape alone does not end one. -->
     <div class="ask" role="alertdialog" aria-modal="true" aria-labelledby="flight-leave-title">

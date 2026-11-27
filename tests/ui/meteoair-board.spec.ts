@@ -157,6 +157,27 @@ test.describe("in flight, on a desktop", () => {
     await expect.poll(async () => (await flown(page)) ?? 0, { timeout: 30_000 }).toBeGreaterThan(before + 1);
   });
 
+  test("a check that has to ask the reader is on a card of the deck's; skipped, the flight is off the board", async ({ page }) => {
+    await page.addInitScript(() => { (window as any).__turnstileAsks = true; });
+    await page.goto(FLIGHT);
+    await expect(deck(page)).toBeVisible({ timeout: 150_000 });
+    await curtainUp(page);
+    const check = page.getByRole("region", { name: "Before this flight counts" });
+    // Asked for the pilot: the card is up, and nothing has gone to the board.
+    await expect(check).toBeVisible({ timeout: 30_000 });
+    await expect(check).toContainText("Confirm you're human");
+    expect(asked(page)).not.toContain("POST /pilots");
+    await page.evaluate(() => (window as any).__turnstileAnswer());
+    await expect.poll(() => asked(page), { timeout: 30_000 }).toContain("POST /pilots");
+    // Asked again for the flight, and skipped this time: no flight on the board, and the deck says so.
+    await expect(check).toBeVisible({ timeout: 30_000 });
+    await check.getByRole("button", { name: "Skip the check" }).click();
+    await expect(check).toBeHidden();
+    await expect(deck(page).getByText("No board for this flight: the cockpit's score only")).toBeVisible({ timeout: 30_000 });
+    await expect(boardReadout(page)).toHaveText("Off");
+    expect(asked(page)).not.toContain("POST /flights");
+  });
+
   test("a flight the board stops counting says so, and why", async ({ page }) => {
     scriptBoard(page, {
       "POST /flights/{id}/track": [{

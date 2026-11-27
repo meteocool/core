@@ -5,7 +5,8 @@ import type { Page, Route, WebSocketRoute } from "@playwright/test";
  * rather than recorded (a recording would hold a real pilot's credential,
  * and the board's answers depend on the flight flown), its socket, and
  * Turnstile's script, which never comes from the network in a test: a
- * stand-in that renders nothing and hands out Turnstile's test token.
+ * stand-in that renders nothing and hands out Turnstile's test token, at
+ * once or, where a test wants the reader asked, when the test answers.
  *
  * Every page gets the stand-in (test.ts), answering as a board that takes
  * everything; a spec scripts other answers with `scriptBoard`, and reads
@@ -44,7 +45,14 @@ const TURNSTILE_STAND_IN = `
     },
     execute(id) {
       const options = window.__turnstileWidgets[id];
-      setTimeout(() => options.callback(${JSON.stringify(TEST_TOKEN)}), 10);
+      const answer = () => options.callback(${JSON.stringify(TEST_TOKEN)});
+      // A page that set __turnstileAsks is asked each time, and answers with __turnstileAnswer().
+      if (window.__turnstileAsks) {
+        options["before-interactive-callback"]?.();
+        window.__turnstileAnswer = () => { options["after-interactive-callback"]?.(); answer(); };
+      } else {
+        setTimeout(answer, 10);
+      }
     },
     reset() {},
     remove(id) { delete window.__turnstileWidgets[id]; },

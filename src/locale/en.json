@@ -409,6 +409,11 @@
         "unreachable": "Can't reach the board just now. Trying again; the flight goes on.",
         "unranked": "Not in today's top hundred yet.",
         "unavailable": "No board for this flight: the cockpit's score only",
+        "check": {
+          "title": "Before this flight counts",
+          "hint": "Confirm you're human to put this flight on today's board. Skip it and only the cockpit keeps score.",
+          "skip": "Skip the check"
+        },
         "stopped": "The board stopped counting this flight: {reason}",
         "reason": {
           "refused": "track refused",

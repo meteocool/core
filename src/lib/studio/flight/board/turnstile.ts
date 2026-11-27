@@ -4,12 +4,19 @@
  * board, and one widget rendered explicitly, invisible unless it has to ask
  * the reader something. Each token is single-use and lasts five minutes, so
  * one is asked for just before each request that needs it.
+ *
+ * The widget is drawn where the deck gives it a place (BoardCheck.svelte),
+ * and says when it is asking, so that the deck can put a card round it.
  */
+import { writable } from "svelte/store";
+import type { Readable } from "svelte/store";
 
 export const TURNSTILE_SCRIPT = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
 
 /** How long a token is waited for, ms: a challenge the reader has to answer takes a moment. */
 const TOKEN_MOST_MS = 60_000;
+/** How long the deck is waited for to give the widget its place, ms. */
+const PLACE_MOST_MS = 15_000;
 
 interface TurnstileApi {
   render(container: HTMLElement, options: Record<string, unknown>): string | undefined;
@@ -49,16 +56,30 @@ export interface TokenSource {
   dispose(): void;
 }
 
-export function turnstileTokens(sitekey: string): TokenSource {
+/** Turnstile's widget as the deck sees it: where it is drawn, whether it is asking, and a way out of being asked. */
+export interface TurnstileSource extends TokenSource {
+  /** Whether the widget has something up for the reader to answer. */
+  asking: Readable<boolean>;
+  /** Where the widget draws itself. Tokens wait for it. */
+  place(element: HTMLElement): void;
+  /** The reader would rather not answer: the token waited for is given up. */
+  skip(): void;
+}
+
+export function turnstileTokens(sitekey: string): TurnstileSource {
   let api: TurnstileApi | null = null;
   let widget: string | null = null;
-  let container: HTMLElement | null = null;
+  let host: HTMLElement | null = null;
+  let placed: () => void = () => undefined;
+  const place = new Promise<void>((resolve) => { placed = resolve; });
+  const asking = writable(false);
   let waiting: { resolve: (token: string) => void; reject: (error: Error) => void } | null = null;
   let disposed = false;
 
   const settle = (outcome: { token: string } | { error: string }) => {
     const pending = waiting;
     waiting = null;
+    asking.set(false);
     if (!pending) return;
     if ("token" in outcome) pending.resolve(outcome.token);
     else pending.reject(new Error(outcome.error));
@@ -66,19 +87,22 @@ export function turnstileTokens(sitekey: string): TokenSource {
 
   async function ready(): Promise<{ api: TurnstileApi; widget: string }> {
     api ??= await loadScript();
-    if (disposed) throw new Error("disposed");
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    await Promise.race([
+      place,
+      new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("no place for the check")), PLACE_MOST_MS); }),
+    ]).finally(() => clearTimeout(timer));
+    if (disposed || !host) throw new Error("disposed");
     if (widget === null) {
-      // Over the flight, where a challenge that must be answered can be.
-      container = document.createElement("div");
-      container.className = "mc-board-check";
-      Object.assign(container.style, {
-        position: "fixed", left: "50%", top: "50%", transform: "translate(-50%, -50%)", zIndex: "2147483000",
-      });
-      document.body.append(container);
-      widget = api.render(container, {
+      widget = api.render(host, {
         sitekey,
         appearance: "interaction-only",
         execution: "execute",
+        // The deck is dark whatever the reader's system is.
+        theme: "dark",
+        size: "flexible",
+        "before-interactive-callback": () => asking.set(true),
+        "after-interactive-callback": () => asking.set(false),
         "refresh-expired": "manual",
         callback: (token: string) => settle({ token }),
         "error-callback": () => { settle({ error: "turnstile error" }); return true; },
@@ -91,6 +115,20 @@ export function turnstileTokens(sitekey: string): TokenSource {
   }
 
   return {
+    asking,
+    place(element) {
+      // A new place: the widget drawn in the old one is gone with it.
+      if (host && host !== element && api && widget !== null) {
+        api.remove(widget);
+        widget = null;
+      }
+      host = element;
+      placed();
+    },
+    skip() {
+      settle({ error: "skipped" });
+      if (api && widget !== null) api.reset(widget);
+    },
     async token() {
       const { api: turnstile, widget: id } = await ready();
       settle({ error: "superseded" });
@@ -109,9 +147,7 @@ export function turnstileTokens(sitekey: string): TokenSource {
       disposed = true;
       settle({ error: "disposed" });
       if (api && widget !== null) api.remove(widget);
-      container?.remove();
       widget = null;
-      container = null;
     },
   };
 }

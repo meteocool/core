@@ -6,7 +6,8 @@
  * `joinBoard` puts the pilot's flight on the board (the session in
  * lib/studio/flight/board/session.ts) and hands the deck what it draws of
  * it: the board's score beside the cockpit's (BoardReadout), its notices
- * (BoardNote) and the card with the day's top twenty (BoardCard).
+ * (BoardNote), the card with the day's top twenty (BoardCard) and the card
+ * for the check the board may ask of the reader (BoardCheck).
  */
 import { readable, writable } from "svelte/store";
 import type { Readable, Writable } from "svelte/store";
@@ -18,10 +19,12 @@ import { BoardSession } from "../../../../lib/studio/flight/board/session";
 import { frameOf } from "../../../../lib/studio/flight/board/frame";
 import { socketUrl } from "../../../../lib/studio/flight/board/socketPlan";
 import { turnstileTokens } from "../../../../lib/studio/flight/board/turnstile";
+import type { TurnstileSource } from "../../../../lib/studio/flight/board/turnstile";
 import type { BoardView } from "../../../../lib/studio/flight/board/view";
 import BoardReadout from "./BoardReadout.svelte";
 import BoardNote from "./BoardNote.svelte";
 import BoardCard from "./BoardCard.svelte";
+import BoardCheck from "./BoardCheck.svelte";
 
 /** The cockpit's own score and feats, as the card shows them beside the board's: a few times a second, not every frame. */
 export interface CockpitScore {
@@ -37,6 +40,9 @@ export interface BoardDeck {
   Readout: Component<{ board: BoardDeck }>;
   Note: Component<{ board: BoardDeck }>;
   Card: Component<{ board: BoardDeck }>;
+  /** The check the board may ask of the reader: whether it is asking, where it is drawn, and the way out. */
+  check: Pick<TurnstileSource, "asking" | "place" | "skip">;
+  Check: Component<{ board: BoardDeck }>;
   /** The flight over: off the board, and everything let go of. */
   leave(): void;
 }
@@ -54,11 +60,12 @@ function storage(): Storage | null {
 /** Put `pilot`'s flight on the board whose widget is `sitekey`. */
 export function joinBoard(pilot: Pilot, sitekey: string): BoardDeck {
   const base = `${v3APIBaseUrl}/air`;
+  const tokens = turnstileTokens(sitekey);
   const session = new BoardSession({
     base,
     socketUrl: socketUrl(base, window.location),
     fetch: (input, init) => window.fetch(input, init),
-    tokens: turnstileTokens(sitekey),
+    tokens,
     storage: storage(),
     WebSocket: typeof window.WebSocket === "function" ? window.WebSocket : null,
     now: () => performance.now(),
@@ -84,6 +91,8 @@ export function joinBoard(pilot: Pilot, sitekey: string): BoardDeck {
     Readout: BoardReadout,
     Note: BoardNote,
     Card: BoardCard,
+    check: tokens,
+    Check: BoardCheck,
     leave() {
       stopFrames();
       window.removeEventListener("pagehide", hidden);
