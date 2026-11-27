@@ -514,7 +514,7 @@ const WARNINGS = {
       <div class="corner-nw" class:boarded={board !== null}>
         <dt>{$_("studio.flight.readout.speed")}</dt><dd bind:this={readouts.speed}></dd>
         <!-- The score: earned in a storm's cloud, faster the stronger its echo, and lit while it is; and the best flown here. -->
-        <dt>{$_("studio.flight.readout.score")}</dt><dd class="score" bind:this={readouts.score}></dd>
+        <dt class="score">{$_("studio.flight.readout.score")}</dt><dd class="score" bind:this={readouts.score}></dd>
         {#if board}
           <!-- Beside it, the board's, which counts. -->
           <svelte:component this={board.Readout} {board} />
@@ -1455,9 +1455,15 @@ const WARNINGS = {
   @container mc-frame (max-height: 520px) {
     /* The map and the horizon under the readouts on the left, not over them, and clear of the lever under both:
        the best score is the desk's to read, and the two a little smaller. */
-    .flight-deck.touch .corner-nw :is(dt, dd):nth-of-type(3) { display: none; }
+    .flight-deck.touch .corner-nw .best { display: none; }
+    /* And a board's row in place of another, so the map clears them: its score in place of the cockpit's,
+       or none where the flight has no board (its note says so) and the cockpit's is the only one. */
+    .flight-deck.touch .corner-nw.boarded:not(:has(.board-points.off)) .score { display: none; }
+    .flight-deck.touch .corner-nw.boarded :global(:is(dt:has(+ dd .board-points.off), dd:has(.board-points.off))) {
+      display: none;
+    }
     .flight-deck.touch { --flight-minimap-size: 88px; --flight-horizon-size: 68px; }
-    .flight-deck.touch > :global(:is(.flight-minimap, .flight-horizon)) { top: calc(var(--deck-top) + 52px); }
+    .flight-deck.touch > :global(:is(.flight-minimap, .flight-horizon)) { top: calc(var(--deck-top) + 48px); }
     .flight-deck.touch .warning { padding: 5px 12px; font-size: 16px; }
     .flight-deck.touch .landing { padding: 8px 12px 9px; }
     .flight-deck.touch .landing p { gap: 10px; font-size: 12px; }
