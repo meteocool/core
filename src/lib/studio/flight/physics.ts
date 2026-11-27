@@ -174,7 +174,7 @@ const THRUST_STATIC_N = 240_000;
 const THRUST_LAPSE = 0.75;
 const THRUST_MACH = [0.9, 0.45];
 /** What the engines give at idle, as a share of full. */
-const IDLE = 0.05;
+export const IDLE_SPOOL = 0.05;
 /** How long the engines take to follow the throttle: from high power, and that much longer from idle, seconds. */
 const SPOOL_S = 0.9;
 const SPOOL_SLOW_S = 2.2;
@@ -633,10 +633,10 @@ export function trimFor(altitude: number, tas: number, { flaps = 0, gear = 0, pa
   // The thrust carries a little of the weight itself, which the wing then need not: twice round is enough.
   for (let round = 0; round < 3; round++) {
     const cl = liftAt(wing, alpha);
-    thrust = clamp(q * WING_M2 * (CD_ZERO + wing.drag + CD_INDUCED * cl * cl + waveDrag(mach)) + along, IDLE * full, full);
+    thrust = clamp(q * WING_M2 * (CD_ZERO + wing.drag + CD_INDUCED * cl * cl + waveDrag(mach)) + along, IDLE_SPOOL * full, full);
     alpha = alphaFor(wing, liftNeeded(Math.cos(path * RADIANS) - (thrust * Math.sin(alpha * RADIANS)) / WEIGHT_N, q));
   }
-  return { alpha, throttle: thrust <= IDLE * full ? 0 : thrust / full };
+  return { alpha, throttle: thrust <= IDLE_SPOOL * full ? 0 : thrust / full };
 }
 
 /** The throttle that holds a true airspeed level at a height, clean, 0 to 1 (1 where full thrust does not). */
@@ -676,7 +676,7 @@ export function levelFlight(
   return {
     ...DERIVED, lon, lat, altitude, heading: wrap360(heading), pitch: path + alpha, roll: 0, tas, flightPath: path,
     track: wrap360(heading), throttle,
-    spool: Math.max(throttle, IDLE), flaps: trim.flaps ?? 0, onGround: false, verticalSpeed: tas * Math.sin(path * RADIANS), alpha,
+    spool: Math.max(throttle, IDLE_SPOOL), flaps: trim.flaps ?? 0, onGround: false, verticalSpeed: tas * Math.sin(path * RADIANS), alpha,
     alphaWanted: alpha, loadFactor: Math.cos(path * RADIANS),
   };
 }
@@ -685,7 +685,7 @@ export function levelFlight(
 export function parked(lon: number, lat: number, ground: number, heading: number): AircraftState {
   return {
     ...DERIVED, lon, lat, altitude: ground, heading: wrap360(heading), pitch: 0, roll: 0, tas: 0, flightPath: 0,
-    track: wrap360(heading), throttle: 0, spool: IDLE,
+    track: wrap360(heading), throttle: 0, spool: IDLE_SPOOL,
     flaps: 1, onGround: true, verticalSpeed: 0, alpha: 0, alphaWanted: 0, loadFactor: 1,
   };
 }
@@ -759,7 +759,7 @@ function machinery(state: AircraftState, input: ControlInput, h: number, env: En
   // The reversers: on the ground, the lever pulled back at idle, and not below the speed they are any use at.
   const reversing = state.onGround && throttle <= 0 && input.throttle < 0 && state.tas > REVERSE_LEAST_MS;
   const reverse = towards(state.reverse, reversing ? 1 : 0, h / REVERSE_S);
-  const wanted = Math.max(reverse > 0 ? REVERSE_POWER * reverse : 0, throttle, IDLE);
+  const wanted = Math.max(reverse > 0 ? REVERSE_POWER * reverse : 0, throttle, IDLE_SPOOL);
   // An engine at idle takes its time to wake up; one already running hard follows at once.
   const spool = state.spool + (wanted - state.spool) * lag(h, SPOOL_S + SPOOL_SLOW_S * (1 - state.spool) ** 2);
   const flaps = env.flapsStuck
@@ -845,7 +845,7 @@ function fly(state: AircraftState, input: ControlInput, h: number, env: Environm
   const cl = liftAt(wing, alpha);
   const induced = wing.induced * cl * cl * groundEffect(over + WING_OVER_WHEELS_M);
   const drag = q * WING_M2 * (CD_ZERO + wing.drag + induced + waveDrag(mach) + stalledDrag(wing, alpha) + CD_SIDE * Math.sin(slipMet) ** 2);
-  const thrust = thrustAt(state.altitude, speed) * Math.max(spool, IDLE) * left.engines * breathing(ice);
+  const thrust = thrustAt(state.altitude, speed) * Math.max(spool, IDLE_SPOOL) * left.engines * breathing(ice);
   const lift = q * WING_M2 * cl;
   const push = q * WING_M2 * CY_SLIP * Math.sin(slipMet);
   const loadFactor = (lift + thrust * Math.sin(alpha * RADIANS)) / weight;
@@ -1052,7 +1052,7 @@ function roll(state: AircraftState, input: ControlInput, h: number, env: Environ
   const lift = q * WING_M2 * cl;
   const induced = wing.induced * cl * cl * groundEffect(WING_OVER_WHEELS_M);
   const drag = q * WING_M2 * (CD_ZERO + wing.drag + induced);
-  const thrust = thrustAt(ground, state.tas) * Math.max(spool, IDLE) * (1 - (1 + REVERSE_SHARE) * reverse) * breathing(ice);
+  const thrust = thrustAt(ground, state.tas) * Math.max(spool, IDLE_SPOOL) * (1 - (1 + REVERSE_SHARE) * reverse) * breathing(ice);
   const weight = WEIGHT_N * (1 + ICE_WEIGHT * ice);
   const mass = weight / G;
   const carried = Math.max(0, weight - lift);

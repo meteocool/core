@@ -26,7 +26,7 @@ import { indicatedFromTrue, machOf } from "./atmosphere";
 import { Keys } from "./controls";
 import type { FlightAction } from "./controls";
 import {
-  FLAPS_MOST, levelFlight, MAX_DT, MMO, moveGear, overspeed, PITCH_RATE, ROLL_RATE, SPEEDBRAKE, speedsFor, step, terrainAhead,
+  FLAPS_MOST, IDLE_SPOOL, levelFlight, MAX_DT, MMO, moveGear, overspeed, PITCH_RATE, ROLL_RATE, SPEEDBRAKE, speedsFor, step, terrainAhead,
 } from "./physics";
 import type { AircraftState, Environment } from "./physics";
 import { approachOf, cruiseSpeed, snapshotPart } from "./plan";
@@ -74,6 +74,7 @@ import { NO_INPUT } from "./physics";
 import type { ControlInput } from "./physics";
 import { lookedAlong } from "./view";
 import { easeLevers, leverTargets, LEVERS_AT_REST } from "./levers";
+import { FAN_EXPOSURE_S, FAN_SHOWN_DEG_S, fanSpeed } from "./model";
 import type { Levers } from "./levers";
 
 /** A marked storm's lightning: the strikes this near it, km, in this long, ms. */
@@ -474,6 +475,8 @@ export class Pilot {
   private warmer = 0;
   /** How far the air has gone past the aircraft since take-off, metres in its frame: what carries the rain past the eye. */
   private travel: [number, number, number] = [0, 0, 0];
+  /** How far the engines' fans are shown turned, degrees, round and round. */
+  private fanAngle = 0;
   /** Lightning under way: where, when it began (seconds flown), and whether it reaches the ground. */
   private flashes: Array<{ lon: number; lat: number; born: number; seed: number; ground: boolean }> = [];
   /** The strikes already seen, by when each struck: a strike flashes once. Null before the first look. */
@@ -1917,6 +1920,9 @@ export class Pilot {
     const wrecked = shown(this.damage, state);
     if (wrecked && this.reducedMotion) wrecked.effects.calm = true;
     this.stage.setFlightCamera(pose, eye);
+    // The fans with the engines: turning as fast as an eye follows, and smeared over the rest; winding down in a wreck.
+    const fan = fanSpeed(state.spool, state.spool / IDLE_SPOOL);
+    this.fanAngle = (this.fanAngle + Math.min(fan, FAN_SHOWN_DEG_S) * this.dt) % 360;
     this.stage.setAircraft(view === "clean" ? null : {
       modelView: eye.modelView,
       fov: this.fov,
@@ -1943,6 +1949,7 @@ export class Pilot {
       spoilers: state.spoilers,
       ...this.surfaces,
       cockpit: this.levers,
+      fans: { angle: this.fanAngle, sweep: fan * FAN_EXPOSURE_S },
       ...wrecked,
     }, outside ? [] : this.screens);
     const sight = this.sight ?? (this.sight = {

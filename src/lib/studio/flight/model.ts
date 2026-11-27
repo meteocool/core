@@ -12,7 +12,8 @@
  *
  * Some chunks belong to a part that moves: the landing gear's legs and
  * doors, the wings' flaps, slats and spoilers, the ailerons, the elevators
- * and the rudder, and the flight deck's stick, levers and pedals. Each part
+ * and the rudder, the engines' fans, and the flight deck's stick, levers
+ * and pedals. Each part
  * turns about a hinge of its own as what drives it moves (`partPose`), or
  * slides along it; a part may ride on another, which moves it too. A file
  * without parts is an aircraft on which nothing does.
@@ -63,12 +64,16 @@ export type CockpitDrive =
   | "stickPitch" | "stickRoll" | "thrustLevers" | "flapLever" | "speedBrakeLever" | "spoilersArmed"
   | "gearLever" | "pedals" | "parkingBrake" | "rudderTrim";
 
-export type PartDrive = TravelDrive | ControlDrive | CockpitDrive;
+/** What turns a part round and round: the engines' fans, by how far they have turned, degrees. */
+export type SpinDrive = "fans";
+
+export type PartDrive = TravelDrive | ControlDrive | CockpitDrive | SpinDrive;
 
 /** What a part follows straight from key to key: a hand's controls, and the surfaces they move. Smoothing them is the hand's (or the pilot's). */
 const STRAIGHT: ReadonlySet<PartDrive> = new Set<PartDrive>([
   "ailerons", "elevator", "rudder",
   "stickPitch", "stickRoll", "thrustLevers", "flapLever", "speedBrakeLever", "spoilersArmed", "gearLever", "pedals", "parkingBrake", "rudderTrim",
+  "fans",
 ]);
 
 /**
@@ -76,9 +81,10 @@ const STRAIGHT: ReadonlySet<PartDrive> = new Set<PartDrive>([
  * flaps in to all the way out, the spoilers flat to all the way up. What is
  * deflected, -1 to 1, with the signs of the flight's own controls:
  * `ailerons` right wing down, `elevator` nose up, `rudder` nose right; in
- * the middle where not said.
+ * the middle where not said. What spins, degrees, round and round: as the
+ * model has it at every whole turn, and where not said.
  */
-export type PartPositions = Record<TravelDrive, number> & Partial<Record<ControlDrive | CockpitDrive, number>>;
+export type PartPositions = Record<TravelDrive, number> & Partial<Record<ControlDrive | CockpitDrive | SpinDrive, number>>;
 
 /**
  * A part that turns as what drives it moves: about `axis` (a unit vector,
@@ -92,6 +98,12 @@ export type PartPositions = Record<TravelDrive, number> & Partial<Record<Control
  * keys. A part with a `parent` is carried by that part: it moves as its
  * parent does, and turns or slides on it as well, as a stick that rolls is
  * carried by its gimbal that pitches. A parent may have nothing drawn.
+ *
+ * A part that spins (driven by `fans`) takes its drive a turn at a time:
+ * its keys go once round, and the drive's every whole turn is their start
+ * again. One with `blades` is a fan of that many like blades, seen as it
+ * was when turned by one blade's share of the round; one without is round,
+ * as a spinner is, and only its markings show it turning (`smearedParts`).
  */
 export interface ModelPart {
   pivot: Vec3;
@@ -100,6 +112,7 @@ export interface ModelPart {
   drive?: PartDrive;
   slide?: boolean;
   parent?: string;
+  blades?: number;
 }
 
 export interface AircraftModel {
@@ -164,6 +177,7 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
 export function partAngle(part: ModelPart, position: number): number {
   const { keys } = part;
   if (!keys.length) return 0;
+  if (part.drive === "fans") position = ((position % 360) + 360) % 360;
   if (!(position > keys[0][0])) return keys[0][1];
   const straight = STRAIGHT.has(part.drive ?? "gear");
   for (let i = 1; i < keys.length; i++) {
@@ -249,6 +263,94 @@ export function posedParts(
     });
   }
   return posed;
+}
+
+/** A part that spins, and so is smeared over what it turns through while a frame is seen. */
+export function spins(part: ModelPart): boolean {
+  return part.drive === "fans";
+}
+
+/** How finely a smear is drawn: a copy of the part for each this many degrees of it. */
+const SMEAR_STEP_DEG = 2;
+/** And at most this many copies, however far it turns. */
+const SMEAR_MOST = 16;
+
+/**
+ * The parts that spin, as the eye sees them while a frame is shown: each
+ * drawn several times over, through each of the places it passes through
+ * as it turns `sweep` degrees back from where `positions` has it, each copy
+ * as opaque as `opacity` says, so that together they are the part's smear.
+ * A fan's no further round than one blade's share, which shows all there is
+ * of it (and so never one that seems to stand or turn back); a round part's
+ * no further than a whole turn. Over a sweep of under a degree, none; nor
+ * of a part the eye is behind, which is seen, if at all, from behind its
+ * blades (a fan from inside its engine): it is drawn as it is.
+ */
+export function smearedParts(
+  parts: Record<string, ModelPart>, positions: PartPositions, sweep: number, modelView: ArrayLike<number>, light: Vec3,
+): Map<string, { opacity: number; copies: Array<{ modelView: Float32Array; light: Vec3 }> }> {
+  const smeared = new Map<string, { opacity: number; copies: Array<{ modelView: Float32Array; light: Vec3 }> }>();
+  if (!(sweep >= 1)) return smeared;
+  const eye = eyeOf(modelView);
+  for (const [name, part] of Object.entries(parts)) {
+    if (!spins(part)) continue;
+    if ([0, 1, 2].reduce((sum, i) => sum + (eye[i] - part.pivot[i]) * part.axis[i], 0) < 0) continue;
+    const drive = part.drive ?? "gear";
+    const span = Math.min(sweep, 360 / Math.max(part.blades ?? 1, 1));
+    const count = Math.min(SMEAR_MOST, Math.max(2, Math.ceil(span / SMEAR_STEP_DEG)));
+    const copies: Array<{ modelView: Float32Array; light: Vec3 }> = [];
+    for (let i = 0; i < count; i++) {
+      const at = { ...positions, [drive]: (positions[drive] ?? 0) - (span * i) / count };
+      const pose = carried(parts, name, at);
+      const turn = pose?.turn ?? [[1, 0, 0], [0, 1, 0], [0, 0, 1]];
+      copies.push({
+        modelView: new Float32Array(pose ? multiply4(modelView, pose.matrix) : modelView),
+        light: [0, 1, 2].map((k) => turn[0][k] * light[0] + turn[1][k] * light[1] + turn[2][k] * light[2]) as Vec3,
+      });
+    }
+    // Drawn one over another, each lets through what is behind it: as opaque as leaves a tenth of it where all of them are.
+    smeared.set(name, { opacity: 1 - 0.1 ** (1 / count), copies });
+  }
+  return smeared;
+}
+
+/** Where the eye is in the frame a model-view draws, columns first: what it puts at the camera. */
+function eyeOf(m: ArrayLike<number>): Vec3 {
+  // The inverse of its turn (a stretch too, if it has one) on its shift, the other way.
+  const [a, b, c, d, e, f, g, h, k] = [m[0], m[4], m[8], m[1], m[5], m[9], m[2], m[6], m[10]];
+  const det = a * (e * k - f * h) - b * (d * k - f * g) + c * (d * h - e * g);
+  if (!det) return [0, 0, 0];
+  const inverse = [
+    [e * k - f * h, c * h - b * k, b * f - c * e],
+    [f * g - d * k, a * k - c * g, c * d - a * f],
+    [d * h - e * g, b * g - a * h, a * e - b * d],
+  ];
+  const shift = [m[12], m[13], m[14]];
+  return inverse.map((row) => -(row[0] * shift[0] + row[1] * shift[1] + row[2] * shift[2]) / det) as Vec3;
+}
+
+/** The fans' speed at idle and at full power, degrees a second: a CFM56's N1 at 100 per cent is 5,000 a minute. */
+const FAN_IDLE_DEG_S = 300;
+const FAN_FULL_DEG_S = 30_000;
+/**
+ * And how fast they are shown turning, at most, degrees a second: about as
+ * fast as an eye can follow from frame to frame, a blade's share in a few
+ * of them. Faster, they are seen smeared instead.
+ */
+export const FAN_SHOWN_DEG_S = 360;
+/** How long a frame is seen for, seconds: what the fans are smeared over the turning of. */
+export const FAN_EXPOSURE_S = 1 / 60;
+
+/**
+ * How fast the fans turn, degrees a second, with the engines' spool where
+ * it is (0 idle to 1 full power, as N1 goes) and the engines running as far
+ * as `running` says (0 stopped, 1 running). Slowly enough at idle to see
+ * the blades go round, and faster each step of power by as much again, to
+ * a blur.
+ */
+export function fanSpeed(spool: number, running = 1): number {
+  const power = Math.min(Math.max(spool, 0), 1);
+  return FAN_IDLE_DEG_S * (FAN_FULL_DEG_S / FAN_IDLE_DEG_S) ** power * Math.min(Math.max(running, 0), 1);
 }
 
 /**

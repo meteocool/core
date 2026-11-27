@@ -23,9 +23,10 @@ their own: each with a hinge worked out from its own shape. The ailerons,
 the elevators and the rudder the model has only as meshes of the hull: they
 are taken out of it as parts once the file is written (`control_surfaces.py`),
 and so are the flight deck's levers, stick and pedals, with the thrust levers
-and the flap lever the model lacks made for it (`cockpit_controls.py`); the
-main legs' side stays are taken out of the legs, to fold into the wing on
-their own (`gear_stays.py`).
+and the flap lever the model lacks made for it (`cockpit_controls.py`), and
+the engines' fans and spinners, which spin (`engine_fans.py`); the main
+legs' side stays are taken out of the legs, to fold into the wing on their
+own (`gear_stays.py`).
 
 The outside is repainted on the way (`livery`): the airline's colours, titles
 and marks come off, the hull is left white, and ours go on: "meteowings"
@@ -54,6 +55,7 @@ from pxr import Usd, UsdGeom, UsdShade
 
 from cockpit_controls import lift_file
 from control_surfaces import cut_file
+from engine_fans import cut_file as spin_file
 from gear_stays import fold_file
 
 LENGTH_M = 37.57
@@ -835,6 +837,7 @@ def main(scene: str, textures: str, out: str, logo_svg: str) -> None:
           f"{sum(c['indices'] for c in chunks) // 3} triangles, {(len(body) + len(header)) / 1e6:.1f} MB, scale {scale:.4f}")
     cut_file(str(out_dir / "a320.bin"))
     lift_file(str(out_dir / "a320.bin"))
+    spin_file(str(out_dir / "a320.bin"))
     fold_file(str(out_dir / "a320.bin"))
 
 

@@ -26,7 +26,7 @@
  *
  * Over it all, what burns and bursts (aircraftEffects.ts).
  */
-import { BREAKS, cockpitDrives, multiply4, parseModel, pieceOf, PIECES, piecesOf, posedParts, VERTEX_BYTES } from "../lib/studio/flight/model";
+import { BREAKS, cockpitDrives, multiply4, parseModel, pieceOf, PIECES, piecesOf, posedParts, smearedParts, spins, VERTEX_BYTES } from "../lib/studio/flight/model";
 import type { AircraftModel, CockpitPose } from "../lib/studio/flight/model";
 import { blastGlare, makeEffectsPass } from "./aircraftEffects";
 import type { EffectsPass } from "./aircraftEffects";
@@ -88,6 +88,12 @@ export interface AircraftView {
    * them without it.
    */
   cockpit?: CockpitPose;
+  /**
+   * The engines' fans: how far they have turned, degrees, round and round;
+   * and how far they turn while a frame is seen, which, from outside, they
+   * are drawn smeared over. Still where not said.
+   */
+  fans?: { angle: number; sweep: number };
   /**
    * The pieces an aircraft that has broken up is in. A piece named here has
    * come off: it is drawn where its 4x4 puts it (columns first, from where
@@ -841,6 +847,9 @@ interface Drawn {
   uvSize: [number, number];
   /** The moving part it belongs to; see `posedParts`. */
   part?: string;
+  /** Whether that part spins, and is of a fan's blades: drawn only as their smear while it is smeared. */
+  spins: boolean;
+  bladed: boolean;
   /**
    * The pieces it has something of, by their places in `PIECES`: a moving
    * part is of one piece, whole; the rest, of every piece its box reaches.
@@ -853,6 +862,8 @@ interface Frame {
   modelView: Float32Array;
   light: Vec3;
   posed: ReturnType<typeof posedParts>;
+  /** And its parts that spin, as their smears; none for a fan seen still. */
+  smeared: ReturnType<typeof smearedParts>;
 }
 
 /** A unit square's vertices in the model's own packing, for a screen stretched over four corners. */
@@ -1039,6 +1050,8 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       return {
         vao, buffers: [vertices, indices], count: chunk.indices.length, material: chunk.material,
         min: chunk.min, size: chunk.size, uvMin: chunk.uvMin, uvSize: chunk.uvSize, part: chunk.part,
+        spins: chunk.part !== undefined && spins(model.parts[chunk.part]),
+        bladed: chunk.part !== undefined && spins(model.parts[chunk.part]) && (model.parts[chunk.part].blades ?? 0) > 0,
         pieces: (chunk.part ? [pieceOf(middle)] : piecesOf(chunk.min, chunk.size)).map((piece) => PIECES.indexOf(piece)),
       };
     });
@@ -1161,20 +1174,23 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       prepare(shader);
       webgl.activeTexture(webgl.TEXTURE0);
 
-      // The gear's legs and doors, the flaps, slats and spoilers, the ailerons, elevators and rudder, and the flight deck's controls
-      // where they are now; the rest as the model has it.
+      // The gear's legs and doors, the flaps, slats and spoilers, the ailerons, elevators and rudder, the fans and the flight deck's
+      // controls where they are now; the rest as the model has it.
       const positions = {
         gear: view.gear ?? 1, flaps: view.flaps ?? 0, spoilers: view.spoilers ?? 0,
         ailerons: view.ailerons ?? 0, elevator: view.elevator ?? 0, rudder: view.rudder ?? 0,
+        fans: view.fans?.angle ?? 0,
         ...cockpitDrives(view.cockpit),
       };
+      // The fans smeared from outside; from the seat, where none is seen, not.
+      const sweep = view.inside ? 0 : view.fans?.sweep ?? 0;
       const frame = (moved?: ArrayLike<number>): Frame => {
         const modelView = new Float32Array(moved ? multiply4(view.modelView, moved) : view.modelView);
         // A piece that has turned sees the sun from where it has turned to.
         const light = moved
           ? [0, 1, 2].map((i) => moved[i * 4] * view.light[0] + moved[i * 4 + 1] * view.light[1] + moved[i * 4 + 2] * view.light[2]) as Vec3
           : view.light;
-        return { modelView, light, posed: posedParts(parts, positions, modelView, light) };
+        return { modelView, light, posed: posedParts(parts, positions, modelView, light), smeared: smearedParts(parts, positions, sweep, modelView, light) };
       };
       const hull = frame();
       // Each piece's frame: the hull's while it is on, its own once it is off, none once it is gone.
@@ -1191,7 +1207,15 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       const pass = (clear: boolean, shader: WebGLProgram) => {
         for (const chunk of drawn) {
           const material = materials[chunk.material];
-          if ((material.opacity < 1) === clear) continue;
+          // A part smeared as it spins: a fan's blades only as their smear, over what is behind them; a round part whole, its smear over it.
+          const smearing = chunk.spins && hull.smeared.has(chunk.part!) && !loose.has(chunk.part!);
+          if (smearing) {
+            if (clear && chunk.bladed) continue;
+            if (!clear) {
+              smear(chunk, shader);
+              continue;
+            }
+          } else if ((material.opacity < 1) === clear) continue;
           const texture = textures[chunk.material];
           webgl.uniform1i(uniform(shader, "uTextured"), texture ? 1 : 0);
           if (texture) webgl.bindTexture(webgl.TEXTURE_2D, texture);
@@ -1227,6 +1251,48 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
             webgl.drawElements(webgl.TRIANGLES, chunk.count, webgl.UNSIGNED_SHORT, 0);
           }
         }
+      };
+      /*
+       * A spinning part's smear: the part drawn once for each place it
+       * passes through in the frame, each copy letting through some of what
+       * is behind it, and a hair nearer than itself, so that over a round
+       * part drawn whole each copy is seen on it.
+       */
+      const smear = (chunk: Drawn, shader: WebGLProgram) => {
+        const material = materials[chunk.material];
+        const texture = textures[chunk.material];
+        webgl.uniform1i(uniform(shader, "uTextured"), texture ? 1 : 0);
+        if (texture) webgl.bindTexture(webgl.TEXTURE_2D, texture);
+        webgl.uniform3f(uniform(shader, "uColour"), ...material.colour);
+        webgl.uniform3f(uniform(shader, "uMin"), ...chunk.min);
+        webgl.uniform3f(uniform(shader, "uSize"), ...chunk.size);
+        webgl.uniform2f(uniform(shader, "uUvMin"), ...chunk.uvMin);
+        webgl.uniform2f(uniform(shader, "uUvSize"), ...chunk.uvSize);
+        webgl.bindVertexArray(chunk.vao);
+        webgl.depthFunc(webgl.LEQUAL);
+        webgl.enable(webgl.POLYGON_OFFSET_FILL);
+        webgl.polygonOffset(-1, -2);
+        let done = 0;
+        for (const piece of broken ? chunk.pieces : ALL_HULL) {
+          const through = frames[piece];
+          if (!through || done & (1 << piece)) continue;
+          let keep = 0;
+          for (const other of chunk.pieces) if (frames[other] === through) keep |= 1 << other;
+          done |= keep;
+          // A piece that has come off and turned its fan away is not smeared: drawn as it is.
+          const moved = through.posed.get(chunk.part!);
+          const smeared = through.smeared.get(chunk.part!)
+            ?? { opacity: 1, copies: [{ modelView: moved?.modelView ?? through.modelView, light: moved?.light ?? through.light }] };
+          webgl.uniform1f(uniform(shader, "uOpacity"), material.opacity * smeared.opacity);
+          if (broken) webgl.uniform1i(uniform(shader, "uKeep"), chunk.pieces.every((other) => keep & (1 << other)) ? EVERY_PIECE : keep);
+          for (const copy of smeared.copies) {
+            webgl.uniformMatrix4fv(uniform(shader, "uModelView"), false, copy.modelView);
+            webgl.uniform3f(uniform(shader, "uLight"), ...copy.light);
+            webgl.drawElements(webgl.TRIANGLES, chunk.count, webgl.UNSIGNED_SHORT, 0);
+          }
+        }
+        webgl.disable(webgl.POLYGON_OFFSET_FILL);
+        webgl.depthFunc(webgl.LESS);
       };
       // Everything solid, then the screens on it, then the glass over both: from the seat, with the weather on it.
       webgl.disable(webgl.BLEND);

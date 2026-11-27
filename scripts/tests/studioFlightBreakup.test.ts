@@ -34,7 +34,7 @@ test("each wing takes its engine, its leg and everything that moves on it; the t
   // Each part that is drawn: one that only carries another (the stick's pitch) has no place of its own.
   for (const name of Object.keys(model.parts).filter((one) => model.chunks.some((chunk) => chunk.part === one))) {
     const piece = pieceOf(middle(name));
-    if (/^(flap|slat|spoiler|fairing|aileron)\./.test(name) || /^gear\.(left|right)/.test(name)) {
+    if (/^(flap|slat|spoiler|fairing|aileron|fan|spinner)\./.test(name) || /^gear\.(left|right)/.test(name)) {
       assert.equal(piece, /left/i.test(name) ? "leftWing" : "rightWing", name);
     } else if (/^(elevator|rudder)/.test(name)) {
       assert.equal(piece, "tail", name);
