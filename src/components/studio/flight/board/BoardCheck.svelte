@@ -5,8 +5,10 @@
  * widget draws itself only when it has something to ask; the card round it
  * is there only then, saying what it is for and how to fly on without it.
  *
- * The widget's place is in the page from the start and never hidden: it is
- * where the check runs, asked or not.
+ * The widget's place is in the page from the start and never taken out of
+ * it: it is where the check runs, asked or not. While it does not ask, it is
+ * folded to nothing instead, since Turnstile leaves its "Success!" up after
+ * the reader has answered, until the next check.
  */
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { _ } from "svelte-i18n";
@@ -65,8 +67,16 @@ const hold = (element: HTMLElement) => place(element);
     margin: 0 0 12px;
     color: var(--mc-text-2);
   }
-  /* The widget is 65px tall when it asks; nothing when it does not. */
-  .board-check.asking .widget { min-height: 65px; }
+  /* The widget is 65px tall when it asks; nothing when it does not, whatever Turnstile still shows in it. */
+  .widget {
+    height: 0;
+    overflow: hidden;
+  }
+  .board-check.asking .widget {
+    height: auto;
+    min-height: 65px;
+    overflow: visible;
+  }
   .close {
     position: absolute;
     top: 6px;

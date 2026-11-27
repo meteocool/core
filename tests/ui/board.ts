@@ -40,22 +40,36 @@ const TURNSTILE_STAND_IN = `
   window.turnstile = {
     render(container, options) {
       const id = "stand-in-" + Math.random().toString(36).slice(2);
-      (window.__turnstileWidgets ||= {})[id] = options;
+      (window.__turnstileWidgets ||= {})[id] = { options, container, panel: null };
       return id;
     },
     execute(id) {
-      const options = window.__turnstileWidgets[id];
+      const widget = window.__turnstileWidgets[id];
+      const { options } = widget;
       const answer = () => options.callback(${JSON.stringify(TEST_TOKEN)});
       // A page that set __turnstileAsks is asked each time, and answers with __turnstileAnswer().
       if (window.__turnstileAsks) {
+        // Drawn as Turnstile draws it: 65px, and still up, saying "Success!", once answered, until reset.
+        widget.panel = document.createElement("div");
+        widget.panel.style.height = "65px";
+        widget.panel.textContent = "Verify you are human";
+        widget.container.append(widget.panel);
         options["before-interactive-callback"]?.();
-        window.__turnstileAnswer = () => { options["after-interactive-callback"]?.(); answer(); };
+        window.__turnstileAnswer = () => {
+          widget.panel.textContent = "Success!";
+          options["after-interactive-callback"]?.();
+          answer();
+        };
       } else {
         setTimeout(answer, 10);
       }
     },
-    reset() {},
-    remove(id) { delete window.__turnstileWidgets[id]; },
+    reset(id) {
+      const widget = window.__turnstileWidgets[id];
+      widget.panel?.remove();
+      widget.panel = null;
+    },
+    remove(id) { window.__turnstileWidgets[id].panel?.remove(); delete window.__turnstileWidgets[id]; },
   };
 `;
 

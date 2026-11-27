@@ -174,7 +174,15 @@ test.describe("in flight, on a desktop", () => {
     await expect(check).toBeVisible({ timeout: 30_000 });
     await expect(check).toContainText("Confirm you're human");
     expect(asked(page)).not.toContain("POST /pilots");
-    await page.evaluate(() => (window as any).__turnstileAnswer());
+    // Answered, Turnstile's "Success!" stays drawn until the next check, but folded away with the card once the deck
+    // has heard (a few microtasks): measured then, before the pilot is made and the flight asked for.
+    const left = await page.evaluate(async () => {
+      (window as any).__turnstileAnswer();
+      for (let i = 0; i < 5; i++) await Promise.resolve();
+      const card = document.querySelector(".board-check")!;
+      return { label: card.getAttribute("aria-label"), height: card.getBoundingClientRect().height, text: card.textContent?.trim() };
+    });
+    expect(left).toEqual({ label: null, height: 0, text: "Success!" });
     await expect.poll(() => asked(page), { timeout: 30_000 }).toContain("POST /pilots");
     // Asked again for the flight, and skipped this time: no flight on the board, and the deck says so.
     await expect(check).toBeVisible({ timeout: 30_000 });
