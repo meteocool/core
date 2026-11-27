@@ -218,7 +218,7 @@ test.describe("in flight, on a desktop", () => {
     expect((await flightTraffic(page))?.renderer).toBe("none");
 
     // Two aircraft near: heard, charted, drawn as models, and only now what draws them fetched.
-    scriptBoard(page, {}, { aircraft: [{ id: 41, callsign: "F-BSKE", north: 1500, east: 0 }, { id: 42, callsign: "OE-LXA", north: 0, east: 3000 }] });
+    scriptBoard(page, {}, { aircraft: [{ id: 41, callsign: "F-BSKE", north: 1500, east: 0 }, { id: 42, callsign: "OE-KXR", north: 0, east: 3000 }] });
     await expect.poll(async () => (await flightTraffic(page))?.heard, { timeout: 20_000 }).toBe(2);
     await expect.poll(async () => (await flightTraffic(page))?.renderer, { timeout: 30_000 }).toBe("ready");
     expect(urls.filter(trafficish).length).toBeGreaterThan(0);
@@ -227,6 +227,16 @@ test.describe("in flight, on a desktop", () => {
     await page.keyboard.press("KeyH");
     await expect(page.getByRole("group", { name: "Map around the aircraft" })).toBeVisible();
     await expect.poll(async () => (await flightTraffic(page))?.charted, { timeout: 30_000 }).toBe(2);
+    // The one ahead has a pin, as a storm has its mark; picked, it says whose aircraft it is and where they stand today.
+    await expect.poll(() => page.evaluate(() => (window as any).flightTraffic?.labels as string[] | undefined), { timeout: 30_000 }).toContain("OE-KXR");
+    const pin = deck(page).locator(".traffic-pins .pin").filter({ hasText: "OE-KXR" });
+    await expect(pin.locator(".pop")).toBeHidden();
+    // It moves with its aircraft: picked where it is, not where it was.
+    await pin.dispatchEvent("click");
+    await expect(pin.locator(".pop")).toBeVisible();
+    await expect(pin.locator(".pop")).toContainText("Rank 1 today · 5,120 points");
+    await pin.dispatchEvent("click");
+    await expect(pin.locator(".pop")).toBeHidden();
   });
 
   test("an airspace that refuses the socket leaves the flight and the board as they were", async ({ page }) => {

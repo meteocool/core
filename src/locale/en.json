@@ -397,7 +397,9 @@
         "butter": "Butter landing"
       },
       "traffic": {
-        "label": "{callsign} · {km} km"
+        "pin_title": "Who is flying this aircraft",
+        "rank": "Rank {rank} today · {points} points",
+        "unranked": "Not in today's top twenty"
       },
       "board": {
         "label": "Board",

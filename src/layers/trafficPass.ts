@@ -554,7 +554,9 @@ export function makeTrafficPass(source: TrafficSource, model: LightModel): Traff
           const label = shared.labels[labelCount];
           if (screenOf(worldView, modelProjection, north[i], east[i], down[i] - 25, label)) {
             label.shown = true;
+            label.id = aircraft.id;
             label.distance = far;
+            label.altitude = aircraft.shown.altitude;
             label.callsign = aircraft.callsign;
             labelCount += 1;
           }
