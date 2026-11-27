@@ -2,7 +2,7 @@ import type { Page } from "@playwright/test";
 import { expect, test } from "./test";
 import { curtainUp, emptyAircraft, noGeocoder, openRadar } from "./app";
 import { RECORDED_STEP, serveArchive } from "./archive";
-import { boardAsked, scriptBoard, STAND_IN_CALLSIGN, STAND_IN_PILOT, TEST_TOKEN } from "./board";
+import { airspaceHeard, boardAsked, scriptBoard, STAND_IN_CALLSIGN, STAND_IN_FLIGHT, STAND_IN_PILOT, TEST_TOKEN } from "./board";
 
 /**
  * meteoair's board: a live flight goes on today's board, the cockpit shows
@@ -43,7 +43,14 @@ function watchRequests(page: Page): string[] {
   return urls;
 }
 
-const boardish = (url: string) => /\/v3\/air(\/|$)|challenges\.cloudflare\.com|\/flight\/board\/|meteoairBoard/.test(url);
+const boardish = (url: string) => /\/v3\/air(\/|$)|challenges\.cloudflare\.com|\/flight\/board\/|\/flight\/airspace\/|meteoairBoard|trafficDraw|trafficPass|a320-light/.test(url);
+/** What draws other aircraft, and their model: fetched only once one has been heard. */
+const trafficish = (url: string) => /trafficDraw|trafficPass|a320-light/.test(url);
+const flightTraffic = (page: Page) => page.evaluate(() => {
+  const traffic = (window as any).flightTraffic;
+  if (!traffic) return null;
+  return { heard: traffic.heard as number, charted: traffic.charted as number, drawn: traffic.drawn as Record<string, number>, renderer: traffic.renderer as string };
+});
 
 test("the main map loads nothing of the board and asks nothing of it", async ({ page }) => {
   const keys = await watchStorage(page);
@@ -191,6 +198,49 @@ test.describe("in flight, on a desktop", () => {
     await expect(deck(page).getByText("The board stopped counting this flight: track refused"))
       .toBeVisible({ timeout: 45_000 });
     await expect(boardReadout(page)).toHaveText("300");
+  });
+
+  test("a flight on the board joins its airspace, and the aircraft heard there are drawn and charted", async ({ page }) => {
+    const urls = watchRequests(page);
+    await page.goto(FLIGHT);
+    await expect(deck(page)).toBeVisible({ timeout: 150_000 });
+    await curtainUp(page);
+    // Joined with the board's credential and flight, in the frame; the address carries neither.
+    await expect.poll(() => airspaceHeard(page).texts, { timeout: 45_000 }).toContainEqual({ type: "join", pilot: STAND_IN_PILOT, flight: STAND_IN_FLIGHT });
+    for (const url of airspaceHeard(page).urls) {
+      expect(url).toMatch(/\/v3\/air\/airspace$/);
+      expect(url).not.toContain(STAND_IN_PILOT);
+    }
+    await expect.poll(() => airspaceHeard(page).states, { timeout: 15_000 }).toBeGreaterThan(3);
+    // No one else in the sky: nothing that draws them is fetched.
+    await page.waitForTimeout(2000);
+    expect(urls.filter(trafficish)).toEqual([]);
+    expect((await flightTraffic(page))?.renderer).toBe("none");
+
+    // Two aircraft near: heard, charted, drawn as models, and only now what draws them fetched.
+    scriptBoard(page, {}, { aircraft: [{ id: 41, callsign: "F-BSKE", north: 1500, east: 0 }, { id: 42, callsign: "OE-LXA", north: 0, east: 3000 }] });
+    await expect.poll(async () => (await flightTraffic(page))?.heard, { timeout: 20_000 }).toBe(2);
+    await expect.poll(async () => (await flightTraffic(page))?.renderer, { timeout: 30_000 }).toBe("ready");
+    expect(urls.filter(trafficish).length).toBeGreaterThan(0);
+    await expect.poll(async () => (await flightTraffic(page))?.drawn.models, { timeout: 30_000 }).toBe(2);
+    // The chart is where the keys' card is, once that is put away.
+    await page.keyboard.press("KeyH");
+    await expect(page.getByRole("group", { name: "Map around the aircraft" })).toBeVisible();
+    await expect.poll(async () => (await flightTraffic(page))?.charted, { timeout: 30_000 }).toBe(2);
+  });
+
+  test("an airspace that refuses the socket leaves the flight and the board as they were", async ({ page }) => {
+    scriptBoard(page, {}, { airspace: "refuse" });
+    await page.goto(FLIGHT);
+    await expect(deck(page)).toBeVisible({ timeout: 150_000 });
+    await curtainUp(page);
+    await expect.poll(() => airspaceHeard(page).urls.length, { timeout: 45_000 }).toBeGreaterThan(0);
+    await expect.poll(() => asked(page), { timeout: 45_000 }).toContain("POST /flights/{id}/track");
+    await expect(boardReadout(page)).toHaveText("1,234 · #2");
+    const before = (await flown(page)) ?? 0;
+    await expect.poll(async () => (await flown(page)) ?? 0, { timeout: 30_000 }).toBeGreaterThan(before + 2);
+    // Tried again after thirty seconds, not at once and again and again.
+    expect(airspaceHeard(page).urls.length).toBeLessThanOrEqual(2);
   });
 
   test("a flight through a past moment starts no board flight", async ({ page }) => {

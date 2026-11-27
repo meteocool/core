@@ -80,6 +80,8 @@ export async function emptyAircraft(page: Page, until?: Promise<unknown>): Promi
   length.writeUInt32LE(header.length);
   const body = Buffer.concat([Buffer.from("MCM1"), length, header]);
   await page.route("**/models/a320/**", async (route) => {
+    // The light model other aircraft are drawn as is small: served as it is.
+    if (route.request().url().endsWith("/a320-light.bin")) return route.fallback();
     if (!route.request().url().endsWith(".bin")) return route.abort();
     await until;
     return route.fulfill({ body, contentType: "application/octet-stream" }).catch(() => undefined);

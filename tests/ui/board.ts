@@ -59,10 +59,55 @@ const TURNSTILE_STAND_IN = `
   };
 `;
 
+/** What the page said on the airspace's socket: its address, its text frames, and how many states it sent. */
+export interface AirspaceHeard {
+  urls: string[];
+  texts: Array<Record<string, unknown>>;
+  states: number;
+  /** Where the page's aircraft last said it was. */
+  at: { lon: number; lat: number; altitude: number } | null;
+}
+
+/** An aircraft the stand-in airspace says is near: so far north and east of the page's own, metres, with a callsign. */
+export interface ScriptedAircraft {
+  id: number;
+  callsign: string;
+  north: number;
+  east: number;
+}
+
 interface Stand {
   asked: BoardAsked[];
   script: Record<string, BoardReply[]>;
   socket: "open" | "refuse";
+  airspace: "open" | "refuse";
+  aircraft: ScriptedAircraft[];
+  heard: AirspaceHeard;
+}
+
+/** A snapshot of `aircraft` round `at`, as the airspace sends one: little-endian, 8 bytes and 36 for each. */
+function snapshotOf(clock: number, at: { lon: number; lat: number; altitude: number }, aircraft: readonly ScriptedAircraft[]): Buffer {
+  const buffer = Buffer.alloc(8 + 36 * aircraft.length);
+  buffer.writeUInt8(2, 0);
+  buffer.writeUInt16LE(aircraft.length, 2);
+  buffer.writeUInt32LE(clock >>> 0, 4);
+  aircraft.forEach((plane, i) => {
+    const o = 8 + 36 * i;
+    const lat = at.lat + plane.north / 111_195;
+    const lon = at.lon + plane.east / (111_195 * Math.cos((at.lat * Math.PI) / 180));
+    buffer.writeUInt16LE(plane.id, o);
+    buffer.writeUInt8(0, o + 2);
+    buffer.writeUInt8(2, o + 3);
+    buffer.writeInt32LE(Math.round(lon * 1e7), o + 4);
+    buffer.writeInt32LE(Math.round(lat * 1e7), o + 8);
+    buffer.writeInt32LE(Math.round(at.altitude * 100), o + 12);
+    buffer.writeInt16LE(1400, o + 16);
+    buffer.writeUInt16LE(16384, o + 22);
+    // Its look: version 1, nothing wrong with it.
+    buffer.writeUInt8(1, o + 28);
+    buffer.writeUInt8(255, o + 35);
+  });
+  return buffer;
 }
 
 const stands = new WeakMap<Page, Stand>();
@@ -119,7 +164,9 @@ async function answer(route: Route, stand: Stand): Promise<void> {
 
 /** Stand the board and Turnstile in for `page`. Registered after test.ts's catch-all, so it answers first. */
 export async function standInBoard(page: Page): Promise<void> {
-  const stand: Stand = { asked: [], script: {}, socket: "open" };
+  const stand: Stand = {
+    asked: [], script: {}, socket: "open", airspace: "open", aircraft: [], heard: { urls: [], texts: [], states: 0, at: null },
+  };
   stands.set(page, stand);
   await page.route(/^https:\/\/challenges\.cloudflare\.com\//, (route) => {
     stand.asked.push({ method: route.request().method(), path: "turnstile", body: null, authorization: null });
@@ -134,14 +181,61 @@ export async function standInBoard(page: Page): Promise<void> {
     }
     ws.send(JSON.stringify({ type: "board", day: "2026-11-26", top: STAND_IN_TOP }));
   });
+  // The airspace: joined as the page asks, and, where a spec has scripted any, aircraft near it five times a second.
+  await page.routeWebSocket(/\/v3\/air\/airspace$/, (ws: WebSocketRoute) => {
+    stand.heard.urls.push(ws.url());
+    if (stand.airspace === "refuse") {
+      void ws.close({ code: 1011, reason: "refused" });
+      return;
+    }
+    let timer: ReturnType<typeof setInterval> | null = null;
+    const started = Date.now();
+    ws.onMessage((message) => {
+      if (typeof message === "string") {
+        const text = JSON.parse(message) as Record<string, unknown>;
+        stand.heard.texts.push(text);
+        if (text.type !== "join") return;
+        ws.send(JSON.stringify({
+          type: "joined", id: 7, callsign: STAND_IN_CALLSIGN, send_hz: 5,
+          limits: { send_hz_most: 5, frames_per_s_most: 8, near: 32, near_m: 25000, near_hz: 5, far: 200, far_m: 400000, far_every_ms: 2000, silent_ms: 10000 },
+        }));
+        let named = 0;
+        timer ??= setInterval(() => {
+          if (!stand.heard.at || !stand.aircraft.length) return;
+          // Their callsigns before they are first in a snapshot.
+          if (named !== stand.aircraft.length) {
+            ws.send(JSON.stringify({ type: "names", names: Object.fromEntries(stand.aircraft.map((plane) => [plane.id, plane.callsign])) }));
+            named = stand.aircraft.length;
+          }
+          ws.send(snapshotOf(Date.now() - started, stand.heard.at, stand.aircraft));
+        }, 200);
+        return;
+      }
+      stand.heard.states += 1;
+      const state = Buffer.from(message);
+      if (state.length === 36 && state.readUInt8(0) === 1) {
+        stand.heard.at = { lon: state.readInt32LE(4) / 1e7, lat: state.readInt32LE(8) / 1e7, altitude: state.readInt32LE(12) / 100 };
+      }
+    });
+    ws.onClose(() => { if (timer) clearInterval(timer); });
+  });
 }
 
 /** Script the board's next answers to a route, `POST /flights/{id}/track` say, in order; after them it takes everything again. */
-export function scriptBoard(page: Page, script: Record<string, BoardReply[]>, options: { socket?: "open" | "refuse" } = {}): void {
+export function scriptBoard(
+  page: Page, script: Record<string, BoardReply[]>, options: { socket?: "open" | "refuse"; airspace?: "open" | "refuse"; aircraft?: ScriptedAircraft[] } = {},
+): void {
   const stand = stands.get(page);
   if (!stand) throw new Error("The page has no stand-in board.");
   for (const [route, replies] of Object.entries(script)) stand.script[route] = [...(stand.script[route] ?? []), ...replies];
   if (options.socket) stand.socket = options.socket;
+  if (options.airspace) stand.airspace = options.airspace;
+  if (options.aircraft) stand.aircraft = options.aircraft;
+}
+
+/** What the page has said on the airspace's socket so far. */
+export function airspaceHeard(page: Page): AirspaceHeard {
+  return stands.get(page)?.heard ?? { urls: [], texts: [], states: 0, at: null };
 }
 
 /** What the page has asked of the board and of Turnstile so far. */
