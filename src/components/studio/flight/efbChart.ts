@@ -16,7 +16,7 @@ import View from "ol/View";
 import { AMBER, CYAN, DIM, FEET, FONT, GREEN, INK, KNOTS, MAGENTA, radarColour, tileKm } from "./instruments";
 import { bearingDeg, distanceM, wrap180 } from "../../../lib/studio/flight/geo";
 import {
-  CHART_REACH_KM, EFB_BUTTONS, EFB_HEIGHT, EFB_LAYOUT, EFB_WIDTH, EfbState, atTarget, echoAreas, onChart, RING_PX,
+  CHART_REACH_KM, EFB_BUTTONS, EFB_HEIGHT, EFB_LAYOUT, EFB_WIDTH, EfbState, MAP_MIDDLE, atTarget, echoAreas, onChart, RING_PX,
 } from "../../../lib/studio/flight/efb";
 import type { ChartFrame, EfbButton, Rect } from "../../../lib/studio/flight/efb";
 import { tileBounds } from "../../../lib/volumeBox";
@@ -54,7 +54,21 @@ export interface EfbInputs {
   /** The radar scan on the map, ms since 1970; null before one is. */
   scan: number | null;
   now: number;
+  /** Other aircraft heard of, each where it is drawn now; none where not said. */
+  others?: ReadonlyArray<EfbOther>;
 }
+
+/** Another aircraft, as the tablet's map needs it. */
+export interface EfbOther {
+  callsign?: string;
+  shown: { lon: number; lat: number; heading: number; opacity: number };
+}
+
+/** How many aircraft off the map are marked at its edge, and how many of those are named. */
+const OFF_MAP_MOST = 12;
+const OFF_MAP_NAMED = 3;
+/** How far inside the map's edge an aircraft off it is held, pixels. */
+const OFF_MAP_INSET = 16;
 
 /**
  * The basemap, drawn off the page: a picture of the map round a frame, and
@@ -223,7 +237,7 @@ export class EfbChart {
     context.save();
     context.fillStyle = "#07090c";
     context.fillRect(0, 0, EFB_WIDTH, EFB_HEIGHT);
-    this.drawMap(context, telemetry, frame);
+    this.drawMap(context, telemetry, frame, inputs.others ?? []);
     this.drawHeader(context, inputs);
     this.drawPanel(context, telemetry, inputs);
     context.restore();
@@ -249,7 +263,7 @@ export class EfbChart {
     }
   }
 
-  private drawMap(context: CanvasRenderingContext2D, telemetry: Telemetry, frame: ChartFrame): void {
+  private drawMap(context: CanvasRenderingContext2D, telemetry: Telemetry, frame: ChartFrame, others: ReadonlyArray<EfbOther>): void {
     const { map } = EFB_LAYOUT;
     const { state: aircraft, chart } = telemetry;
     context.save();
@@ -370,6 +384,58 @@ export class EfbChart {
         size: 16, colour: CYAN, align: right ? "left" : "right", weight: 800,
       });
     }
+
+    // Other aircraft: a chevron pointing its way where it is; one off the map an arrowhead at the edge
+    // towards it, however far it is, the nearest few with their callsign and how far.
+    const [mx, my] = MAP_MIDDLE;
+    const [halfWidth, halfHeight] = [map.width / 2 - OFF_MAP_INSET, map.height / 2 - OFF_MAP_INSET];
+    const off: Array<{ x: number; y: number; angle: number; nm: number; callsign: string }> = [];
+    const mark = (x: number, y: number, angle: number, points: ReadonlyArray<readonly [number, number]>, filled: boolean, alpha: number) => {
+      context.save();
+      context.translate(x, y);
+      context.rotate(angle);
+      context.globalAlpha = alpha;
+      context.beginPath();
+      points.forEach(([px, py], i) => (i ? context.lineTo(px, py) : context.moveTo(px, py)));
+      context.closePath();
+      context.lineWidth = 5;
+      context.strokeStyle = "rgba(7, 9, 12, 0.9)";
+      context.stroke();
+      if (filled) {
+        context.fillStyle = CYAN;
+        context.fill();
+      } else {
+        context.lineWidth = 2.2;
+        context.strokeStyle = CYAN;
+        context.stroke();
+      }
+      context.restore();
+    };
+    for (const { shown, callsign } of others) {
+      if (shown.opacity <= 0.05) continue;
+      const [ox, oy] = onChart(frame, shown.lon, shown.lat);
+      const [dx, dy] = [ox - mx, oy - my];
+      const over = Math.max(Math.abs(dx) / halfWidth, Math.abs(dy) / halfHeight);
+      if (over <= 1) {
+        mark(ox, oy, shown.heading * RADIANS, [[0, -9], [6.5, 7], [0, 3.5], [-6.5, 7]], false, Math.min(1, shown.opacity));
+        continue;
+      }
+      off.push({
+        x: mx + dx / over, y: my + dy / over, angle: Math.atan2(dx, -dy),
+        nm: distanceM(aircraft.lon, aircraft.lat, shown.lon, shown.lat) / NM, callsign: callsign ?? "",
+      });
+    }
+    off.sort((a, b) => a.nm - b.nm);
+    off.slice(0, OFF_MAP_MOST).forEach((other, i) => {
+      mark(other.x, other.y, other.angle, [[0, -8], [7, 6], [-7, 6]], true, 1);
+      if (i >= OFF_MAP_NAMED) return;
+      // Inside the edge, on the side of the mark the map is on.
+      const [ix, iy] = [other.x - Math.sin(other.angle) * 20, other.y + Math.cos(other.angle) * 20];
+      const miles = `${Math.round(other.nm)} NM`;
+      label(context, other.callsign ? `${other.callsign} · ${miles}` : miles, ix, iy, {
+        size: 14, colour: CYAN, align: ix < mx - halfWidth / 2 ? "left" : ix > mx + halfWidth / 2 ? "right" : "center", weight: 700,
+      });
+    });
 
     // The aircraft, and where its nose points out to the outer ring.
     context.strokeStyle = "rgba(255, 214, 10, 0.8)";

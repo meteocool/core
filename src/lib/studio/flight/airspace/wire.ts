@@ -46,7 +46,7 @@ export interface AirspaceLimits {
 
 /** Until the airspace has said its own. */
 export const DEFAULT_LIMITS: AirspaceLimits = {
-  send_hz_most: 5, frames_per_s_most: 8, near: 32, near_m: 25_000, near_hz: 5, far: 200, far_m: 400_000, far_every_ms: 2000, silent_ms: 10_000,
+  send_hz_most: 5, frames_per_s_most: 8, near: 32, near_m: 25_000, near_hz: 5, far: 200, far_m: 20_100_000, far_every_ms: 2000, silent_ms: 10_000,
 };
 
 /** The text frames the airspace sends. */

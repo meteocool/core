@@ -326,7 +326,7 @@ function frame(telemetry: Telemetry): void {
   const { state } = telemetry;
   if (fade) fade.style.opacity = String(telemetry.fade);
   if (status.view === "clean") return;
-  if (status.view === "cockpit") cockpit.draw(telemetry, { status, scan: $cloudsTime.shown ?? $cloudsTime.newest, brakes: pilot.brakes });
+  if (status.view === "cockpit") cockpit.draw(telemetry, { status, scan: $cloudsTime.shown ?? $cloudsTime.newest, brakes: pilot.brakes, others: board?.traffic?.traffic.list });
   write(throttle, `${Math.round(state.throttle * 100)}%`);
   write(readouts.speed, `${Math.round(telemetry.ias * KNOTS)} kt · M${telemetry.mach.toFixed(2)}`);
   const feet = state.altitude * FEET;

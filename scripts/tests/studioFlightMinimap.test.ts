@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { destination } from "../../src/lib/studio/flight/geo.ts";
 import {
-  drawChart, place, placeAt, RANGES_NM, ringsOf, shiftSince, tileBox, TileStore, tilesOver, tileUrl, tileZoom, upOf, withinRim,
+  drawChart, othersBeyond, place, placeAt, RANGES_NM, ringsOf, shiftSince, tileBox, TileStore, tilesOver, tileUrl, tileZoom, upOf, withinRim,
 } from "../../src/components/studio/flight/minimap.ts";
 import type { Chart, Tile } from "../../src/components/studio/flight/minimap.ts";
 
@@ -195,4 +195,26 @@ test("the map draws the radar turned with it, and the storm flown at on the rim 
   // Ahead and far beyond the rim: the last diamond is at the top, just inside it.
   const tops = calls.filter(([name, x]) => name === "moveTo" && x === 0).map(([, , y]) => y as number);
   assert.ok(tops.some((y) => Math.abs(y - (-91 - 6)) < 1e-9), String(tops));
+});
+
+test("other aircraft beyond the rim are held on it, the nearest first, however far they are", () => {
+  const map = chart();
+  const other = (bearing: number, nm: number, callsign: string, opacity = 1) => {
+    const [lon, lat] = destination(map.lon, map.lat, bearing, nm * NM);
+    return { callsign, shown: { lon, lat, heading: 0, opacity } };
+  };
+  const beyond = othersBeyond(map, [
+    other(90, 300, "D-FAR"), other(0, 10, "D-NEAR"), other(180, 60, "D-MID"), other(270, 900, "D-GONE", 0),
+  ], 7);
+  // The one inside the rim is drawn where it is, not here; the one faded out not at all.
+  assert.deepEqual(beyond.map((b) => b.callsign), ["D-MID", "D-FAR"]);
+  // Due south, 60 NM: on the rim below the middle, seven pixels short of it.
+  near(beyond[0].x, 0, 0.5);
+  near(beyond[0].y, 93, 0.5);
+  near(beyond[0].nm, 60, 1);
+  // Due east, 300 NM: on the rim to the right, and still about that far (the map is flat, a great circle is not).
+  near(beyond[1].y, 0, 6);
+  near(beyond[1].x, 93, 0.5);
+  near(beyond[1].nm, 300, 12);
+  assert.equal(othersBeyond(map, Array.from({ length: 30 }, (_, i) => other(i * 12, 100 + i, `D-${i}`)), 7, 12).length, 12);
 });

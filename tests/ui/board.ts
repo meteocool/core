@@ -197,7 +197,7 @@ export async function standInBoard(page: Page): Promise<void> {
         if (text.type !== "join") return;
         ws.send(JSON.stringify({
           type: "joined", id: 7, callsign: STAND_IN_CALLSIGN, send_hz: 5,
-          limits: { send_hz_most: 5, frames_per_s_most: 8, near: 32, near_m: 25000, near_hz: 5, far: 200, far_m: 400000, far_every_ms: 2000, silent_ms: 10000 },
+          limits: { send_hz_most: 5, frames_per_s_most: 8, near: 32, near_m: 25000, near_hz: 5, far: 200, far_m: 20100000, far_every_ms: 2000, silent_ms: 10000 },
         }));
         let named = 0;
         timer ??= setInterval(() => {

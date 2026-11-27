@@ -18,6 +18,7 @@ import { drawLowerEcam, drawUpperEcam } from "./ecam";
 import type { EngineReadout } from "./ecam";
 import { drawBar, drawBaro, drawFcu, drawIsis, drawMcdu } from "./panel";
 import { EfbChart } from "./efbChart";
+import type { EfbOther } from "./efbChart";
 import { drawAssistantTablet } from "./assistantTablet";
 import { AIRCRAFT_FILES, COCKPIT_LIGHTS, COCKPIT_SCREENS, LIGHTS_TEXTURE } from "../../../lib/studio/flight/cockpit";
 import type { CockpitLight, CockpitLightName, CockpitScreen, ScreenTouch, TexturePart } from "../../../lib/studio/flight/cockpit";
@@ -66,6 +67,8 @@ export interface CockpitInputs {
   scan: number | null;
   /** The brakes a hand sets on the flight deck (`Pilot.brakes`): the autobrake armed, the parking brake set. */
   brakes: { autobrake: boolean; parking: boolean };
+  /** Other aircraft heard of, for the tablet's map; none where not said. */
+  others?: ReadonlyArray<EfbOther>;
 }
 
 /** The lights' picture: the rows of buttons unlit and lit in the model's texture, and a lit bar under them. */
@@ -224,7 +227,7 @@ export class CockpitScreens {
     this.redraw("mcduCaptain", telemetry.time, (context, { width, height }) => drawMcdu(context, width, height, plan), { key: JSON.stringify(plan) });
     const progress = progressPage({ altitude: state.altitude, tas: state.tas, groundSpeed, mach: telemetry.mach, fuelUsed: this.fuelUsed });
     this.redraw("mcduFo", telemetry.time, (context, { width, height }) => drawMcdu(context, width, height, progress), { key: JSON.stringify(progress) });
-    this.redraw("efb", telemetry.time, (context) => this.efb.draw(context, telemetry, { warp: status.warp, scan, now }), {
+    this.redraw("efb", telemetry.time, (context) => this.efb.draw(context, telemetry, { warp: status.warp, scan, now, others: inputs.others }), {
       key: String(this.efb.version), urgent: true,
     });
     // On the wall clock, not the flight's: the first officer types no faster at four times the speed.

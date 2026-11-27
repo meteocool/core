@@ -260,7 +260,44 @@ export interface ChartContent<Picture = CanvasImageSource> {
   track: ReadonlyArray<readonly [number, number]>;
   strikes: readonly ChartStrike[];
   /** Other aircraft heard of, each where it is drawn now; none where not said. */
-  others?: ReadonlyArray<{ shown: { lon: number; lat: number; heading: number; opacity: number } }>;
+  others?: ReadonlyArray<ChartOther>;
+}
+
+/** Another aircraft, as the map needs it. */
+export interface ChartOther {
+  callsign?: string;
+  shown: { lon: number; lat: number; heading: number; opacity: number };
+}
+
+/** How many aircraft beyond the rim are marked on it, and how many of those are named. */
+const BEYOND_MOST = 12;
+const BEYOND_NAMED = 3;
+
+/** An aircraft beyond the rim: where on the rim it is held, and how far away it is, NM. */
+export interface OtherBeyond {
+  x: number;
+  y: number;
+  nm: number;
+  callsign: string;
+}
+
+/**
+ * The other aircraft beyond the rim, the nearest first and `most` at most:
+ * each is held on the rim, `margin` short of it, on the line to where it is,
+ * however far that is.
+ */
+export function othersBeyond(chart: Chart, others: ReadonlyArray<ChartOther>, margin: number, most = BEYOND_MOST): OtherBeyond[] {
+  const beyond: OtherBeyond[] = [];
+  const scale = perMetre(chart);
+  for (const { shown, callsign } of others) {
+    if (shown.opacity <= 0.05) continue;
+    const where = place(chart, shown.lon, shown.lat);
+    const at = withinRim(where, chart.radius, margin);
+    if (!at.beyond) continue;
+    beyond.push({ x: at.x, y: at.y, nm: Math.hypot(where[0], where[1]) / scale / NM, callsign: callsign ?? "" });
+  }
+  beyond.sort((a, b) => a.nm - b.nm);
+  return beyond.slice(0, most);
 }
 
 const HALO = "rgba(5, 7, 10, 0.85)";
@@ -271,6 +308,8 @@ const RING = "rgba(242, 244, 247, 0.34)";
 const STRIKE = "#ffe14a";
 /** Other aircraft, as a navigation display draws traffic. */
 const OTHER = "#4fd8ff";
+/** An aircraft this near the rim, pixels, or beyond it, is marked on the rim. */
+const BEYOND_MARGIN = 7;
 /** The aircraft on the map, nose to tail, pixels. */
 const AIRCRAFT_PX = 22;
 
@@ -433,7 +472,7 @@ export function drawChart(context: CanvasRenderingContext2D, chart: Chart, conte
   for (const { shown } of content.others ?? []) {
     if (shown.opacity <= 0.05) continue;
     const [x, y] = place(chart, shown.lon, shown.lat);
-    if (Math.hypot(x, y) > radius - 3) continue;
+    if (Math.hypot(x, y) > radius - BEYOND_MARGIN) continue;
     charted += 1;
     context.save();
     context.translate(x, y);
@@ -454,6 +493,35 @@ export function drawChart(context: CanvasRenderingContext2D, chart: Chart, conte
     context.restore();
   }
   context.restore();
+
+  // And those beyond the rim, on it: an arrowhead pointing out to each, the nearest few with their callsign and how far.
+  const beyond = othersBeyond(chart, content.others ?? [], BEYOND_MARGIN);
+  charted += beyond.length;
+  beyond.forEach((other, i) => {
+    context.save();
+    context.translate(other.x, other.y);
+    context.rotate(Math.atan2(other.x, -other.y));
+    context.beginPath();
+    context.moveTo(0, -5);
+    context.lineTo(4, 3);
+    context.lineTo(-4, 3);
+    context.closePath();
+    context.lineWidth = 3;
+    context.strokeStyle = HALO;
+    context.stroke();
+    context.fillStyle = OTHER;
+    context.fill();
+    context.restore();
+    if (i < BEYOND_NAMED) {
+      const miles = `${Math.round(other.nm)} NM`;
+      const said = other.callsign ? `${other.callsign} · ${miles}` : miles;
+      // Inwards of its mark, and kept whole inside the round map: across it at that height there is only so much room.
+      const y = other.y * 0.78;
+      context.font = "600 9px system-ui, -apple-system, sans-serif";
+      const room = Math.max(0, Math.sqrt(Math.max(0, radius * radius - y * y)) - context.measureText(said).width / 2 - 5);
+      label(context, said, Math.max(-room, Math.min(room, other.x * 0.78)), y, OTHER, 9);
+    }
+  });
 
   // The storm flown at, and the line to it: on the rim where it is beyond it.
   const { target } = content;
