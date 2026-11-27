@@ -99,12 +99,11 @@ function close(event: MouseEvent): void {
 {/if}
 
 <style>
+  /* Where it stands is the deck's to say (FlightDeck.svelte): in the middle under the top's readouts, scrolled where it has to be. */
   .board-card {
-    position: absolute;
-    top: calc(var(--mc-safe-top) + 112px);
-    left: 16px;
-    width: min(300px, calc(100% - 32px));
-    max-height: calc(100% - var(--mc-safe-top) - 112px - 120px);
+    position: relative;
+    width: 300px;
+    max-width: 100%;
     overflow-y: auto;
     overscroll-behavior: contain;
     box-sizing: border-box;
@@ -114,9 +113,11 @@ function close(event: MouseEvent): void {
     font-variant-numeric: tabular-nums;
   }
   /* The deck lets presses through what is on it to the view (FlightDeck.svelte); not on this card. */
-  :global(.flight-deck) > .board-card { pointer-events: auto; }
+  :global(.flight-deck) .board-card { pointer-events: auto; }
   /* Flown by touch, under the top row of readouts. */
-  :global(.flight-deck.touch) > .board-card {
+  :global(.flight-deck.touch) .board-card {
+    position: absolute;
+    width: min(300px, calc(100% - 32px));
     top: calc(var(--deck-top) + 50px);
     left: var(--deck-left);
     max-height: calc(100% - var(--deck-top) - 50px - 140px);

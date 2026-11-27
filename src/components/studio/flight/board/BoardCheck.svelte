@@ -34,24 +34,26 @@ const hold = (element: HTMLElement) => place(element);
 </section>
 
 <style>
-  /* Bottom centre, over the panel: clear of the keys' card, the deck's notes and its corners. */
+  /* Where it stands is the deck's to say (FlightDeck.svelte): last of its cards in the middle, nothing to see and no room
+     taken while it does not ask. */
   .board-check {
-    position: absolute;
-    bottom: calc(var(--mc-safe-bottom, 0px) + 28px);
-    left: 50%;
+    position: relative;
     z-index: 3;
-    width: min(332px, calc(100% - 32px));
+    width: 332px;
+    max-width: 100%;
     box-sizing: border-box;
-    padding: 14px 16px 16px;
-    transform: translateX(-50%);
     color: var(--mc-text);
     font: 13px/1.35 var(--mc-font);
     pointer-events: none;
   }
+  .board-check.asking { padding: 14px 16px 16px; }
   /* Flown by touch, the sticks have the bottom: under the top rows of readouts instead. */
-  :global(.flight-deck.touch) > .board-check {
+  :global(.flight-deck.touch) .board-check {
+    position: absolute;
     top: calc(var(--deck-top) + 96px);
-    bottom: auto;
+    left: 50%;
+    width: min(332px, calc(100% - 32px));
+    transform: translateX(-50%);
   }
   /* The deck lets presses through what is on it to the view (FlightDeck.svelte); not on this card while it asks. */
   .board-check.asking { pointer-events: auto; }

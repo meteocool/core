@@ -121,14 +121,13 @@ onMount(() => {
 </section>
 
 <style>
+  /* Where it stands is the deck's to say (FlightDeck.svelte): in the middle under the top's readouts. */
   .keys {
-    position: absolute;
-    top: 50%;
-    left: max(8%, 24px);
+    position: relative;
+    box-sizing: border-box;
     padding: 14px 18px 16px;
     color: var(--mc-text);
     font: 13px/1.3 var(--mc-font);
-    transform: translateY(-60%);
     pointer-events: none;
   }
   h2 {
@@ -193,6 +192,7 @@ onMount(() => {
   }
   /* For thumbs: a few lines in the middle of the view, clear of what they describe. */
   .keys.touch {
+    position: absolute;
     top: 46%;
     left: 50%;
     width: min(400px, calc(100% - 48px));

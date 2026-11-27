@@ -258,6 +258,47 @@ function measureSides(): void {
   sides = parseFloat(style.paddingLeft) >= SIDE_STRIP && parseFloat(style.paddingRight) >= SIDE_STRIP;
 }
 $: cornerRoom = Math.max(cornerWidth, outWidth) + 10;
+
+/*
+ * Over a desk's view (not under a finger, whose places the stylesheet
+ * gives), where the top's readouts go, from how wide each is drawn: the
+ * speed on the left and the altitude between it and the buttons where they
+ * fit side by side; in a narrower window the altitude under the buttons,
+ * and in one narrower still the speed as well. The cards (the board, the
+ * settings, the keys) and the alerts under them stand in the middle, as
+ * high as they can without covering any of those.
+ */
+const EDGE = 16;
+const ROW = 14;
+const GAP = 10;
+/** The cards' and alerts' highest place, CSS pixels under the status bar: where the alerts always stood. */
+const POPUPS_TOP = 56;
+let deckWidth = 0;
+let cornerHeight = 0;
+let nwWidth = 0;
+let nwHeight = 0;
+let neWidth = 0;
+let neHeight = 0;
+let popupsWidth = 0;
+let mutedWidth = 0;
+let mutedHeight = 0;
+$: rowBottom = ROW + cornerHeight + GAP;
+$: nwUnder = nwWidth > 0 && EDGE + nwWidth + GAP > deckWidth - ROW - cornerWidth;
+$: nwTop = nwUnder ? rowBottom : EDGE;
+$: neBeside = !nwUnder && EDGE + nwWidth + GAP + neWidth <= deckWidth - ROW - cornerRoom;
+$: neTop = neBeside ? EDGE
+  : EDGE + nwWidth + GAP + neWidth + ROW <= deckWidth ? Math.max(rowBottom, nwTop) : Math.max(rowBottom, nwTop + nwHeight + GAP);
+$: neRight = neBeside ? ROW + cornerRoom : ROW;
+/* The sound's "off" under the buttons, or under the altitude where that is under them. */
+$: mutedTop = neBeside ? ROW + cornerHeight + 8 : neTop + neHeight + 8;
+$: popupsTop = status.view === "clean" ? POPUPS_TOP : [
+  [deckWidth - ROW - cornerWidth, deckWidth - ROW, ROW + cornerHeight],
+  [EDGE, EDGE + nwWidth, nwTop + nwHeight],
+  [deckWidth - neRight - neWidth, deckWidth - neRight, neTop + neHeight],
+  ...($flightMuted ? [[deckWidth - ROW - mutedWidth, deckWidth - ROW, mutedTop + mutedHeight]] : []),
+].reduce((top, [left, right, bottom]) => (
+  left < (deckWidth + popupsWidth) / 2 + GAP && right > (deckWidth - popupsWidth) / 2 - GAP ? Math.max(top, bottom + GAP) : top
+), POPUPS_TOP);
 let sidesObserver: ResizeObserver | null = null;
 onMount(() => {
   measureSides();
@@ -479,7 +520,9 @@ const WARNINGS = {
 </script>
 
 <div class="flight-deck view-{status.view}" class:inspecting={status.inspecting !== null} class:cutting={(status.cut !== null || status.peel !== null) && status.view !== "clean"} class:touch={$touchControls} class:sides={sides && $touchControls} class:fullscreen-able={canFullscreen}
-  style:--corner-room={`${cornerRoom}px`} bind:this={deck} aria-label={$_("studio.flight.aria")} role="region">
+  style:--corner-room={`${cornerRoom}px`} style:--nw-top={`${nwTop}px`} style:--ne-top={`${neTop}px`} style:--ne-right={`${neRight}px`}
+  style:--muted-top={`${mutedTop}px`} style:--popups-top={`${popupsTop}px`}
+  bind:this={deck} bind:clientWidth={deckWidth} aria-label={$_("studio.flight.aria")} role="region">
   <!-- Measures the strips a notch or an island cuts off either side (`sides`). -->
   <div class="inset-probe" aria-hidden="true" bind:this={insetProbe}></div>
   <!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -515,7 +558,7 @@ const WARNINGS = {
       <svelte:component this={board.Labels} {board} {pilot} />
     {/if}
     <dl class="readouts">
-      <div class="corner-nw" class:boarded={board !== null}>
+      <div class="corner-nw" class:boarded={board !== null} bind:clientWidth={nwWidth} bind:clientHeight={nwHeight}>
         <dt>{$_("studio.flight.readout.speed")}</dt><dd bind:this={readouts.speed}></dd>
         <!-- The score: earned in a storm's cloud, faster the stronger its echo, and lit while it is; and the best flown here. -->
         <dt class="score">{$_("studio.flight.readout.score")}</dt><dd class="score" bind:this={readouts.score}></dd>
@@ -525,7 +568,7 @@ const WARNINGS = {
         {/if}
         <dt class="best">{$_("studio.flight.readout.best")}</dt><dd class="best" bind:this={readouts.best}></dd>
       </div>
-      <div class="corner-ne" class:beside-screen={canFullscreen}>
+      <div class="corner-ne" class:beside-screen={canFullscreen} bind:clientWidth={neWidth} bind:clientHeight={neHeight}>
         <dt>{$_("studio.flight.readout.altitude")}</dt><dd bind:this={readouts.altitude}></dd>
         <!-- Low down the height over the ground reads out with it; hidden, not gone, so the frame has somewhere to write. -->
         <dt hidden={!status.low || status.onGround}>{$_("studio.flight.readout.radio")}</dt>
@@ -562,51 +605,7 @@ const WARNINGS = {
     </dl>
   {/if}
 
-  <div class="alerts" role="status">
-    {#if status.crash}
-      <p class="warning steady">{$_(`studio.flight.crash.${status.crash}`)}</p>
-    {/if}
-    {#if status.lost.length && !status.crash}
-      <!-- What has come off the aircraft, in the order it went: outside, the one place it is said besides the cockpit's alarms. -->
-      <p class="warning" class:silenced={status.lost.every((part) => status.silenced.includes(`lost.${part}`))}>
-        {$_("studio.flight.lost.title", { values: { parts: status.lost.map((part) => $_(`studio.flight.lost.${part}`)).join(", ") } })}
-      </p>
-    {/if}
-    {#each status.warnings as warning (warning)}
-      <!-- A caution in amber; one the reader has silenced stays, dimmed and still. -->
-      <p class="warning" class:caution={kindOf(warning).level === "caution"} class:silenced={status.silenced.includes(warning)}>{$_(WARNINGS[warning])}</p>
-    {/each}
-    {#if status.alphaFloor && status.view !== "clean"}
-      <p class="note caution">{$_("studio.flight.alpha_floor")}</p>
-    {:else if status.thrustLocked && status.view !== "clean"}
-      <p class="note caution">{$_($touchControls ? "studio.flight.touch.thrust_locked" : "studio.flight.thrust_locked")}</p>
-    {:else if status.speedHint && status.view !== "clean"}
-      <!-- Near the speed limits: how to come off them, before the overspeed sounds or once it has. -->
-      <p class="note caution">{$_(`studio.flight.speed_hint.${status.speedHint}${$touchControls ? "_touch" : ""}`)}</p>
-    {/if}
-    {#if status.clearSky && status.view !== "clean"}
-      <p class="note">{$_("studio.flight.clear_sky")}</p>
-    {/if}
-    <!-- Under a finger the touch controls' own button says it, and resumes. -->
-    {#if status.feat && status.view !== "clean"}
-      <!-- A bonus earned: what for, and how much. -->
-      {#key status.feat}
-        <p class="note feat">{$_(`studio.flight.feat.${status.feat.feat}`)} · +{points.format(status.feat.points)}</p>
-      {/key}
-    {/if}
-    {#if status.paused && !$touchControls}
-      <p class="note">{$_("studio.flight.paused")}</p>
-    {/if}
-    {#if board && status.view !== "clean"}
-      <svelte:component this={board.Note} {board} />
-    {/if}
-  </div>
-
-  {#if status.keys && status.view !== "clean" && !$touchControls}
-    <!-- Under a finger, shown on the controls themselves instead (TouchControls.svelte). -->
-    <FlightKeys close={() => pilot.act("help")} />
-  {:else if status.view === "outside"}
-    <!-- Where the keys' card stands while that is up. -->
+  {#if status.view === "outside"}
     <FlightMinimap {pilot} traffic={board?.traffic ?? null} bind:this={minimap} />
     <FlightHorizon bind:this={horizon} />
   {/if}
@@ -629,7 +628,7 @@ const WARNINGS = {
   {/if}
 
   {#if status.view !== "clean"}
-    <div class="corner" bind:clientWidth={cornerWidth}>
+    <div class="corner" bind:clientWidth={cornerWidth} bind:clientHeight={cornerHeight}>
       <!-- The controls, on a card: H is the same; under a finger, the only way to them. -->
       <button type="button" class="leave full help glass glass-pill" tabindex="-1" on:click={() => pilot.act("help")}
         title={$_("studio.flight.help_title")} aria-label={$_("studio.flight.help")} aria-pressed={status.keys}>
@@ -671,11 +670,8 @@ const WARNINGS = {
       </button>
     </div>
   {/if}
-  {#if settingsOpen && status.view !== "clean"}
-    <FlightSettings close={() => { settingsOpen = false; }} />
-  {/if}
   {#if $flightMuted && status.view !== "clean"}
-    <span class="muted" title={$_("studio.flight.muted_title")}><MusicIcon off /> {$_("studio.flight.muted")}</span>
+    <span class="muted" bind:clientWidth={mutedWidth} bind:clientHeight={mutedHeight} title={$_("studio.flight.muted_title")}><MusicIcon off /> {$_("studio.flight.muted")}</span>
   {/if}
   {#if status.inspecting && status.view !== "clean"}
     <div class="inspect glass glass-pill" class:cutting={status.cut !== null || status.peel !== null} role="group" aria-label={$_("studio.flight.inspect.title")}>
@@ -720,14 +716,63 @@ const WARNINGS = {
     <!-- A phone's stick, lever and buttons: over the readouts, under the question below. -->
     <TouchControls {pilot} />
   {/if}
-  {#if board && status.view !== "clean"}
-    <!-- The day's board, on a card from the board's readout. -->
-    <svelte:component this={board.Card} {board} />
-  {/if}
-  {#if board}
-    <!-- The check the board may ask of the reader, in every view: unanswered, the flight is not on the board. -->
-    <svelte:component this={board.Check} {board} />
-  {/if}
+  <!-- The cards and the alerts, in the middle under the top's readouts (`popupsTop`); under a finger each where it stands. -->
+  <div class="popups" bind:clientWidth={popupsWidth}>
+    {#if board && status.view !== "clean"}
+      <!-- The day's board, on a card from the board's readout. -->
+      <svelte:component this={board.Card} {board} />
+    {/if}
+    {#if settingsOpen && status.view !== "clean"}
+      <FlightSettings close={() => { settingsOpen = false; }} />
+    {/if}
+    {#if status.keys && status.view !== "clean" && !$touchControls}
+      <!-- Under a finger, shown on the controls themselves instead (TouchControls.svelte). -->
+      <FlightKeys close={() => pilot.act("help")} />
+    {/if}
+    <div class="alerts" role="status">
+      {#if status.crash}
+        <p class="warning steady">{$_(`studio.flight.crash.${status.crash}`)}</p>
+      {/if}
+      {#if status.lost.length && !status.crash}
+        <!-- What has come off the aircraft, in the order it went: outside, the one place it is said besides the cockpit's alarms. -->
+        <p class="warning" class:silenced={status.lost.every((part) => status.silenced.includes(`lost.${part}`))}>
+          {$_("studio.flight.lost.title", { values: { parts: status.lost.map((part) => $_(`studio.flight.lost.${part}`)).join(", ") } })}
+        </p>
+      {/if}
+      {#each status.warnings as warning (warning)}
+        <!-- A caution in amber; one the reader has silenced stays, dimmed and still. -->
+        <p class="warning" class:caution={kindOf(warning).level === "caution"} class:silenced={status.silenced.includes(warning)}>{$_(WARNINGS[warning])}</p>
+      {/each}
+      {#if status.alphaFloor && status.view !== "clean"}
+        <p class="note caution">{$_("studio.flight.alpha_floor")}</p>
+      {:else if status.thrustLocked && status.view !== "clean"}
+        <p class="note caution">{$_($touchControls ? "studio.flight.touch.thrust_locked" : "studio.flight.thrust_locked")}</p>
+      {:else if status.speedHint && status.view !== "clean"}
+        <!-- Near the speed limits: how to come off them, before the overspeed sounds or once it has. -->
+        <p class="note caution">{$_(`studio.flight.speed_hint.${status.speedHint}${$touchControls ? "_touch" : ""}`)}</p>
+      {/if}
+      {#if status.clearSky && status.view !== "clean"}
+        <p class="note">{$_("studio.flight.clear_sky")}</p>
+      {/if}
+      <!-- Under a finger the touch controls' own button says it, and resumes. -->
+      {#if status.feat && status.view !== "clean"}
+        <!-- A bonus earned: what for, and how much. -->
+        {#key status.feat}
+          <p class="note feat">{$_(`studio.flight.feat.${status.feat.feat}`)} · +{points.format(status.feat.points)}</p>
+        {/key}
+      {/if}
+      {#if status.paused && !$touchControls}
+        <p class="note">{$_("studio.flight.paused")}</p>
+      {/if}
+      {#if board && status.view !== "clean"}
+        <svelte:component this={board.Note} {board} />
+      {/if}
+    </div>
+    {#if board}
+      <!-- The check the board may ask of the reader, in every view: unanswered, the flight is not on the board. -->
+      <svelte:component this={board.Check} {board} />
+    {/if}
+  </div>
   {#if status.leaving}
     <!-- Asked before a flight ends: Escape alone does not end one. -->
     <div class="ask" role="alertdialog" aria-modal="true" aria-labelledby="flight-leave-title">
@@ -902,11 +947,9 @@ const WARNINGS = {
   .grade.butter, .grade.smooth { background: rgba(61, 220, 132, 0.25); color: #3ddc84; }
   .grade.firm { background: rgba(255, 179, 64, 0.25); color: #ffb340; }
   .grade.hard { background: rgba(255, 69, 58, 0.25); color: #ff453a; }
-  /* Every top clear of the status bar, a phone's clock and all, where there is one. */
-  .corner-nw { top: calc(var(--mc-safe-top) + 16px); left: 16px; }
-  .corner-ne { top: calc(var(--mc-safe-top) + 16px); right: 204px; }
-  /* Clear of the whole-screen disc as well, where there is one. */
-  .corner-ne.beside-screen { right: 246px; }
+  /* Every top clear of the status bar, a phone's clock and all, where there is one; each where it fits (`neBeside`). */
+  .corner-nw { top: calc(var(--mc-safe-top) + var(--nw-top, 16px)); left: 16px; }
+  .corner-ne { top: calc(var(--mc-safe-top) + var(--ne-top, 16px)); right: var(--ne-right, 246px); }
   .corner-sw { bottom: 32px; left: 16px; }
   .corner-se { bottom: 32px; right: 16px; }
 
@@ -916,12 +959,12 @@ const WARNINGS = {
     left: 16px;
     bottom: 124px;
   }
-  /* The horizon beside it, its foot on the map's: the two read together, as a pilot's eye goes from one to the other. */
+  /* The horizon over it, on the same edge: the two read together, as a pilot's eye goes from one to the other. */
   .flight-deck { --flight-minimap-size: 196px; --flight-horizon-size: 132px; }
   .flight-deck > :global(.flight-horizon) {
     position: absolute;
-    left: calc(16px + var(--flight-minimap-size) + 12px);
-    bottom: 124px;
+    left: 16px;
+    bottom: calc(124px + var(--flight-minimap-size) + 12px);
   }
   /* A low window has less room between its corners. */
   @container mc-frame (max-height: 560px) {
@@ -1153,7 +1196,9 @@ const WARNINGS = {
     font-size: 16px;
     font-weight: 600;
   }
-  /* The warnings and a recording's mark stand clear of it. */
+  /* The cards and the warnings, and a recording's mark, stand clear of it. */
+  .flight-deck.inspecting .popups { top: max(calc(var(--mc-safe-top) + var(--popups-top)), calc(var(--mc-safe-top) + 84px)); }
+  .flight-deck.cutting .popups { top: max(calc(var(--mc-safe-top) + var(--popups-top)), calc(var(--mc-safe-top) + 128px)); }
   .flight-deck.inspecting .alerts { top: max(13%, calc(var(--mc-safe-top) + 84px)); }
   .flight-deck.inspecting .rec { top: calc(var(--mc-safe-top) + 78px); }
   .flight-deck.cutting .alerts { top: max(13%, calc(var(--mc-safe-top) + 128px)); }
@@ -1161,6 +1206,8 @@ const WARNINGS = {
   /* In a window too narrow for it between the speed and the altitude, it goes under them. */
   @container mc-frame (max-width: 1100px) {
     .flight-deck > .inspect { top: calc(var(--mc-safe-top) + 60px); }
+    .flight-deck.inspecting .popups { top: max(calc(var(--mc-safe-top) + var(--popups-top)), calc(var(--mc-safe-top) + 130px)); }
+    .flight-deck.cutting .popups { top: max(calc(var(--mc-safe-top) + var(--popups-top)), calc(var(--mc-safe-top) + 174px)); }
     .flight-deck.inspecting .alerts { top: max(13%, calc(var(--mc-safe-top) + 130px)); }
     .flight-deck.inspecting .rec { top: calc(var(--mc-safe-top) + 124px); }
     .flight-deck.cutting .alerts { top: max(13%, calc(var(--mc-safe-top) + 174px)); }
@@ -1169,14 +1216,39 @@ const WARNINGS = {
   .mark.target i { border-color: #ff4fd8; }
   .mark.target span:first-of-type { color: #ffc2f1; }
 
-  .alerts {
+  /*
+   * The cards and the alerts: one column in the middle, under the top's
+   * readouts (`popupsTop`), as wide as its widest card; the board's card
+   * scrolls where it would reach the readouts at the foot. Under a finger,
+   * not a column: each stands where the touch layout puts it.
+   */
+  .popups {
     position: absolute;
-    top: max(13%, calc(var(--mc-safe-top) + 56px));
-    left: 50%;
+    top: calc(var(--mc-safe-top) + var(--popups-top, 56px));
+    left: 0;
+    right: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    width: max-content;
+    max-width: calc(100% - 32px);
+    margin: 0 auto;
+  }
+  .popups > :global(*) { flex: none; max-width: 100%; }
+  .flight-deck:not(.touch) .popups > :global(.board-card) { max-height: calc(100cqh - var(--mc-safe-top) - var(--popups-top, 56px) - 120px); }
+  .flight-deck.touch .popups { display: contents; }
+  /* Its top is the touch layout's, as are those for a storm looked into above: in the column, it has none. */
+  .alerts {
+    top: max(13%, calc(var(--mc-safe-top) + 56px));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
+  .flight-deck.touch .alerts {
+    position: absolute;
+    left: 50%;
     transform: translateX(-50%);
   }
   .alerts p { margin: 0; }
@@ -1279,7 +1351,7 @@ const WARNINGS = {
   /* The sound off, M: small, under the way out, as it stays for the flight. */
   .muted {
     position: absolute;
-    top: calc(var(--mc-safe-top) + 22px + var(--mc-pill-h));
+    top: calc(var(--mc-safe-top) + var(--muted-top, 50px));
     right: 14px;
     display: inline-flex;
     align-items: center;
@@ -1420,7 +1492,9 @@ const WARNINGS = {
   .flight-deck.touch .landing { bottom: calc(max(14px, var(--mc-safe-bottom)) + 112px); }
   /* The settings' card between the thumbs, clear of the stick and of the map and the horizon on the left, and scrolled
      where the screen is too low for all of it above the strip. */
-  .flight-deck.touch > :global(section.settings) {
+  .flight-deck.touch .popups > :global(section.settings) {
+    position: absolute;
+    width: min(300px, calc(100% - 28px));
     top: calc(var(--deck-top) + 46px);
     right: auto;
     left: 50%;

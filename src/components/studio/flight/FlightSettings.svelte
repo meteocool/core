@@ -69,18 +69,18 @@ function slide(name: Level, event: Event): void {
 </section>
 
 <style>
+  /* Where it stands is the deck's to say (FlightDeck.svelte). */
   .settings {
-    position: absolute;
-    top: calc(var(--mc-safe-top) + 14px + var(--mc-pill-h) + 10px);
-    right: 14px;
-    width: min(300px, calc(100% - 28px));
+    position: relative;
+    width: 300px;
+    max-width: 100%;
     box-sizing: border-box;
     padding: 14px 16px 14px;
     color: var(--mc-text);
     font: 13px/1.3 var(--mc-font);
   }
   /* The deck lets presses through what is on it to the view (FlightDeck.svelte); not on this card, which is all switches. */
-  :global(.flight-deck) > .settings { pointer-events: auto; }
+  :global(.flight-deck) .settings { pointer-events: auto; }
   h2 {
     margin: 0 32px 10px 0;
     font: var(--mc-type-heading);
