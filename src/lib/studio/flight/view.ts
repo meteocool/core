@@ -148,3 +148,15 @@ export function perspective(fov: number, aspect: number, near: number, far: numb
     0, 0, (2 * far * near) / (near - far), 0,
   ];
 }
+
+/** `perspective`, into `out`. */
+export function perspectiveInto(out: Float32Array, fov: number, aspect: number, near: number, far: number): Float32Array {
+  const f = 1 / Math.tan((fov * RADIANS) / 2);
+  out.fill(0);
+  out[0] = f / aspect;
+  out[5] = f;
+  out[10] = (far + near) / (near - far);
+  out[11] = -1;
+  out[14] = (2 * far * near) / (near - far);
+  return out;
+}

@@ -26,11 +26,11 @@
  *
  * Over it all, what burns and bursts (aircraftEffects.ts).
  */
-import { BREAKS, cockpitDrives, multiply4, parseModel, pieceOf, PIECES, piecesOf, posedParts, smearedParts, spins, VERTEX_BYTES } from "../lib/studio/flight/model";
-import type { AircraftModel, CockpitPose } from "../lib/studio/flight/model";
+import { BREAKS, cockpitDrives, multiplyInto, parseModel, PartPoser, pieceOf, PIECES, piecesOf, spins, VERTEX_BYTES } from "../lib/studio/flight/model";
+import type { AircraftModel, CockpitDrive, CockpitPose, PartPositions } from "../lib/studio/flight/model";
 import { blastGlare, makeEffectsPass } from "./aircraftEffects";
 import type { EffectsPass } from "./aircraftEffects";
-import { perspective } from "../lib/studio/flight/view";
+import { perspectiveInto } from "../lib/studio/flight/view";
 import { cloudColour, windowPanes } from "../lib/studio/flight/glass";
 import type { WindowPane } from "../lib/studio/flight/glass";
 import type { Vec3 } from "../lib/studio/flight/view";
@@ -759,10 +759,14 @@ const LIGHTNING_OUTSIDE = 0.55;
  * (`AircraftView`). Cloud takes the sun, and leaves a flat grey that is
  * still most of the ambient; a storm's dark takes more.
  */
-export function skyLighting([ambient, lit, away]: Vec3, sunlight = 1, daylight = 1): Vec3 {
+export function skyLighting(base: Readonly<Vec3>, sunlight = 1, daylight = 1, out: Vec3 = [0, 0, 0]): Vec3 {
   const sun = Math.min(Math.max(sunlight, 0), 1);
   const day = Math.min(Math.max(daylight, 0), 1);
-  return [ambient * (0.6 + 0.4 * day) + lit * 0.25 * (1 - sun) * day, lit * sun * day, away * day];
+  const ambient = base[0], lit = base[1], away = base[2];
+  out[0] = ambient * (0.6 + 0.4 * day) + lit * 0.25 * (1 - sun) * day;
+  out[1] = lit * sun * day;
+  out[2] = away * day;
+  return out;
 }
 
 /* The model and its textures, fetched once for the page: a style change
@@ -857,14 +861,21 @@ interface Drawn {
   pieces: number[];
 }
 
-/** A piece as one frame draws it: through which model-view, lit from where (in its own frame), and its moving parts where they are. */
+/**
+ * A piece as one frame draws it: through which model-view, lit from where
+ * (in its own frame), and its moving parts where they are, and those that
+ * spin as their smears (none for a fan seen still). Kept and written over.
+ */
 interface Frame {
   modelView: Float32Array;
   light: Vec3;
-  posed: ReturnType<typeof posedParts>;
-  /** And its parts that spin, as their smears; none for a fan seen still. */
-  smeared: ReturnType<typeof smearedParts>;
+  poser: PartPoser;
 }
+
+/** The flight deck's controls, each as the model has it where `AircraftView.cockpit` does not say. */
+const COCKPIT_DRIVES: readonly CockpitDrive[] = [
+  "stickPitch", "stickRoll", "thrustLevers", "flapLever", "speedBrakeLever", "spoilersArmed", "gearLever", "pedals", "parkingBrake", "rudderTrim",
+];
 
 /** A unit square's vertices in the model's own packing, for a screen stretched over four corners. */
 function screenVertices(): Uint8Array {
@@ -905,6 +916,15 @@ export interface AircraftRenderer {
   /** Draw the aircraft as `view` sees it, over whatever is in the picture, with `screens` lit in its cockpit. */
   /** Draw it; true once it has, which leaves its depth for what goes past in front of it (weatherPass.ts). */
   draw(view: AircraftView, screens: readonly AircraftScreen[]): boolean;
+  /**
+   * Draw it as `view` sees it once more, from outside, into a rectangle of
+   * the picture only (`x` and `y` its lower left corner, in the drawing
+   * buffer's pixels, as WebGL counts them): over what is there, with a
+   * depth of its own there, and none of what `draw` does once a frame (the
+   * veil, the glass). How many draws that took; none where the model has
+   * not come yet.
+   */
+  drawInset(view: AircraftView, x: number, y: number, width: number, height: number): number;
   /** Let go of everything it holds on the GPU. */
   dispose(): void;
 }
@@ -1016,6 +1036,7 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
     const gl = context;
     materials = model.materials;
     parts = model.parts;
+    framePool = null;
     windows = packWindows(windowPanes(model));
     const anisotropy = gl.getExtension("EXT_texture_filter_anisotropic");
     textures = images.map((image) => {
@@ -1060,7 +1081,7 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
     gl.bindTexture(gl.TEXTURE_2D, null);
   }
 
-  function drawScreens(view: AircraftView, screens: readonly AircraftScreen[], projection: number[]): void {
+  function drawScreens(view: AircraftView, screens: readonly AircraftScreen[], projection: ArrayLike<number>): void {
     const gl = context;
     if (!screens.length) return;
     gl.useProgram(screen);
@@ -1112,6 +1133,297 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
     gl.disable(gl.BLEND);
   }
 
+  /*
+   * What one aircraft's drawing keeps from frame to frame, so that it makes
+   * nothing anew: its lens, where its moving parts are, and a frame for the
+   * hull, for each piece that has come off and for each part that has.
+   */
+  const projection = new Float32Array(16);
+  const positions: PartPositions = { gear: 1, flaps: 0, spoilers: 0 };
+  const lighting: Vec3 = [0, 0, 0];
+  let framePool: { hull: Frame; pieces: Frame[]; loose: Map<string, Frame> } | null = null;
+  const frames: Array<Frame | null> = PIECES.map(() => null);
+  const loose = new Map<string, Frame | null>();
+  const blankFrame = (): Frame => ({ modelView: new Float32Array(16), light: [0, 0, 0], poser: new PartPoser(parts) });
+  /** Of the pieces a mesh reaches into, those drawn through `through` this frame: a bit each. */
+  const keptOf = (pieces: readonly number[], through: Frame): number => {
+    let keep = 0;
+    for (const other of pieces) if (frames[other] === through) keep |= 1 << other;
+    return keep;
+  };
+  const allKept = (pieces: readonly number[], keep: number): boolean => {
+    for (const other of pieces) if (!(keep & (1 << other))) return false;
+    return true;
+  };
+
+  /** What the aircraft drawn now is drawn with, for what draws its meshes: kept, never made anew. */
+  const drawing = { view: null as unknown as AircraftView, broken: false, glare: 0, flash: 0, fogLight: 1, sweep: 0, calls: 0 };
+
+  // What every mesh is drawn with alike, for whichever shader draws it.
+  function prepare(using: WebGLProgram): void {
+    const webgl = context;
+    const { view, glare, flash, fogLight } = drawing;
+    webgl.useProgram(using);
+    webgl.uniformMatrix4fv(uniform(using, "uProjection"), false, projection);
+    webgl.uniform3f(uniform(using, "uLighting"), lighting[0] + 0.55 * glare, lighting[1], lighting[2]);
+    webgl.uniform3f(uniform(using, "uFlash"), LIGHTNING_COLOUR[0] * flash, LIGHTNING_COLOUR[1] * flash, LIGHTNING_COLOUR[2] * flash);
+    webgl.uniform1i(uniform(using, "uTexture"), 0);
+    // The cloud the aircraft goes from sight in is the one round the eye, lit as the sky has it: grey in a storm, not white (cloudColour).
+    webgl.uniform4f(uniform(using, "uFog"), 0.86 * fogLight, 0.89 * fogLight, 0.92 * fogLight, view.inside ? 0 : view.fog ?? 0);
+  }
+
+  function place(into: Frame, moved?: ArrayLike<number>): Frame {
+    const { view } = drawing;
+    if (moved) multiplyInto(into.modelView, view.modelView, moved);
+    else into.modelView.set(view.modelView);
+    // A piece that has turned sees the sun from where it has turned to.
+    for (let i = 0; i < 3; i++) {
+      into.light[i] = moved
+        ? moved[i * 4] * view.light[0] + moved[i * 4 + 1] * view.light[1] + moved[i * 4 + 2] * view.light[2]
+        : view.light[i];
+    }
+    into.poser.pose(positions, drawing.sweep, into.modelView, into.light);
+    return into;
+  }
+
+  function pass(clear: boolean, shader: WebGLProgram): void {
+    const webgl = context;
+    const { view, broken } = drawing;
+    const hull = frames[0]!;
+    for (const chunk of drawn) {
+      const material = materials[chunk.material];
+      // A part smeared as it spins: a fan's blades only as their smear, over what is behind them; a round part whole, its smear over it.
+      const smearing = chunk.spins && hull.poser.smeared.has(chunk.part!) && !loose.has(chunk.part!);
+      if (smearing) {
+        if (clear && chunk.bladed) continue;
+        if (!clear) {
+          smear(chunk, shader);
+          continue;
+        }
+      } else if ((material.opacity < 1) === clear) continue;
+      const texture = textures[chunk.material];
+      webgl.uniform1i(uniform(shader, "uTextured"), texture ? 1 : 0);
+      if (texture) webgl.bindTexture(webgl.TEXTURE_2D, texture);
+      webgl.uniform3f(uniform(shader, "uColour"), material.colour[0], material.colour[1], material.colour[2]);
+      webgl.uniform1f(uniform(shader, "uOpacity"), clear ? 1 : material.opacity * (view.inside ? GLASS_FROM_INSIDE : 1));
+      webgl.uniform3f(uniform(shader, "uMin"), chunk.min[0], chunk.min[1], chunk.min[2]);
+      webgl.uniform3f(uniform(shader, "uSize"), chunk.size[0], chunk.size[1], chunk.size[2]);
+      webgl.uniform2f(uniform(shader, "uUvMin"), chunk.uvMin[0], chunk.uvMin[1]);
+      webgl.uniform2f(uniform(shader, "uUvSize"), chunk.uvSize[0], chunk.uvSize[1]);
+      webgl.bindVertexArray(chunk.vao);
+      const away = chunk.part !== undefined ? loose.get(chunk.part) : undefined;
+      if (away !== undefined) {
+        if (away) {
+          webgl.uniformMatrix4fv(uniform(shader, "uModelView"), false, away.modelView);
+          webgl.uniform3f(uniform(shader, "uLight"), away.light[0], away.light[1], away.light[2]);
+          if (broken) webgl.uniform1i(uniform(shader, "uKeep"), EVERY_PIECE);
+          webgl.drawElements(webgl.TRIANGLES, chunk.count, webgl.UNSIGNED_SHORT, 0);
+          drawing.calls++;
+        }
+        continue;
+      }
+      // Once for all of it that is still together, and once for each piece of it that is off.
+      let done = 0;
+      for (const piece of broken ? chunk.pieces : ALL_HULL) {
+        const through = frames[piece];
+        if (!through || done & (1 << piece)) continue;
+        const keep = keptOf(chunk.pieces, through);
+        done |= keep;
+        const moved = chunk.part ? through.poser.posed.get(chunk.part) : undefined;
+        const light = moved?.light ?? through.light;
+        webgl.uniformMatrix4fv(uniform(shader, "uModelView"), false, moved?.modelView ?? through.modelView);
+        webgl.uniform3f(uniform(shader, "uLight"), light[0], light[1], light[2]);
+        if (broken) webgl.uniform1i(uniform(shader, "uKeep"), allKept(chunk.pieces, keep) ? EVERY_PIECE : keep);
+        webgl.drawElements(webgl.TRIANGLES, chunk.count, webgl.UNSIGNED_SHORT, 0);
+        drawing.calls++;
+      }
+    }
+  }
+
+  /*
+   * A spinning part's smear: the part drawn once for each place it
+   * passes through in the frame, each copy letting through some of what
+   * is behind it, and a hair nearer than itself, so that over a round
+   * part drawn whole each copy is seen on it.
+   */
+  function smear(chunk: Drawn, shader: WebGLProgram): void {
+    const webgl = context;
+    const { broken } = drawing;
+    const material = materials[chunk.material];
+    const texture = textures[chunk.material];
+    webgl.uniform1i(uniform(shader, "uTextured"), texture ? 1 : 0);
+    if (texture) webgl.bindTexture(webgl.TEXTURE_2D, texture);
+    webgl.uniform3f(uniform(shader, "uColour"), material.colour[0], material.colour[1], material.colour[2]);
+    webgl.uniform3f(uniform(shader, "uMin"), chunk.min[0], chunk.min[1], chunk.min[2]);
+    webgl.uniform3f(uniform(shader, "uSize"), chunk.size[0], chunk.size[1], chunk.size[2]);
+    webgl.uniform2f(uniform(shader, "uUvMin"), chunk.uvMin[0], chunk.uvMin[1]);
+    webgl.uniform2f(uniform(shader, "uUvSize"), chunk.uvSize[0], chunk.uvSize[1]);
+    webgl.bindVertexArray(chunk.vao);
+    webgl.depthFunc(webgl.LEQUAL);
+    webgl.enable(webgl.POLYGON_OFFSET_FILL);
+    webgl.polygonOffset(-1, -2);
+    let done = 0;
+    for (const piece of broken ? chunk.pieces : ALL_HULL) {
+      const through = frames[piece];
+      if (!through || done & (1 << piece)) continue;
+      const keep = keptOf(chunk.pieces, through);
+      done |= keep;
+      if (broken) webgl.uniform1i(uniform(shader, "uKeep"), allKept(chunk.pieces, keep) ? EVERY_PIECE : keep);
+      const smeared = through.poser.smeared.get(chunk.part!);
+      if (smeared) {
+        webgl.uniform1f(uniform(shader, "uOpacity"), material.opacity * smeared.opacity);
+        for (let i = 0; i < smeared.count; i++) {
+          const copy = smeared.copies[i];
+          webgl.uniformMatrix4fv(uniform(shader, "uModelView"), false, copy.modelView);
+          webgl.uniform3f(uniform(shader, "uLight"), copy.light[0], copy.light[1], copy.light[2]);
+          webgl.drawElements(webgl.TRIANGLES, chunk.count, webgl.UNSIGNED_SHORT, 0);
+          drawing.calls++;
+        }
+      } else {
+        // A piece that has come off and turned its fan away is not smeared: drawn as it is.
+        const moved = through.poser.posed.get(chunk.part!);
+        const light = moved?.light ?? through.light;
+        webgl.uniform1f(uniform(shader, "uOpacity"), material.opacity);
+        webgl.uniformMatrix4fv(uniform(shader, "uModelView"), false, moved?.modelView ?? through.modelView);
+        webgl.uniform3f(uniform(shader, "uLight"), light[0], light[1], light[2]);
+        webgl.drawElements(webgl.TRIANGLES, chunk.count, webgl.UNSIGNED_SHORT, 0);
+        drawing.calls++;
+      }
+    }
+    webgl.disable(webgl.POLYGON_OFFSET_FILL);
+    webgl.depthFunc(webgl.LESS);
+  }
+
+  /**
+   * The aircraft as `view` sees it, into the viewport set, `width` by
+   * `height` pixels, over what is there and with a depth of its own: what
+   * `draw` and `drawInset` both draw once they have set the picture up.
+   */
+  function drawAircraft(view: AircraftView, screens: readonly AircraftScreen[], width: number, height: number): number {
+    const webgl = context;
+    drawing.view = view;
+    drawing.calls = 0;
+    const pool = (framePool ??= { hull: blankFrame(), pieces: PIECES.slice(1).map(blankFrame), loose: new Map() });
+    // Nearer than anything on the map: over all of it, sorted only against itself.
+    webgl.enable(webgl.DEPTH_TEST);
+    webgl.depthFunc(webgl.LESS);
+    webgl.depthRange(0, 1);
+    webgl.depthMask(true);
+    webgl.clearDepth(1);
+    webgl.clear(webgl.DEPTH_BUFFER_BIT);
+
+    const [near, far] = view.inside ? INSIDE_RANGE : OUTSIDE_RANGE;
+    perspectiveInto(projection, view.fov, width / Math.max(height, 1), near, far);
+    const off = view.pieces;
+    const broken = off !== undefined && ("leftWing" in off || "rightWing" in off || "tail" in off);
+    if (broken) torn ??= compile(context, BROKEN + VERTEX, BROKEN + FRAGMENT);
+    const shader = broken && torn ? torn : program;
+    // A blast lights what is round it for as long as it flashes.
+    const glare = view.effects ? blastGlare(view.effects) : 0;
+    skyLighting(view.inside ? INSIDE_LIGHTING : OUTSIDE_LIGHTING, view.sunlight, view.daylight, lighting);
+    const flash = Math.min(Math.max(view.lightning ?? 0, 0), 1) * (view.inside ? LIGHTNING_INSIDE : LIGHTNING_OUTSIDE);
+    drawing.broken = broken;
+    drawing.glare = glare;
+    drawing.flash = flash;
+    drawing.fogLight = 0.4 + 0.6 * Math.min(Math.max(view.daylight ?? 1, 0), 1);
+    prepare(shader);
+    webgl.activeTexture(webgl.TEXTURE0);
+
+    // The gear's legs and doors, the flaps, slats and spoilers, the ailerons, elevators and rudder, the fans and the flight deck's
+    // controls where they are now; the rest as the model has it.
+    positions.gear = view.gear ?? 1;
+    positions.flaps = view.flaps ?? 0;
+    positions.spoilers = view.spoilers ?? 0;
+    positions.ailerons = view.ailerons ?? 0;
+    positions.elevator = view.elevator ?? 0;
+    positions.rudder = view.rudder ?? 0;
+    positions.fans = view.fans?.angle ?? 0;
+    // Each control of the flight deck as the model has it where not said: none of them moved.
+    for (const drive of COCKPIT_DRIVES) positions[drive] = 0;
+    if (view.cockpit) Object.assign(positions, cockpitDrives(view.cockpit));
+    // The fans smeared from outside; from the seat, where none is seen, not.
+    drawing.sweep = view.inside ? 0 : view.fans?.sweep ?? 0;
+    const hull = place(pool.hull);
+    // Each piece's frame: the hull's while it is on, its own once it is off, none once it is gone.
+    frames[0] = hull;
+    for (let p = 1; p < PIECES.length; p++) {
+      const moved = off?.[PIECES[p] as AircraftPiece];
+      frames[p] = moved === undefined ? hull : moved && place(pool.pieces[p - 1], moved);
+    }
+    // A part that has come off: through its own frame for as long as it is in sight, then through none.
+    loose.clear();
+    const lost = view.lost;
+    if (lost) {
+      for (const name in lost) {
+        const moved = lost[name];
+        if (!moved) {
+          loose.set(name, null);
+          continue;
+        }
+        let kept = pool.loose.get(name);
+        if (!kept) pool.loose.set(name, (kept = blankFrame()));
+        loose.set(name, place(kept, moved));
+      }
+    }
+    if (broken) {
+      webgl.uniform3f(uniform(shader, "uBreaks"), BREAKS.wingRoot, BREAKS.tail, BREAKS.ragged);
+      webgl.uniform3f(uniform(shader, "uTorn"), "leftWing" in off! ? 1 : 0, "rightWing" in off! ? 1 : 0, "tail" in off! ? 1 : 0);
+    }
+    // Everything solid, then the screens on it, then the glass over both: from the seat, with the weather on it.
+    webgl.disable(webgl.BLEND);
+    pass(true, shader);
+    if (view.inside) drawScreens(view, screens, projection);
+    const onGlass = view.inside && !broken ? view.glass : undefined;
+    if (onGlass) glass ??= compile(context, GLASS + VERTEX, GLASS + FRAGMENT);
+    const clear = onGlass && glass ? glass : shader;
+    prepare(clear);
+    if (onGlass && glass) {
+      webgl.uniform1f(uniform(glass, "uTime"), onGlass.time);
+      webgl.uniform1f(uniform(glass, "uSpeed"), onGlass.speed);
+      webgl.uniform1f(uniform(glass, "uWet"), onGlass.wet);
+      webgl.uniform1f(uniform(glass, "uHail"), onGlass.hail);
+      webgl.uniform1f(uniform(glass, "uCharge"), onGlass.charge);
+      webgl.uniform1f(uniform(glass, "uSun"), view.sunlight ?? 1);
+      webgl.uniform1f(uniform(glass, "uDay"), view.daylight ?? 1);
+      webgl.uniform1f(uniform(glass, "uBolt"), view.lightning ?? 0);
+      webgl.uniform1i(uniform(glass, "uScene"), 1);
+      webgl.uniform2f(uniform(glass, "uViewport"), width, height);
+      webgl.uniform1i(uniform(glass, "uRefract"), behind ? 1 : 0);
+      webgl.uniform1i(uniform(glass, "uFine"), onGlass.fine === false ? 0 : 1);
+      webgl.uniform1f(uniform(glass, "uFrost"), Math.min(Math.max(onGlass.frost ?? 0, 0), 1));
+      webgl.uniform1i(uniform(glass, "uPanes"), windows.count);
+      if (windows.count) {
+        webgl.uniform4fv(uniform(glass, "uPlane"), windows.planes);
+        webgl.uniform3fv(uniform(glass, "uMiddle"), windows.middles);
+        webgl.uniform3fv(uniform(glass, "uSpan"), windows.spans);
+        webgl.uniform4fv(uniform(glass, "uEdge"), windows.edges);
+      }
+      if (behind) {
+        webgl.activeTexture(webgl.TEXTURE1);
+        webgl.bindTexture(webgl.TEXTURE_2D, behind.texture);
+        webgl.activeTexture(webgl.TEXTURE0);
+      }
+    }
+    webgl.enable(webgl.BLEND);
+    webgl.depthMask(false);
+    pass(false, clear);
+    // What burns, over the aircraft and behind whatever of it is nearer.
+    if (view.effects && (view.effects.fires.length || view.effects.blasts.length)) {
+      effects ??= makeEffectsPass(context, (vertex, fragment) => compile(context, vertex, fragment));
+      effects.draw(view.effects, view.modelView, projection, view.light, view.inside ? INSIDE_FADE : OUTSIDE_FADE);
+      drawing.calls++;
+    }
+    webgl.depthMask(true);
+    webgl.bindVertexArray(null);
+    webgl.bindTexture(webgl.TEXTURE_2D, null);
+    if (behind) {
+      webgl.activeTexture(webgl.TEXTURE1);
+      webgl.bindTexture(webgl.TEXTURE_2D, null);
+      webgl.activeTexture(webgl.TEXTURE0);
+    }
+    return drawing.calls;
+  }
+
   return {
     upload,
 
@@ -1142,210 +1454,24 @@ export function makeAircraftRenderer(context: WebGL2RenderingContext): AircraftR
       if (wet) copyBehind(width, height);
       // Dry again: its memory back.
       else forgetBehind();
-
-      // Nearer than anything on the map: over all of it, sorted only against itself.
-      webgl.enable(webgl.DEPTH_TEST);
-      webgl.depthFunc(webgl.LESS);
-      webgl.depthRange(0, 1);
-      webgl.depthMask(true);
-      webgl.clearDepth(1);
-      webgl.clear(webgl.DEPTH_BUFFER_BIT);
-
-      const [near, far] = view.inside ? INSIDE_RANGE : OUTSIDE_RANGE;
-      const projection = perspective(view.fov, width / Math.max(height, 1), near, far);
-      const off = view.pieces;
-      const broken = off !== undefined && PIECES.some((name) => name in off);
-      if (broken) torn ??= compile(context, BROKEN + VERTEX, BROKEN + FRAGMENT);
-      const shader = broken && torn ? torn : program;
-      // A blast lights what is round it for as long as it flashes.
-      const glare = view.effects ? blastGlare(view.effects) : 0;
-      const [ambient, lit, away] = skyLighting(view.inside ? INSIDE_LIGHTING : OUTSIDE_LIGHTING, view.sunlight, view.daylight);
-      const flash = Math.min(Math.max(view.lightning ?? 0, 0), 1) * (view.inside ? LIGHTNING_INSIDE : LIGHTNING_OUTSIDE);
-      // What every mesh is drawn with alike, for whichever shader draws it.
-      const prepare = (using: WebGLProgram) => {
-        webgl.useProgram(using);
-        webgl.uniformMatrix4fv(uniform(using, "uProjection"), false, new Float32Array(projection));
-        webgl.uniform3f(uniform(using, "uLighting"), ambient + 0.55 * glare, lit, away);
-        webgl.uniform3f(uniform(using, "uFlash"), LIGHTNING_COLOUR[0] * flash, LIGHTNING_COLOUR[1] * flash, LIGHTNING_COLOUR[2] * flash);
-        webgl.uniform1i(uniform(using, "uTexture"), 0);
-        // The cloud the aircraft goes from sight in is the one round the eye, lit as the sky has it: grey in a storm, not white.
-        webgl.uniform4f(uniform(using, "uFog"), ...cloudColour(view.daylight), view.inside ? 0 : view.fog ?? 0);
-      };
-      prepare(shader);
-      webgl.activeTexture(webgl.TEXTURE0);
-
-      // The gear's legs and doors, the flaps, slats and spoilers, the ailerons, elevators and rudder, the fans and the flight deck's
-      // controls where they are now; the rest as the model has it.
-      const positions = {
-        gear: view.gear ?? 1, flaps: view.flaps ?? 0, spoilers: view.spoilers ?? 0,
-        ailerons: view.ailerons ?? 0, elevator: view.elevator ?? 0, rudder: view.rudder ?? 0,
-        fans: view.fans?.angle ?? 0,
-        ...cockpitDrives(view.cockpit),
-      };
-      // The fans smeared from outside; from the seat, where none is seen, not.
-      const sweep = view.inside ? 0 : view.fans?.sweep ?? 0;
-      const frame = (moved?: ArrayLike<number>): Frame => {
-        const modelView = new Float32Array(moved ? multiply4(view.modelView, moved) : view.modelView);
-        // A piece that has turned sees the sun from where it has turned to.
-        const light = moved
-          ? [0, 1, 2].map((i) => moved[i * 4] * view.light[0] + moved[i * 4 + 1] * view.light[1] + moved[i * 4 + 2] * view.light[2]) as Vec3
-          : view.light;
-        return { modelView, light, posed: posedParts(parts, positions, modelView, light), smeared: smearedParts(parts, positions, sweep, modelView, light) };
-      };
-      const hull = frame();
-      // Each piece's frame: the hull's while it is on, its own once it is off, none once it is gone.
-      const frames = PIECES.map((name): Frame | null => {
-        const moved = name === "hull" ? undefined : off?.[name];
-        return moved === undefined ? hull : moved && frame(moved);
-      });
-      // A part that has come off: through its own frame for as long as it is in sight, then through none.
-      const loose = new Map(Object.entries(view.lost ?? {}).map(([name, moved]) => [name, moved ? frame(moved) : null]));
-      if (broken) {
-        webgl.uniform3f(uniform(shader, "uBreaks"), BREAKS.wingRoot, BREAKS.tail, BREAKS.ragged);
-        webgl.uniform3f(uniform(shader, "uTorn"), ...(["leftWing", "rightWing", "tail"] as const).map((name) => (off && name in off ? 1 : 0)) as Vec3);
-      }
-      const pass = (clear: boolean, shader: WebGLProgram) => {
-        for (const chunk of drawn) {
-          const material = materials[chunk.material];
-          // A part smeared as it spins: a fan's blades only as their smear, over what is behind them; a round part whole, its smear over it.
-          const smearing = chunk.spins && hull.smeared.has(chunk.part!) && !loose.has(chunk.part!);
-          if (smearing) {
-            if (clear && chunk.bladed) continue;
-            if (!clear) {
-              smear(chunk, shader);
-              continue;
-            }
-          } else if ((material.opacity < 1) === clear) continue;
-          const texture = textures[chunk.material];
-          webgl.uniform1i(uniform(shader, "uTextured"), texture ? 1 : 0);
-          if (texture) webgl.bindTexture(webgl.TEXTURE_2D, texture);
-          webgl.uniform3f(uniform(shader, "uColour"), ...material.colour);
-          webgl.uniform1f(uniform(shader, "uOpacity"), clear ? 1 : material.opacity * (view.inside ? GLASS_FROM_INSIDE : 1));
-          webgl.uniform3f(uniform(shader, "uMin"), ...chunk.min);
-          webgl.uniform3f(uniform(shader, "uSize"), ...chunk.size);
-          webgl.uniform2f(uniform(shader, "uUvMin"), ...chunk.uvMin);
-          webgl.uniform2f(uniform(shader, "uUvSize"), ...chunk.uvSize);
-          webgl.bindVertexArray(chunk.vao);
-          const away = chunk.part !== undefined ? loose.get(chunk.part) : undefined;
-          if (away !== undefined) {
-            if (away) {
-              webgl.uniformMatrix4fv(uniform(shader, "uModelView"), false, away.modelView);
-              webgl.uniform3f(uniform(shader, "uLight"), ...away.light);
-              if (broken) webgl.uniform1i(uniform(shader, "uKeep"), EVERY_PIECE);
-              webgl.drawElements(webgl.TRIANGLES, chunk.count, webgl.UNSIGNED_SHORT, 0);
-            }
-            continue;
-          }
-          // Once for all of it that is still together, and once for each piece of it that is off.
-          let done = 0;
-          for (const piece of broken ? chunk.pieces : ALL_HULL) {
-            const through = frames[piece];
-            if (!through || done & (1 << piece)) continue;
-            let keep = 0;
-            for (const other of chunk.pieces) if (frames[other] === through) keep |= 1 << other;
-            done |= keep;
-            const moved = chunk.part ? through.posed.get(chunk.part) : undefined;
-            webgl.uniformMatrix4fv(uniform(shader, "uModelView"), false, moved?.modelView ?? through.modelView);
-            webgl.uniform3f(uniform(shader, "uLight"), ...(moved?.light ?? through.light));
-            if (broken) webgl.uniform1i(uniform(shader, "uKeep"), chunk.pieces.every((other) => keep & (1 << other)) ? EVERY_PIECE : keep);
-            webgl.drawElements(webgl.TRIANGLES, chunk.count, webgl.UNSIGNED_SHORT, 0);
-          }
-        }
-      };
-      /*
-       * A spinning part's smear: the part drawn once for each place it
-       * passes through in the frame, each copy letting through some of what
-       * is behind it, and a hair nearer than itself, so that over a round
-       * part drawn whole each copy is seen on it.
-       */
-      const smear = (chunk: Drawn, shader: WebGLProgram) => {
-        const material = materials[chunk.material];
-        const texture = textures[chunk.material];
-        webgl.uniform1i(uniform(shader, "uTextured"), texture ? 1 : 0);
-        if (texture) webgl.bindTexture(webgl.TEXTURE_2D, texture);
-        webgl.uniform3f(uniform(shader, "uColour"), ...material.colour);
-        webgl.uniform3f(uniform(shader, "uMin"), ...chunk.min);
-        webgl.uniform3f(uniform(shader, "uSize"), ...chunk.size);
-        webgl.uniform2f(uniform(shader, "uUvMin"), ...chunk.uvMin);
-        webgl.uniform2f(uniform(shader, "uUvSize"), ...chunk.uvSize);
-        webgl.bindVertexArray(chunk.vao);
-        webgl.depthFunc(webgl.LEQUAL);
-        webgl.enable(webgl.POLYGON_OFFSET_FILL);
-        webgl.polygonOffset(-1, -2);
-        let done = 0;
-        for (const piece of broken ? chunk.pieces : ALL_HULL) {
-          const through = frames[piece];
-          if (!through || done & (1 << piece)) continue;
-          let keep = 0;
-          for (const other of chunk.pieces) if (frames[other] === through) keep |= 1 << other;
-          done |= keep;
-          // A piece that has come off and turned its fan away is not smeared: drawn as it is.
-          const moved = through.posed.get(chunk.part!);
-          const smeared = through.smeared.get(chunk.part!)
-            ?? { opacity: 1, copies: [{ modelView: moved?.modelView ?? through.modelView, light: moved?.light ?? through.light }] };
-          webgl.uniform1f(uniform(shader, "uOpacity"), material.opacity * smeared.opacity);
-          if (broken) webgl.uniform1i(uniform(shader, "uKeep"), chunk.pieces.every((other) => keep & (1 << other)) ? EVERY_PIECE : keep);
-          for (const copy of smeared.copies) {
-            webgl.uniformMatrix4fv(uniform(shader, "uModelView"), false, copy.modelView);
-            webgl.uniform3f(uniform(shader, "uLight"), ...copy.light);
-            webgl.drawElements(webgl.TRIANGLES, chunk.count, webgl.UNSIGNED_SHORT, 0);
-          }
-        }
-        webgl.disable(webgl.POLYGON_OFFSET_FILL);
-        webgl.depthFunc(webgl.LESS);
-      };
-      // Everything solid, then the screens on it, then the glass over both: from the seat, with the weather on it.
-      webgl.disable(webgl.BLEND);
-      pass(true, shader);
-      if (view.inside) drawScreens(view, screens, projection);
-      const onGlass = view.inside && !broken ? view.glass : undefined;
-      if (onGlass) glass ??= compile(context, GLASS + VERTEX, GLASS + FRAGMENT);
-      const clear = onGlass && glass ? glass : shader;
-      prepare(clear);
-      if (onGlass && glass) {
-        webgl.uniform1f(uniform(glass, "uTime"), onGlass.time);
-        webgl.uniform1f(uniform(glass, "uSpeed"), onGlass.speed);
-        webgl.uniform1f(uniform(glass, "uWet"), onGlass.wet);
-        webgl.uniform1f(uniform(glass, "uHail"), onGlass.hail);
-        webgl.uniform1f(uniform(glass, "uCharge"), onGlass.charge);
-        webgl.uniform1f(uniform(glass, "uSun"), view.sunlight ?? 1);
-        webgl.uniform1f(uniform(glass, "uDay"), view.daylight ?? 1);
-        webgl.uniform1f(uniform(glass, "uBolt"), view.lightning ?? 0);
-        webgl.uniform1i(uniform(glass, "uScene"), 1);
-        webgl.uniform2f(uniform(glass, "uViewport"), width, height);
-        webgl.uniform1i(uniform(glass, "uRefract"), behind ? 1 : 0);
-        webgl.uniform1i(uniform(glass, "uFine"), onGlass.fine === false ? 0 : 1);
-        webgl.uniform1f(uniform(glass, "uFrost"), Math.min(Math.max(onGlass.frost ?? 0, 0), 1));
-        webgl.uniform1i(uniform(glass, "uPanes"), windows.count);
-        if (windows.count) {
-          webgl.uniform4fv(uniform(glass, "uPlane"), windows.planes);
-          webgl.uniform3fv(uniform(glass, "uMiddle"), windows.middles);
-          webgl.uniform3fv(uniform(glass, "uSpan"), windows.spans);
-          webgl.uniform4fv(uniform(glass, "uEdge"), windows.edges);
-        }
-        if (behind) {
-          webgl.activeTexture(webgl.TEXTURE1);
-          webgl.bindTexture(webgl.TEXTURE_2D, behind.texture);
-          webgl.activeTexture(webgl.TEXTURE0);
-        }
-      }
-      webgl.enable(webgl.BLEND);
-      webgl.depthMask(false);
-      pass(false, clear);
-      // What burns, over the aircraft and behind whatever of it is nearer.
-      if (view.effects && (view.effects.fires.length || view.effects.blasts.length)) {
-        effects ??= makeEffectsPass(context, (vertex, fragment) => compile(context, vertex, fragment));
-        effects.draw(view.effects, view.modelView, projection, view.light, view.inside ? INSIDE_FADE : OUTSIDE_FADE);
-      }
-      webgl.depthMask(true);
-      webgl.bindVertexArray(null);
-      webgl.bindTexture(webgl.TEXTURE_2D, null);
-      if (behind) {
-        webgl.activeTexture(webgl.TEXTURE1);
-        webgl.bindTexture(webgl.TEXTURE_2D, null);
-        webgl.activeTexture(webgl.TEXTURE0);
-      }
+      drawAircraft(view, screens, width, height);
       return true;
+    },
+
+    drawInset(view, x, y, width, height) {
+      if (!drawn.length || width < 1 || height < 1) return 0;
+      const webgl = context;
+      // Only the rectangle: what is outside it, the flight's own picture, is left as it is, its depth too.
+      webgl.viewport(x, y, width, height);
+      webgl.enable(webgl.SCISSOR_TEST);
+      webgl.scissor(x, y, width, height);
+      webgl.disable(webgl.STENCIL_TEST);
+      webgl.disable(webgl.CULL_FACE);
+      webgl.colorMask(true, true, true, true);
+      const calls = drawAircraft(view.inside ? { ...view, inside: false } : view, [], width, height);
+      webgl.disable(webgl.SCISSOR_TEST);
+      webgl.viewport(0, 0, webgl.drawingBufferWidth, webgl.drawingBufferHeight);
+      return calls;
     },
 
     dispose() {

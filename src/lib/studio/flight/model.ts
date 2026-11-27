@@ -314,6 +314,195 @@ export function smearedParts(
   return smeared;
 }
 
+/** A part where `PartPoser` has it: the model-view it is drawn with, and the light as its own turned normals meet it. */
+export interface PosedPart {
+  modelView: Float32Array;
+  light: Vec3;
+}
+
+/** A spinning part's smear, as `PartPoser` has it: its first `count` copies, each as opaque as `opacity`. */
+export interface SmearedPart {
+  opacity: number;
+  count: number;
+  copies: PosedPart[];
+}
+
+/**
+ * `posedParts` and `smearedParts` for an aircraft drawn every frame, with
+ * nothing made anew: each part's numbers are kept from frame to frame and
+ * written over, so the same numbers come out as those two give, in maps
+ * that are the same maps every frame (`posed`, `smeared`). What it answers
+ * holds until it is asked again.
+ */
+export class PartPoser {
+  readonly posed = new Map<string, PosedPart>();
+  readonly smeared = new Map<string, SmearedPart>();
+  private readonly names: string[];
+  private readonly kept = new Map<string, PosedPart>();
+  private readonly smears = new Map<string, SmearedPart>();
+  /** A matrix and a turn for each depth of parents, and one more of each to multiply into. */
+  private readonly matrices = Array.from({ length: 11 }, () => new Float64Array(16));
+  private readonly turns = Array.from({ length: 11 }, () => new Float64Array(9));
+  private readonly eye: Vec3 = [0, 0, 0];
+  private readonly parts: Record<string, ModelPart>;
+
+  constructor(parts: Record<string, ModelPart>) {
+    this.parts = parts;
+    this.names = Object.keys(parts);
+    const blank = (): PosedPart => ({ modelView: new Float32Array(16), light: [0, 0, 0] });
+    for (const name of this.names) {
+      this.kept.set(name, blank());
+      if (spins(parts[name])) this.smears.set(name, { opacity: 0, count: 0, copies: Array.from({ length: SMEAR_MOST }, blank) });
+    }
+  }
+
+  /**
+   * Every part where `positions` has it, seen through `modelView` and lit
+   * from `light` (`posedParts`), and with `sweep` the spinning ones' smears
+   * (`smearedParts`). `positions` is borrowed while it works, and left as it
+   * was.
+   */
+  pose(positions: PartPositions, sweep: number, modelView: ArrayLike<number>, light: Readonly<Vec3>): this {
+    this.posed.clear();
+    this.smeared.clear();
+    const matrix = this.matrices[0];
+    const turn = this.turns[0];
+    for (const name of this.names) {
+      if (!this.carried(name, positions, 0)) continue;
+      const entry = this.kept.get(name)!;
+      placeInto(entry, modelView, matrix, turn, light);
+      this.posed.set(name, entry);
+    }
+    if (!(sweep >= 1)) return this;
+    const eye = eyeInto(modelView, this.eye);
+    for (const name of this.names) {
+      const part = this.parts[name];
+      if (!spins(part)) continue;
+      if ((eye[0] - part.pivot[0]) * part.axis[0] + (eye[1] - part.pivot[1]) * part.axis[1] + (eye[2] - part.pivot[2]) * part.axis[2] < 0) continue;
+      const drive = part.drive ?? "gear";
+      const span = Math.min(sweep, 360 / Math.max(part.blades ?? 1, 1));
+      const count = Math.min(SMEAR_MOST, Math.max(2, Math.ceil(span / SMEAR_STEP_DEG)));
+      const smear = this.smears.get(name)!;
+      // Every key of the positions may be written: put back as it was after.
+      const moving = positions as Partial<Record<PartDrive, number>>;
+      const was = moving[drive];
+      for (let i = 0; i < count; i++) {
+        moving[drive] = (was ?? 0) - (span * i) / count;
+        const copy = smear.copies[i];
+        if (this.carried(name, positions, 0)) {
+          placeInto(copy, modelView, matrix, turn, light);
+        } else {
+          copy.modelView.set(modelView);
+          copy.light[0] = light[0];
+          copy.light[1] = light[1];
+          copy.light[2] = light[2];
+        }
+      }
+      moving[drive] = was;
+      smear.opacity = 1 - 0.1 ** (1 / count);
+      smear.count = count;
+      this.smeared.set(name, smear);
+    }
+    return this;
+  }
+
+  /** `carried`, into this depth's matrix and turn; false where the part is where the model has it. */
+  private carried(name: string, positions: PartPositions, depth: number): boolean {
+    const part = this.parts[name];
+    const matrix = this.matrices[depth];
+    const turn = this.turns[depth];
+    const own = partPoseInto(part, positions[part.drive ?? "gear"] ?? 0, matrix, turn);
+    const parent = part.parent && this.parts[part.parent] && depth < 8 ? this.carried(part.parent, positions, depth + 1) : false;
+    if (!parent) return own;
+    const pm = this.matrices[depth + 1];
+    const pt = this.turns[depth + 1];
+    if (!own) {
+      matrix.set(pm);
+      turn.set(pt);
+      return true;
+    }
+    // The parent's move after the part's own, into the spare pair, then back here.
+    const m = this.matrices[10];
+    const t = this.turns[10];
+    for (let row = 0; row < 3; row++) {
+      for (let column = 0; column < 3; column++) {
+        t[row * 3 + column] = pt[row * 3] * turn[column] + pt[row * 3 + 1] * turn[3 + column] + pt[row * 3 + 2] * turn[6 + column];
+      }
+    }
+    multiplyInto(m, pm, matrix);
+    matrix.set(m);
+    turn.set(t);
+    return true;
+  }
+}
+
+/** `partPose` into `matrix` (columns first) and `turn` (rows); false, and neither written, where the part is where the model has it. */
+function partPoseInto(part: ModelPart, position: number, matrix: Float64Array, turn: Float64Array): boolean {
+  const angle = partAngle(part, position);
+  if (Math.abs(angle) < (part.slide ? 1e-6 : 1e-4)) return false;
+  const x = part.axis[0], y = part.axis[1], z = part.axis[2];
+  if (part.slide) {
+    matrix.fill(0);
+    matrix[0] = matrix[5] = matrix[10] = matrix[15] = 1;
+    matrix[12] = x * angle;
+    matrix[13] = y * angle;
+    matrix[14] = z * angle;
+    turn.fill(0);
+    turn[0] = turn[4] = turn[8] = 1;
+    return true;
+  }
+  const radians = (angle * Math.PI) / 180;
+  const c = Math.cos(radians);
+  const s = Math.sin(radians);
+  const t = 1 - c;
+  turn[0] = t * x * x + c; turn[1] = t * x * y - s * z; turn[2] = t * x * z + s * y;
+  turn[3] = t * x * y + s * z; turn[4] = t * y * y + c; turn[5] = t * y * z - s * x;
+  turn[6] = t * x * z - s * y; turn[7] = t * y * z + s * x; turn[8] = t * z * z + c;
+  const px = part.pivot[0], py = part.pivot[1], pz = part.pivot[2];
+  for (let i = 0; i < 3; i++) {
+    matrix[i * 4] = turn[i];
+    matrix[i * 4 + 1] = turn[3 + i];
+    matrix[i * 4 + 2] = turn[6 + i];
+    matrix[i * 4 + 3] = 0;
+    matrix[12 + i] = part.pivot[i] - (turn[i * 3] * px + turn[i * 3 + 1] * py + turn[i * 3 + 2] * pz);
+  }
+  matrix[15] = 1;
+  return true;
+}
+
+/** A part seen through `modelView`, moved by `matrix` and turned by `turn`, lit from `light`: into `out`. */
+function placeInto(out: PosedPart, modelView: ArrayLike<number>, matrix: Float64Array, turn: Float64Array, light: Readonly<Vec3>): void {
+  multiplyInto(out.modelView, modelView, matrix);
+  for (let i = 0; i < 3; i++) out.light[i] = turn[i] * light[0] + turn[3 + i] * light[1] + turn[6 + i] * light[2];
+}
+
+/** `multiply4`, into `out`. */
+export function multiplyInto(out: Float32Array | Float64Array, a: ArrayLike<number>, b: ArrayLike<number>): Float32Array | Float64Array {
+  for (let column = 0; column < 4; column++) {
+    for (let row = 0; row < 4; row++) {
+      let sum = 0;
+      for (let k = 0; k < 4; k++) sum += a[k * 4 + row] * b[column * 4 + k];
+      out[column * 4 + row] = sum;
+    }
+  }
+  return out;
+}
+
+/** `eyeOf`, into `out`. */
+function eyeInto(m: ArrayLike<number>, out: Vec3): Vec3 {
+  const a = m[0], b = m[4], c = m[8], d = m[1], e = m[5], f = m[9], g = m[2], h = m[6], k = m[10];
+  const det = a * (e * k - f * h) - b * (d * k - f * g) + c * (d * h - e * g);
+  if (!det) {
+    out[0] = out[1] = out[2] = 0;
+    return out;
+  }
+  const x = m[12], y = m[13], z = m[14];
+  out[0] = -((e * k - f * h) * x + (c * h - b * k) * y + (b * f - c * e) * z) / det;
+  out[1] = -((f * g - d * k) * x + (a * k - c * g) * y + (c * d - a * f) * z) / det;
+  out[2] = -((d * h - e * g) * x + (b * g - a * h) * y + (a * e - b * d) * z) / det;
+  return out;
+}
+
 /** Where the eye is in the frame a model-view draws, columns first: what it puts at the camera. */
 function eyeOf(m: ArrayLike<number>): Vec3 {
   // The inverse of its turn (a stretch too, if it has one) on its shift, the other way.

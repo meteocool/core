@@ -95,47 +95,31 @@ export function blastGlare(effects: AircraftEffects): number {
  * not half sunk into it).
  */
 export function effectSprites(effects: AircraftEffects, out: Float32Array): number {
+  // Nothing is made anew here: it is drawn every frame, for every aircraft that burns.
   const { time, air, up } = effects;
-  const wind = Math.hypot(...air);
-  const downwind: Vec3 = wind > 1e-6 ? [air[0] / wind, air[1] / wind, air[2] / wind] : [0, 0, 0];
-  const most = Math.min(MAX_SPRITES, Math.floor(out.length / SPRITE_FLOATS));
-  let count = 0;
-  const put = (
-    x: number, y: number, z: number, radius: number, stretch: Vec3 | null,
-    heat: number, opacity: number, seed: number, grain: number, lift: number,
-  ) => {
-    if (count >= most || !(opacity > 0.004) || !(radius > 0)) return;
-    const at = count * SPRITE_FLOATS;
-    out[at] = x;
-    out[at + 1] = y;
-    out[at + 2] = z;
-    out[at + 3] = radius;
-    out[at + 4] = stretch?.[0] ?? 0;
-    out[at + 5] = stretch?.[1] ?? 0;
-    out[at + 6] = stretch?.[2] ?? 0;
-    out[at + 7] = heat;
-    out[at + 8] = Math.min(opacity, 1);
-    out[at + 9] = seed;
-    out[at + 10] = grain;
-    out[at + 11] = lift;
-    count++;
-  };
+  const wind = Math.hypot(air[0], air[1], air[2]);
+  const dx = wind > 1e-6 ? air[0] / wind : 0;
+  const dy = wind > 1e-6 ? air[1] / wind : 0;
+  const dz = wind > 1e-6 ? air[2] / wind : 0;
+  writing = out;
+  room = Math.min(MAX_SPRITES, Math.floor(out.length / SPRITE_FLOATS));
+  count = 0;
 
-  effects.fires.forEach(({ at, size, strength: asked, born }, number) => {
+  for (let number = 0; number < effects.fires.length; number++) {
+    const { at, size, strength: asked, born } = effects.fires[number];
     const age = time - born;
     const strength = clamp(asked);
-    if (age < 0 || strength <= 0 || !(size > 0)) return;
+    if (age < 0 || strength <= 0 || !(size > 0)) continue;
     const own = born * 13.7 + at[0] * 3.1 + at[1] * 5.3 + at[2] * 7.9 + number * 1.9;
     // A flame stands up in still air and is laid back by a wind, no further than a few of its own lengths.
     const laid = Math.min(wind * 0.12, size * 3);
-    const flame: Vec3 = [0, 1, 2].map((k) => up[k] * size * 1.1 + downwind[k] * laid) as Vec3;
-    const length = Math.hypot(...flame) || 1;
+    const fx = up[0] * size * 1.1 + dx * laid;
+    const fy = up[1] * size * 1.1 + dy * laid;
+    const fz = up[2] * size * 1.1 + dz * laid;
+    const length = Math.hypot(fx, fy, fz) || 1;
 
     const flicker = 0.8 + 0.2 * chance(own + Math.floor(time * 14));
-    put(
-      at[0] + flame[0] * 0.2, at[1] + flame[1] * 0.2, at[2] + flame[2] * 0.2, size * 1.6, null,
-      1, 0.2 * strength * flicker, chance(own), 0, 0.6,
-    );
+    put(at[0] + fx * 0.2, at[1] + fy * 0.2, at[2] + fz * 0.2, size * 1.6, 0, 0, 0, 1, 0.2 * strength * flicker, chance(own), 0, 0.6);
     for (let j = 0; j < FLAMES; j++) {
       const turn = age / FLAME_S + j / FLAMES;
       const phase = turn - Math.floor(turn);
@@ -144,10 +128,9 @@ export function effectSprites(effects: AircraftEffects, out: Float32Array): numb
       const seed = chance(own + j * 17.3 + Math.floor(turn) * 3.7);
       const reach = phase * (0.7 + 0.6 * seed);
       const radius = size * (0.55 - 0.3 * phase) * (0.7 + 0.3 * strength);
-      const jitter = (k: number) => (chance(seed * 91.7 + k * 13.1) - 0.5) * size * 0.7;
       put(
-        at[0] + jitter(0) + flame[0] * reach, at[1] + jitter(1) + flame[1] * reach, at[2] + jitter(2) + flame[2] * reach, radius,
-        [0, 1, 2].map((k) => (flame[k] / length) * radius * 0.6) as Vec3,
+        at[0] + flameJitter(seed, 0, size) + fx * reach, at[1] + flameJitter(seed, 1, size) + fy * reach, at[2] + flameJitter(seed, 2, size) + fz * reach,
+        radius, (fx / length) * radius * 0.6, (fy / length) * radius * 0.6, (fz / length) * radius * 0.6,
         1.45 - 0.8 * phase, 0.9 * strength * smooth(phase / 0.15) * (1 - phase) ** 0.8, seed, 1, 0.6,
       );
     }
@@ -163,44 +146,46 @@ export function effectSprites(effects: AircraftEffects, out: Float32Array): numb
       const seed = chance(own + 51.1 + j * 7.9 + Math.floor(turn) * 2.3);
       const along = carried(old, 0.25);
       const radius = size * 0.4 + spread * old ** 0.7;
-      const wander = (k: number) => (chance(seed * 57.3 + k * 29.9) - 0.5) * (size * 0.3 + 0.6 * Math.sqrt(old));
       // Nearly all the way to the next puff, along the wind: the puffs of a fast trail run into one streak.
       const drawn = wind * (SMOKE_S / SMOKE_PUFFS) * 0.9 * (1 - Math.exp(-old / 0.25));
       put(
-        at[0] + flame[0] * 0.6 + up[0] * rise * old + air[0] * along + wander(0),
-        at[1] + flame[1] * 0.6 + up[1] * rise * old + air[1] * along + wander(1),
-        at[2] + flame[2] * 0.6 + up[2] * rise * old + air[2] * along + wander(2),
-        radius, [downwind[0] * drawn, downwind[1] * drawn, downwind[2] * drawn],
+        at[0] + fx * 0.6 + up[0] * rise * old + air[0] * along + wander(seed, 0, size, old),
+        at[1] + fy * 0.6 + up[1] * rise * old + air[1] * along + wander(seed, 1, size, old),
+        at[2] + fz * 0.6 + up[2] * rise * old + air[2] * along + wander(seed, 2, size, old),
+        radius, dx * drawn, dy * drawn, dz * drawn,
         Math.max(0, 0.9 - old / 0.35),
         strength * smooth(old / 0.2) * (1 - phase) ** 1.2 * Math.max((size * 0.4) / radius, 0.25) ** 0.45,
         seed, 1, 0.2,
       );
     }
-  });
+  }
 
-  effects.blasts.forEach(({ at, size, born }, number) => {
+  for (let number = 0; number < effects.blasts.length; number++) {
+    const { at, size, born } = effects.blasts[number];
     const age = time - born;
-    if (age < 0 || age > BLAST_S || !(size > 0)) return;
+    if (age < 0 || age > BLAST_S || !(size > 0)) continue;
     const own = born * 7.3 + at[0] * 2.9 + at[1] * 4.7 + at[2] * 6.1 + number * 3.3;
     const swell = blastSwell(age);
     // Swollen to its size in under half a second; then the smoke it has become goes on spreading slowly, and thins.
     const radius = (size / 2) * swell * (1 + 0.12 * age);
     const lifted = (size * 0.3 * age) / (1 + 0.15 * age);
     const drift = carried(age, 0.6);
-    const middle: Vec3 = [0, 1, 2].map((k) => at[k] + up[k] * lifted + air[k] * drift) as Vec3;
+    const mx = at[0] + up[0] * lifted + air[0] * drift;
+    const my = at[1] + up[1] * lifted + air[1] * drift;
+    const mz = at[2] + up[2] * lifted + air[2] * drift;
     const heat = blastHeat(age);
     const fade = age < 3 ? 1 : 1 - (age - 3) / (BLAST_S - 3);
 
     if (age < FLASH_S && !effects.calm) {
-      put(at[0], at[1], at[2], size * (0.9 + 3.5 * age), null, 2, 0.6 * (1 - age / FLASH_S) ** 2, chance(own), 0, 1);
+      put(at[0], at[1], at[2], size * (0.9 + 3.5 * age), 0, 0, 0, 2, 0.6 * (1 - age / FLASH_S) ** 2, chance(own), 0, 1);
     }
-    if (age < 0.6) put(middle[0], middle[1], middle[2], radius * 0.9, null, 2, 1 - age / 0.6, chance(own + 1), 0.3, 0.5);
+    if (age < 0.6) put(mx, my, mz, radius * 0.9, 0, 0, 0, 2, 1 - age / 0.6, chance(own + 1), 0.3, 0.5);
     for (let j = 0; j < LOBES; j++) {
       const seed = chance(own + 9.1 + j * 5.7);
       const out3 = direction(seed * 71.3 + j);
       const from = radius * 0.5;
       put(
-        middle[0] + out3[0] * from, middle[1] + out3[1] * from, middle[2] + out3[2] * from, radius * (0.62 + 0.25 * seed), null,
+        mx + out3[0] * from, my + out3[1] * from, mz + out3[2] * from, radius * (0.62 + 0.25 * seed), 0, 0, 0,
         heat * (0.8 + 0.4 * seed), (0.75 + 0.15 * Math.min(heat, 1)) * fade ** 1.5, seed, 1, 0,
       );
     }
@@ -214,30 +199,69 @@ export function effectSprites(effects: AircraftEffects, out: Float32Array): numb
         const seed = chance(own + 23.9 + j * 11.3);
         const thrown = direction(seed * 43.1 + j * 1.7);
         // More up than down: what goes down is stopped by what it came from.
-        const aim: Vec3 = [0, 1, 2].map((k) => thrown[k] + up[k] * 0.6) as Vec3;
-        const speed = ((9 + 16 * seed) * Math.sqrt(size / 6)) / (Math.hypot(...aim) || 1);
-        const velocity: Vec3 = [0, 1, 2].map((k) => aim[k] * speed * slowed - up[k] * GRAVITY * age) as Vec3;
+        const ax = thrown[0] + up[0] * 0.6;
+        const ay = thrown[1] + up[1] * 0.6;
+        const az = thrown[2] + up[2] * 0.6;
+        const speed = ((9 + 16 * seed) * Math.sqrt(size / 6)) / (Math.hypot(ax, ay, az) || 1);
         put(
-          at[0] + aim[0] * speed * flown - up[0] * fallen + air[0] * windward,
-          at[1] + aim[1] * speed * flown - up[1] * fallen + air[1] * windward,
-          at[2] + aim[2] * speed * flown - up[2] * fallen + air[2] * windward,
+          at[0] + ax * speed * flown - up[0] * fallen + air[0] * windward,
+          at[1] + ay * speed * flown - up[1] * fallen + air[1] * windward,
+          at[2] + az * speed * flown - up[2] * fallen + air[2] * windward,
           size * 0.016 * (0.6 + chance(seed * 3.3)),
           // Drawn out along its path, as a spark is seen.
-          [velocity[0] * 0.05, velocity[1] * 0.05, velocity[2] * 0.05],
+          (ax * speed * slowed - up[0] * GRAVITY * age) * 0.05,
+          (ay * speed * slowed - up[1] * GRAVITY * age) * 0.05,
+          (az * speed * slowed - up[2] * GRAVITY * age) * 0.05,
           2 - 0.4 * age, (1 - age / FRAGMENT_S) ** 0.7, seed, 0, 0.5,
         );
       }
     }
-  });
+  }
   return count;
 }
 
-/** A direction, evenly any: the same one for the same `n`. */
-function direction(n: number): Vec3 {
+/** Where `effectSprites` writes its sprites, how many fit, and how many it has written: kept here, so that `put` is made once. */
+let writing: Float32Array = new Float32Array(0);
+let room = 0;
+let count = 0;
+
+function put(
+  x: number, y: number, z: number, radius: number, sx: number, sy: number, sz: number,
+  heat: number, opacity: number, seed: number, grain: number, lift: number,
+): void {
+  if (count >= room || !(opacity > 0.004) || !(radius > 0)) return;
+  const out = writing;
+  const at = count * SPRITE_FLOATS;
+  out[at] = x;
+  out[at + 1] = y;
+  out[at + 2] = z;
+  out[at + 3] = radius;
+  out[at + 4] = sx;
+  out[at + 5] = sy;
+  out[at + 6] = sz;
+  out[at + 7] = heat;
+  out[at + 8] = Math.min(opacity, 1);
+  out[at + 9] = seed;
+  out[at + 10] = grain;
+  out[at + 11] = lift;
+  count++;
+}
+
+/** How far a flame is from where its fire is, one way, metres. */
+const flameJitter = (seed: number, k: number, size: number) => (chance(seed * 91.7 + k * 13.1) - 0.5) * size * 0.7;
+/** How far a puff of smoke has wandered off its train, one way, metres. */
+const wander = (seed: number, k: number, size: number, old: number) => (chance(seed * 57.3 + k * 29.9) - 0.5) * (size * 0.3 + 0.6 * Math.sqrt(old));
+
+/** A direction, evenly any: the same one for the same `n`. Written into the same three numbers each time. */
+const directed: Vec3 = [0, 0, 0];
+function direction(n: number): Readonly<Vec3> {
   const z = chance(n) * 2 - 1;
   const round = chance(n + 0.37) * Math.PI * 2;
   const flat = Math.sqrt(1 - z * z);
-  return [flat * Math.cos(round), flat * Math.sin(round), z];
+  directed[0] = flat * Math.cos(round);
+  directed[1] = flat * Math.sin(round);
+  directed[2] = z;
+  return directed;
 }
 
 const VERTEX = `#version 300 es
@@ -362,6 +386,9 @@ export function makeEffectsPass(gl: WebGL2RenderingContext, compile: (vertex: st
   const sorted = new Float32Array(MAX_SPRITES * SPRITE_FLOATS);
   const depth = new Float32Array(MAX_SPRITES);
   const order = new Uint16Array(MAX_SPRITES);
+  /** The first so many of `order`, each made once; and the farther of two first. */
+  const firsts: Uint16Array[] = [];
+  const farther = (a: number, b: number) => depth[a] - depth[b];
   const modelViewIn = new Float32Array(16);
   const projectionIn = new Float32Array(16);
 
@@ -370,17 +397,20 @@ export function makeEffectsPass(gl: WebGL2RenderingContext, compile: (vertex: st
   ): void {
     const count = Math.min(made, MAX_SPRITES);
     if (!count) return;
-    // The farthest first: smoke covers what is behind it, and has to be laid over it.
+    // The farthest first: smoke covers what is behind it, and has to be laid over it. Nothing made anew: drawn every frame.
     for (let i = 0; i < count; i++) {
       const at = i * SPRITE_FLOATS;
       depth[i] = modelView[2] * sprites[at] + modelView[6] * sprites[at + 1] + modelView[10] * sprites[at + 2] + modelView[14];
       order[i] = i;
     }
-    order.subarray(0, count).sort((a, b) => depth[a] - depth[b]);
+    (firsts[count] ??= order.subarray(0, count)).sort(farther);
     for (let i = 0; i < count; i++) {
-      sorted.set(sprites.subarray(order[i] * SPRITE_FLOATS, (order[i] + 1) * SPRITE_FLOATS), i * SPRITE_FLOATS);
+      const from = order[i] * SPRITE_FLOATS;
+      const to = i * SPRITE_FLOATS;
+      for (let k = 0; k < SPRITE_FLOATS; k++) sorted[to + k] = sprites[from + k];
     }
-    const sun: [number, number] = [0, 1].map((row) => modelView[row] * light[0] + modelView[4 + row] * light[1] + modelView[8 + row] * light[2]) as [number, number];
+    const sunX = modelView[0] * light[0] + modelView[4] * light[1] + modelView[8] * light[2];
+    const sunY = modelView[1] * light[0] + modelView[5] * light[1] + modelView[9] * light[2];
 
     gl.useProgram(program);
     modelViewIn.set(modelView);
@@ -388,7 +418,7 @@ export function makeEffectsPass(gl: WebGL2RenderingContext, compile: (vertex: st
     gl.uniformMatrix4fv(uniforms.uModelView, false, modelViewIn);
     gl.uniformMatrix4fv(uniforms.uProjection, false, projectionIn);
     gl.uniform2f(uniforms.uNear, near[0], near[1]);
-    gl.uniform2f(uniforms.uSun, sun[0], sun[1]);
+    gl.uniform2f(uniforms.uSun, sunX, sunY);
     gl.bindVertexArray(vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
     gl.bufferSubData(gl.ARRAY_BUFFER, 0, sorted, 0, count * SPRITE_FLOATS);
