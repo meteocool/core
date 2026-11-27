@@ -34,6 +34,9 @@ metres, not on the texture: every pixel of a texture is first traced to the
 point of the hull it is drawn on (`texel_map`), so a title reads the right
 way round on either side whatever way its texture was laid out. The inside
 is as its author made it, but for the controls that move.
+
+The lighter aircraft other pilots are drawn as (a320-light.bin) is made from
+what this writes by `light-aircraft.py`, beside it: run that after this.
 """
 import io
 import json

@@ -39,3 +39,10 @@ name; and stripes in the radar's colours up the rear fuselage and the fin,
 round each engine's intake and up each wingtip. A few small parts whose
 texture was a stretch of the hull's painted elsewhere are drawn in the colour
 of the hull round them. Inside, nothing else is changed.
+
+a320-light.bin, the aircraft other pilots are drawn as, is made from
+a320.bin above (scripts/models/light-aircraft.py): only what can be seen
+from outside is kept, the cockpit and the cabin behind the windows left
+out, and its vertices are clustered down to about 8,000 triangles, and to
+about 400 for a silhouette, coloured by the textures where they are drawn.
+It carries the same licence and attribution.
