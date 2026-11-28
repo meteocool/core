@@ -36,6 +36,7 @@ import StationToggle from "./StationToggle.svelte";
 import StationPicker from "./StationPicker.svelte";
 import { fadeEdges } from "../lib/fadeEdges";
 import VelocityScaleLine from "./scales/VelocityScaleLine.svelte";
+import SweepScaleLine from "./scales/SweepScaleLine.svelte";
 import ColumnScaleLine from "./scales/ColumnScaleLine.svelte";
 import { isColumnEncoding } from "../lib/columnValues";
 import LiveIndicator from "./LiveIndicator.svelte";
@@ -1510,7 +1511,9 @@ onDestroy(() => {
           <Icon icon={playPauseButton} />
         </button>
         <div class="legend">
-          {#if $siteMode && $siteMode.quantity !== "reflectivity"}
+          {#if $siteMode && ["rhohv", "zdr", "shear", "divergence"].includes($siteMode.quantity)}
+            <SweepScaleLine quantity={$siteMode.quantity} />
+          {:else if $siteMode && $siteMode.quantity !== "reflectivity"}
             <VelocityScaleLine nyquist={$siteSweepView?.nyquist ?? null} relative={$siteMode.quantity === "srv"} />
           {:else if columnEncoding}
             <ColumnScaleLine encoding={columnEncoding} />

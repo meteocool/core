@@ -227,7 +227,7 @@ const CELL = /^[A-Za-z0-9_-]{1,64}$/;
 const RADAR = /^[a-z0-9]{3,12}$/;
 
 /** What a link may say is drawn of a radar beside reflectivity, the default. */
-const SWEEPS: readonly Quantity[] = ["velocity", "srv"];
+const SWEEPS: readonly Quantity[] = ["velocity", "srv", "rhohv", "zdr", "shear", "divergence"];
 
 /** A storm id: opaque, in the 26-character shape the backend hands out; anything else is not looked up. */
 const STORM = /^[0-9A-HJKMNP-TV-Z]{26}$/;

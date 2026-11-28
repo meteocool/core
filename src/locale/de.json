@@ -1039,7 +1039,11 @@
       "group": "Was angezeigt wird",
       "reflectivity": "Reflektivität",
       "velocity": "Geschwindigkeit",
-      "srv": "Sturmrelativ"
+      "srv": "Sturmrelativ",
+      "rhohv": "CC",
+      "zdr": "ZDR",
+      "shear": "Scherung",
+      "divergence": "Divergenz"
     },
     "none": "Kein Scan zu dieser Zeit",
     "failed": "Dieser Scan konnte nicht geladen werden",
@@ -1049,6 +1053,9 @@
     "not_dealiased_badge": "Nicht dealiased",
     "srv_hint": "Eine Gewitterzelle auswählen oder ihre Zugbewegung von Hand einstellen, um sie aus der Geschwindigkeit herauszurechnen.",
     "srv_hint_badge": "Keine Zugbewegung",
+    "unfiltered_badge": "Ungefiltert",
+    "unfiltered": "Ungefilterter Korrelationskoeffizient, nur gezeichnet, wo das Echo stark genug zum Auswerten ist: leer heißt nicht trocken.",
+    "lowest_tilt": "Nur in der untersten Elevation des Radars gemessen",
     "info": {
       "button": "Über dieses Radar",
       "operator": "Betreiber",
@@ -1088,7 +1095,15 @@
     "legend": {
       "velocity": "m/s<br />hin · weg",
       "srv": "m/s<br />sturmrelativ",
-      "hint": "Radialgeschwindigkeit: grün zum Radar hin, rot vom Radar weg, violett wo sie nicht entfaltet werden konnte"
+      "hint": "Radialgeschwindigkeit: grün zum Radar hin, rot vom Radar weg, violett wo sie nicht entfaltet werden konnte",
+      "rhohv": "CC",
+      "rhohv_hint": "Korrelationskoeffizient: Regen und Schnee 0,97 bis 1, die Schmelzschicht 0,90 bis 0,95, Vögel, Insekten, Störechos und Trümmer unter 0,85",
+      "zdr": "ZDR<br />dB",
+      "zdr_hint": "Differentielle Reflektivität, dB: große Regentropfen 1 bis 4, Hagel und Graupel nahe 0, Insekten hoch",
+      "shear": "Scherung<br />10⁻³/s",
+      "shear_hint": "Azimutale Scherung der Geschwindigkeit, 1/s; positiv zyklonal",
+      "divergence": "Divergenz<br />10⁻³/s",
+      "divergence_hint": "Radiale Divergenz der Geschwindigkeit, 1/s; positiv divergent (Ausfluss), negativ konvergent"
     },
     "read": {
       "where": "{azimuth}° · {range} km · Strahl {height} km",
@@ -1098,7 +1113,17 @@
       "dbz": "{value} dBZ",
       "away": "{value} m/s weg",
       "toward": "{value} m/s hin",
-      "calm": "0 m/s"
+      "calm": "0 m/s",
+      "too_weak": "Zu schwach zum Auswerten",
+      "no_estimate": "Keine Schätzung",
+      "masked": "Maskiert: kein Echo oder zu schwach",
+      "cc": "CC {value}",
+      "zdr": "ZDR {value} dB",
+      "cyclonic": "{value} × 10⁻³/s zyklonal",
+      "anticyclonic": "{value} × 10⁻³/s antizyklonal",
+      "divergent": "{value} × 10⁻³/s divergent",
+      "convergent": "{value} × 10⁻³/s konvergent",
+      "rate_zero": "0 /s"
     }
   },
   "stations": {

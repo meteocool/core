@@ -1039,7 +1039,11 @@
       "group": "Wat tonen",
       "reflectivity": "Reflectiviteit",
       "velocity": "Snelheid",
-      "srv": "Buirelatief"
+      "srv": "Buirelatief",
+      "rhohv": "CC",
+      "zdr": "ZDR",
+      "shear": "Schering",
+      "divergence": "Divergentie"
     },
     "none": "Geen scan op dit tijdstip",
     "failed": "Deze scan kon niet worden geladen",
@@ -1049,6 +1053,9 @@
     "not_dealiased_badge": "Niet dealiased",
     "srv_hint": "Kies een bui, of stel haar verplaatsing met de hand in, om die uit de snelheid te halen.",
     "srv_hint_badge": "Geen verplaatsing",
+    "unfiltered_badge": "Ongefilterd",
+    "unfiltered": "Ongefilterde correlatiecoëfficiënt, alleen getekend waar de echo sterk genoeg is om te lezen: leeg is niet droog.",
+    "lowest_tilt": "Alleen gemeten op de laagste elevatie van de radar",
     "info": {
       "button": "Over deze radar",
       "operator": "Beheerder",
@@ -1088,7 +1095,15 @@
     "legend": {
       "velocity": "m/s<br />naar · van",
       "srv": "m/s<br />buirelatief",
-      "hint": "Radiale snelheid: groen naar de radar toe, rood ervan af, paars waar ze niet ontvouwen kon worden"
+      "hint": "Radiale snelheid: groen naar de radar toe, rood ervan af, paars waar ze niet ontvouwen kon worden",
+      "rhohv": "CC",
+      "rhohv_hint": "Correlatiecoëfficiënt: regen en sneeuw 0,97 tot 1, de smeltlaag 0,90 tot 0,95, vogels, insecten, clutter en puin onder 0,85",
+      "zdr": "ZDR<br />dB",
+      "zdr_hint": "Differentiële reflectiviteit, dB: grote regendruppels 1 tot 4, hagel en korrelhagel bij 0, insecten hoog",
+      "shear": "Schering<br />10⁻³/s",
+      "shear_hint": "Azimutale schering van de snelheid, 1/s; positief cyclonaal",
+      "divergence": "Divergentie<br />10⁻³/s",
+      "divergence_hint": "Radiale divergentie van de snelheid, 1/s; positief divergent (uitstroming), negatief convergent"
     },
     "read": {
       "where": "{azimuth}° · {range} km · bundel {height} km",
@@ -1098,7 +1113,17 @@
       "dbz": "{value} dBZ",
       "away": "{value} m/s van de radar af",
       "toward": "{value} m/s naar de radar toe",
-      "calm": "0 m/s"
+      "calm": "0 m/s",
+      "too_weak": "Te zwak om te lezen",
+      "no_estimate": "Geen schatting",
+      "masked": "Gemaskeerd: geen echo, of te zwak",
+      "cc": "CC {value}",
+      "zdr": "ZDR {value} dB",
+      "cyclonic": "{value} × 10⁻³/s cyclonaal",
+      "anticyclonic": "{value} × 10⁻³/s anticyclonaal",
+      "divergent": "{value} × 10⁻³/s divergent",
+      "convergent": "{value} × 10⁻³/s convergent",
+      "rate_zero": "0 /s"
     }
   },
   "stations": {

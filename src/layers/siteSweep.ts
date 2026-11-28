@@ -3,9 +3,10 @@ import ImageCanvasSource from "ol/source/ImageCanvas";
 import type { Extent } from "ol/extent";
 import type { Size } from "ol/size";
 import { rvp6Table } from "../lib/rvp6";
-import { velocityTable } from "../colormaps";
+import { sweepEncodingTable, velocityTable } from "../colormaps";
 import type { Rgba } from "../colormaps";
-import type { Sweep } from "../lib/sweep";
+import type { Encoding, Sweep } from "../lib/sweep";
+import type { Quantity } from "../lib/siteSweeps";
 import type { Motion } from "../lib/sweepGeometry";
 import { EARTH_RADIUS_M, EFFECTIVE_RADIUS_M } from "../lib/sweepGeometry";
 import { isDarkBasemap, watchBasemap } from "./casing";
@@ -57,7 +58,7 @@ uniform float u_elevation;  // the tilt, radians
 uniform vec2 u_range;       // the first bin's start and each bin's length, metres
 uniform ivec2 u_shape;      // rays, bins
 uniform vec2 u_azimuth;     // the first ray's centre and the step, degrees
-uniform int u_mode;         // 0 reflectivity, 1 velocity, 2 storm-relative velocity
+uniform int u_mode;         // 0 reflectivity, 1 any other, 2 storm-relative velocity
 uniform vec2 u_motion;      // the storm's speed in m/s and heading in radians, for 2
 uniform usampler2D u_bins;  // R8UI, bins wide, rays high
 uniform sampler2D u_palette;// 256 x 1
@@ -115,7 +116,7 @@ const DARK_VEIL: Rgba = [0, 0, 0, 120];
 /** What is drawn: the sweep, how, and for SRV, the storm's motion. */
 export interface Drawn {
   sweep: Sweep;
-  mode: "reflectivity" | "velocity" | "srv";
+  mode: Quantity;
   motion: Motion | null;
 }
 
@@ -155,7 +156,7 @@ class SweepRenderer {
       this.canvas.height = height;
     }
     this.upload(gl, drawn.sweep);
-    this.uploadPalette(gl, drawn.sweep.header.encoding === "vrad-u8" ? "velocity" : reflectivityPalette);
+    this.uploadPalette(gl, paletteOf(drawn.sweep.header.encoding, reflectivityPalette));
 
     const header = drawn.sweep.header;
     const u = this.uniforms;
@@ -255,7 +256,8 @@ class SweepRenderer {
 
   private uploadPalette(gl: WebGL2RenderingContext, name: string) {
     if (this.paletteKey === name) return;
-    const table: Rgba[] = name === "velocity" ? velocityTable() : rvp6Table(name);
+    const table: Rgba[] = name === "velocity" ? velocityTable()
+      : sweepEncodingTable(name as Encoding) ?? rvp6Table(name);
     const bytes = new Uint8Array(256 * 4);
     table.forEach((rgba, i) => bytes.set(rgba, i * 4));
     gl.bindTexture(gl.TEXTURE_2D, this.palette);
@@ -263,6 +265,15 @@ class SweepRenderer {
     nearest(gl);
     this.paletteKey = name;
   }
+}
+
+/**
+ * The palette a sweep is drawn in, by its encoding: velocity's, a moment's
+ * own (named by its encoding), or the reader's reflectivity palette.
+ */
+function paletteOf(encoding: Encoding, reflectivityPalette: string): string {
+  if (encoding === "vrad-u8") return "velocity";
+  return sweepEncodingTable(encoding) ? encoding : reflectivityPalette;
 }
 
 function nearest(gl: WebGL2RenderingContext) {

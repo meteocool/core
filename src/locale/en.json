@@ -1640,7 +1640,11 @@
       "group": "What to show",
       "reflectivity": "Reflectivity",
       "velocity": "Velocity",
-      "srv": "Storm-relative"
+      "srv": "Storm-relative",
+      "rhohv": "CC",
+      "zdr": "ZDR",
+      "shear": "Shear",
+      "divergence": "Divergence"
     },
     "none": "No sweep at this time",
     "failed": "Couldn't load this sweep",
@@ -1650,6 +1654,9 @@
     "not_dealiased_badge": "Not dealiased",
     "srv_hint": "Select a storm, or set its motion by hand, to take it out of the velocity.",
     "srv_hint_badge": "No motion set",
+    "unfiltered_badge": "Unfiltered",
+    "unfiltered": "Unfiltered correlation coefficient, drawn only where the echo is strong enough to read: blank is not dry.",
+    "lowest_tilt": "Measured at the radar's lowest tilt only",
     "info": {
       "button": "About this radar",
       "operator": "Operator",
@@ -1689,7 +1696,15 @@
     "legend": {
       "velocity": "m/s<br />toward · away",
       "srv": "m/s<br />storm-relative",
-      "hint": "Radial velocity: green toward the radar, red away, purple where it could not be unfolded"
+      "hint": "Radial velocity: green toward the radar, red away, purple where it could not be unfolded",
+      "rhohv": "CC",
+      "rhohv_hint": "Correlation coefficient: rain and snow 0.97 to 1, the melting layer 0.90 to 0.95, birds, insects, clutter and debris under 0.85",
+      "zdr": "ZDR<br />dB",
+      "zdr_hint": "Differential reflectivity, dB: big raindrops 1 to 4, hail and graupel near 0, insects high",
+      "shear": "Shear<br />10⁻³/s",
+      "shear_hint": "Azimuthal shear of the velocity, 1/s; positive cyclonic",
+      "divergence": "Divergence<br />10⁻³/s",
+      "divergence_hint": "Radial divergence of the velocity, 1/s; positive divergent (outflow), negative convergent"
     },
     "read": {
       "where": "{azimuth}° · {range} km · beam {height} km",
@@ -1699,7 +1714,17 @@
       "dbz": "{value} dBZ",
       "away": "{value} m/s away",
       "toward": "{value} m/s toward",
-      "calm": "0 m/s"
+      "calm": "0 m/s",
+      "too_weak": "Too weak to read",
+      "no_estimate": "No estimate",
+      "masked": "Masked: no echo, or too weak",
+      "cc": "CC {value}",
+      "zdr": "ZDR {value} dB",
+      "cyclonic": "{value} × 10⁻³/s cyclonic",
+      "anticyclonic": "{value} × 10⁻³/s anticyclonic",
+      "divergent": "{value} × 10⁻³/s divergent",
+      "convergent": "{value} × 10⁻³/s convergent",
+      "rate_zero": "0 /s"
     }
   },
   "stations": {

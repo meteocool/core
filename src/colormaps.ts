@@ -1,6 +1,9 @@
 /* eslint-disable max-len */
 // Color translation maps
 
+import { readBin } from "./lib/sweep";
+import type { Encoding } from "./lib/sweep";
+
 /** An RGBA colour as the tables below store it. */
 export type Rgba = [number, number, number, number];
 
@@ -859,5 +862,109 @@ export function velocityTable(): Rgba[] {
     }
   }
   velocityTableCache = table;
+  return table;
+}
+
+/**
+ * The dual-polarisation moments and the velocity's shear and divergence, for
+ * a site's `rhohv-u8`, `zdr-u8`, `shear-u8` and `divshear-u8` sweeps
+ * (lib/sweep.ts): 256 entries each, one per byte, as `velocityTable` is.
+ *
+ * Every value between two stops is interpolated linearly, and held at the
+ * end stops past them. A bin with no value is never a colour of a scale:
+ * not measured and no estimate are transparent, and no echo, too weak to
+ * read or masked take velocity's faint no-echo tint, so the sweep's reach
+ * shows and nothing there passes for a reading.
+ */
+type Stops = Array<[number, string]>;
+
+/**
+ * The correlation coefficient: near black for noise and debris, violet for
+ * birds, insects and clutter, green for mixed echoes, yellow for the melting
+ * layer and hail, red for rain and snow, pink past 1, which is noise or
+ * calibration. Close to what chasers know from other viewers.
+ */
+export const RHOHV_STOPS: Stops = [
+  [0.2, "1a1a2e"], [0.45, "4b3f72"], [0.6, "6c5ce7"], [0.75, "2e86de"], [0.85, "10ac84"],
+  [0.92, "feca57"], [0.96, "ff9f43"], [0.98, "ee5253"], [1.0, "c0392b"], [1.05, "f8a5c2"],
+];
+
+/** Differential reflectivity, dB, diverging about 0: slate below, grey at 0, cyan to green to yellow to red above. */
+export const ZDR_STOPS: Stops = [
+  [-4, "2c3e50"], [-1, "7f8fa6"], [0, "dcdde1"], [1, "9be7ff"], [2, "4bcffa"],
+  [3, "0be881"], [4, "ffd32a"], [5, "ff5e57"], [6, "c44569"], [8, "ffffff"],
+];
+
+/**
+ * Azimuthal shear, 1/s, positive cyclonic: blue anticyclonic, warm cyclonic,
+ * red from 3e-3, where rotation starts to matter, magenta past 5e-3,
+ * saturated. Within ±1e-3, the fit's noise, a neutral grey.
+ */
+export const SHEAR_STOPS: Stops = [
+  [-5e-3, "1b3a9e"], [-1e-3, "b4c8ee"],
+  [1e-3, "fff1a8"], [3e-3, "ff9933"], [4e-3, "e8261f"], [5e-3, "a3001b"], [5.0001e-3, "e000c8"],
+];
+export const SHEAR_NEUTRAL_S = 1e-3;
+
+/**
+ * Radial divergence, 1/s: green convergent and red divergent, as velocity's
+ * inbound green and outbound red, magenta past 1e-2, a strong outflow.
+ * Noisier than the shear, so its neutral band is wider: ±1.5e-3.
+ */
+export const DIVERGENCE_STOPS: Stops = [
+  [-1e-2, "0b6b2a"], [-1.5e-3, "b8ecc4"],
+  [1.5e-3, "ffd9b0"], [5e-3, "f0402a"], [1e-2, "8c0014"], [1.0001e-2, "e000c8"],
+];
+export const DIVERGENCE_NEUTRAL_S = 1.5e-3;
+
+/** A shear's or divergence's noise band: grey, light enough that a quiet sweep reads as quiet, and denser than the no-echo tint. */
+export const SWEEP_NEUTRAL: Rgba = [170, 170, 170, 110];
+
+const hexRgb = (hex: string): [number, number, number] => [0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)) as [number, number, number];
+
+/** The colour of `value` between `stops`, interpolated, held past either end. */
+export function colourAt(stops: Stops, value: number, alpha = 235): Rgba {
+  if (value <= stops[0][0]) return [...hexRgb(stops[0][1]), alpha];
+  for (let i = 1; i < stops.length; i++) {
+    const [to, hexTo] = stops[i];
+    if (value <= to) {
+      const [from, hexFrom] = stops[i - 1];
+      const [a, b] = [hexRgb(hexFrom), hexRgb(hexTo)];
+      const f = (value - from) / (to - from);
+      return [0, 1, 2].map((c) => Math.round(a[c] + f * (b[c] - a[c]))).concat(alpha) as Rgba;
+    }
+  }
+  return [...hexRgb(stops[stops.length - 1][1]), alpha];
+}
+
+/** A sweep encoding's palette, by what each byte reads as. */
+function sweepTable(encoding: Encoding, colour: (value: number) => Rgba): Rgba[] {
+  return Array.from({ length: 256 }, (_unused, byte) => {
+    const reading = readBin(encoding, byte);
+    if (reading.kind === "value") return colour(reading.value);
+    if (reading.kind === "unmeasured" || reading.kind === "no_estimate") return [0, 0, 0, 0];
+    return VELOCITY_NO_ECHO;
+  });
+}
+
+/** The colour of a value of each of the new encodings, as its palette draws it and its legend shows it. */
+export const SWEEP_COLOURS: Partial<Record<Encoding, (value: number) => Rgba>> = {
+  "rhohv-u8": (value) => colourAt(RHOHV_STOPS, value),
+  "zdr-u8": (value) => colourAt(ZDR_STOPS, value),
+  // A hair over the band's edge: (byte - 128) x 1e-4 lands a float's width either side of it.
+  "shear-u8": (value) => (Math.abs(value) <= SHEAR_NEUTRAL_S + 1e-9 ? SWEEP_NEUTRAL : colourAt(SHEAR_STOPS, value)),
+  "divshear-u8": (value) => (Math.abs(value) <= DIVERGENCE_NEUTRAL_S + 1e-9 ? SWEEP_NEUTRAL : colourAt(DIVERGENCE_STOPS, value)),
+};
+const sweepTableCache = new Map<Encoding, Rgba[]>();
+
+/** Byte to RGBA for a sweep encoding other than reflectivity's and velocity's; null for those two. */
+export function sweepEncodingTable(encoding: Encoding): Rgba[] | null {
+  const colour = SWEEP_COLOURS[encoding];
+  if (!colour) return null;
+  let table = sweepTableCache.get(encoding);
+  if (!table) {
+    table = sweepTable(encoding, colour);
+    sweepTableCache.set(encoding, table);
+  }
   return table;
 }

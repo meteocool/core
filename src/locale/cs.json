@@ -1039,7 +1039,11 @@
       "group": "Co zobrazit",
       "reflectivity": "Odrazivost",
       "velocity": "Rychlost",
-      "srv": "Vůči bouřce"
+      "srv": "Vůči bouřce",
+      "rhohv": "CC",
+      "zdr": "ZDR",
+      "shear": "Střih",
+      "divergence": "Divergence"
     },
     "none": "V tuto dobu žádné měření",
     "failed": "Toto měření se nepodařilo načíst",
@@ -1049,6 +1053,9 @@
     "not_dealiased_badge": "Bez dealiasingu",
     "srv_hint": "Vyberte bouřku nebo nastavte její pohyb ručně, aby se odečetl od rychlosti.",
     "srv_hint_badge": "Bez pohybu",
+    "unfiltered_badge": "Nefiltrováno",
+    "unfiltered": "Nefiltrovaný korelační koeficient, kreslený jen tam, kde je odraz dost silný na odečtení: prázdné neznamená sucho.",
+    "lowest_tilt": "Měřeno jen v nejnižší elevaci radaru",
     "info": {
       "button": "O tomto radaru",
       "operator": "Provozovatel",
@@ -1088,7 +1095,15 @@
     "legend": {
       "velocity": "m/s<br />k radaru · od radaru",
       "srv": "m/s<br />vůči bouřce",
-      "hint": "Radiální rychlost: zelená k radaru, červená od radaru, fialová kde ji nešlo rozbalit"
+      "hint": "Radiální rychlost: zelená k radaru, červená od radaru, fialová kde ji nešlo rozbalit",
+      "rhohv": "CC",
+      "rhohv_hint": "Korelační koeficient: déšť a sníh 0,97 až 1, vrstva tání 0,90 až 0,95, ptáci, hmyz, rušení a trosky pod 0,85",
+      "zdr": "ZDR<br />dB",
+      "zdr_hint": "Diferenciální odrazivost, dB: velké kapky 1 až 4, kroupy a krupky blízko 0, hmyz vysoko",
+      "shear": "Střih<br />10⁻³/s",
+      "shear_hint": "Azimutální střih rychlosti, 1/s; kladný cyklonální",
+      "divergence": "Divergence<br />10⁻³/s",
+      "divergence_hint": "Radiální divergence rychlosti, 1/s; kladná divergentní (výtok), záporná konvergentní"
     },
     "read": {
       "where": "{azimuth}° · {range} km · paprsek {height} km",
@@ -1098,7 +1113,17 @@
       "dbz": "{value} dBZ",
       "away": "{value} m/s od radaru",
       "toward": "{value} m/s k radaru",
-      "calm": "0 m/s"
+      "calm": "0 m/s",
+      "too_weak": "Příliš slabé na odečtení",
+      "no_estimate": "Bez odhadu",
+      "masked": "Maskováno: bez odrazu nebo příliš slabé",
+      "cc": "CC {value}",
+      "zdr": "ZDR {value} dB",
+      "cyclonic": "{value} × 10⁻³/s cyklonální",
+      "anticyclonic": "{value} × 10⁻³/s anticyklonální",
+      "divergent": "{value} × 10⁻³/s divergentní",
+      "convergent": "{value} × 10⁻³/s konvergentní",
+      "rate_zero": "0 /s"
     }
   },
   "stations": {

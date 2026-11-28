@@ -240,6 +240,72 @@ test.describe("with the radars' marks on", () => {
     await expect(page.locator(".site-reading .where")).toHaveText(/° · \d+\.\d km · beam \d+\.\d km$/, { timeout: 10_000 });
   });
 
+  /**
+   * The quantities a dual-polarisation radar adds, each from its own real
+   * object of Borkum's lowest tilt (fixtures/sweeps), whatever the listing
+   * names. The listing's `rhohv`, `zdr`, `shear` and `divergence` are written
+   * by hand (fixtures/api/GET_sweeps.json).
+   */
+  test("the coefficient and ZDR show the lowest tilt alone and give the open tilt back, and shear keeps it", async ({ page }) => {
+    await noGeocoder(page);
+    await page.route("**/meteoradar/sweeps/**", (route) => {
+      const quantity = /\/([A-Z]+)\.mcsw$/.exec(new URL(route.request().url()).pathname)![1];
+      const body = gunzipSync(readFileSync(`tests/ui/fixtures/sweeps/${quantity}.mcsw`));
+      return route.fulfill({ status: 200, contentType: "application/octet-stream", body });
+    });
+    await openRadar(page, EMDEN);
+    await expect.poll(() => markOf(page, "deasb"), { timeout: 20_000 }).not.toBeNull();
+    const at = (await markOf(page, "deasb"))!;
+    await page.mouse.click(at.x, at.y);
+    const tray = page.getByRole("group", { name: "Borkum radar" });
+    await settled(tray);
+    for (const name of ["Reflectivity", "Velocity", "Storm-relative", "CC", "ZDR", "Shear", "Divergence"]) {
+      await expect(tray.getByRole("radio", { name, exact: true })).toHaveCount(1);
+    }
+
+    // The reader is on the third tilt.
+    const tilt = tray.getByRole("combobox", { name: "Tilt" });
+    await tilt.selectOption({ index: 2 });
+    await expect(tilt).toHaveValue("2.499");
+
+    // CC takes them to the lowest, said rather than offered, and says it is unfiltered.
+    await tray.getByRole("radio", { name: "CC", exact: true }).click();
+    await expect(tray.getByRole("radio", { name: "CC", exact: true })).toBeChecked();
+    await expect(tilt).toHaveCount(0);
+    await expect(tray.getByText(/^0\.5°/)).toBeVisible();
+    await expect(tray.getByText("Unfiltered", { exact: true })).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator(".timeslider .scale-tick").filter({ hasText: /^0\.95$|^0\.9$/ }).first()).toBeAttached();
+    await expect.poll(() => new URL(page.url()).searchParams.get("sweep")).toBe("rhohv");
+
+    // The hold reads the coefficient, or says it was too weak to read.
+    const target = await page.evaluate(() => {
+      const map = (window as any).lm.getCurrentMap();
+      const x = (6.95 * Math.PI * 6378137) / 180;
+      const y = Math.log(Math.tan(Math.PI / 4 + (53.72 * Math.PI) / 360)) * 6378137;
+      const [px, py] = map.getPixelFromCoordinate([x, y]);
+      const rect = map.getViewport().getBoundingClientRect();
+      return { x: rect.left + px, y: rect.top + py };
+    });
+    await page.mouse.move(target.x, target.y);
+    await page.mouse.down();
+    await page.waitForTimeout(900);
+    await page.mouse.up();
+    await expect(page.locator(".site-reading .value")).toHaveText(/^(CC \d\.\d\d|Too weak to read)$/, { timeout: 10_000 });
+    await page.keyboard.press("Escape");
+
+    // ZDR is the same tilt, and leaving it gives the third back.
+    await tray.getByRole("radio", { name: "ZDR", exact: true }).click();
+    await expect(tilt).toHaveCount(0);
+    await tray.getByRole("radio", { name: "Velocity", exact: true }).click();
+    await expect(tilt).toHaveValue("2.499");
+
+    // Shear keeps the tilt, and its legend is its own.
+    await tray.getByRole("radio", { name: "Shear", exact: true }).click();
+    await expect(tray.getByRole("radio", { name: "Shear", exact: true })).toBeChecked();
+    await expect(tilt).toHaveValue("2.499");
+    await expect(page.locator(".timeslider .scale-tick").filter({ hasText: /^\+3$|^\+5$/ }).first()).toBeAttached();
+  });
+
   /* Borkum's sweep reaches 180 km. Out at sea 230 km north of it there is
      no other radar's mark and no storm to hit. */
   const BORKUM = "/?layer=radar&latLonZ=53.56413,6.74832,6.20";

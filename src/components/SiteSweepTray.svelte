@@ -1,8 +1,13 @@
 <script lang="ts">
 /**
  * Site mode's controls while a radar is open: what to draw of it
- * (reflectivity, radial velocity, or velocity relative to the selected
- * storm), at which tilt, and the way out. A glass pill of its own, floating
+ * (reflectivity, radial velocity, velocity relative to the selected storm,
+ * and where the radar has them its correlation coefficient, differential
+ * reflectivity, and the velocity's shear and divergence), at which tilt, and
+ * the way out. The coefficient and ZDR are of the lowest tilt alone: picking
+ * one shows that tilt, without a choice, and leaving it goes back to the
+ * tilt that was open; shear and divergence are offered at a tilt that has
+ * them (lib/siteSweeps.ts decides all of it). A glass pill of its own, floating
  * a gap over the player, as the stations' picker does (StationPicker); the
  * radar's name and how long ago its sweep was scanned are on the player's
  * product pill (RadarProductPicker).
@@ -36,20 +41,16 @@ import Segmented from "./Segmented.svelte";
 import StormMotion from "./StormMotion.svelte";
 import { pointMenuAt, radarInfoOpen, selectedStorm, siteMode, siteSweepView, stormDetails } from "../stores";
 import { radarSite } from "../lib/radarSites";
-import { tiltAngle, tiltBeam, tiltLabel } from "../lib/siteSweeps";
+import { lowestOnly, tiltAngle, tiltBeam, tiltLabel, withQuantity, withTilt } from "../lib/siteSweeps";
 import type { Quantity, SiteSweepView } from "../lib/siteSweeps";
 
 $: mode = $siteMode;
 $: view = $siteSweepView;
 $: name = mode ? (radarSite(mode.site)?.name ?? mode.site.toUpperCase()) : "";
 $: title = $_("site.title", { values: { name } });
-$: options = [
-  { value: "reflectivity" as Quantity, label: $_("site.quantity.reflectivity") },
-  ...(view?.hasVelocity ? [
-    { value: "velocity" as Quantity, label: $_("site.quantity.velocity") },
-    { value: "srv" as Quantity, label: $_("site.quantity.srv") },
-  ] : []),
-];
+$: options = (view?.quantities ?? ["reflectivity" as Quantity])
+  .map((quantity) => ({ value: quantity, label: $_(`site.quantity.${quantity}`) }));
+$: fixedTilt = Boolean(mode && lowestOnly(mode.quantity));
 
 $: document.documentElement.classList.toggle("site-open", Boolean(mode && view));
 $: srvShown = Boolean(mode && view && mode.quantity === "srv");
@@ -57,12 +58,12 @@ $: document.documentElement.classList.toggle("site-srv", srvShown);
 onDestroy(() => document.documentElement.classList.remove("site-open", "site-srv"));
 
 function setQuantity(quantity: Quantity) {
-  siteMode.update((current) => (current ? { ...current, quantity } : current));
+  siteMode.update((current) => (current && view ? withQuantity(view.site, current, quantity) : current));
 }
 
 function setTilt(event: Event) {
   const elevation = Number((event.target as HTMLSelectElement).value);
-  siteMode.update((current) => (current ? { ...current, elevation } : current));
+  siteMode.update((current) => (current && view ? withTilt(view.site, current, elevation) : current));
 }
 
 function close() {
@@ -121,6 +122,9 @@ function badgesOf(view: SiteSweepView, quantity: Quantity): Badge[] {
   if (quantity !== "reflectivity" && view.dealiased === true && !nothingTaken) add($_("site.dealiased"), view.dealiaser ?? undefined);
   else if (quantity !== "reflectivity" && view.dealiased === false) add($_("site.not_dealiased_badge"), $_("site.not_dealiased"), true);
   if (nothingTaken) add($_("site.srv_hint_badge"), $_("site.srv_hint"));
+  // DWD's coefficient is the unfiltered one, drawn only where the echo is
+  // strong enough to read: blank there is not dry.
+  if (quantity === "rhohv" && view.sourceQuantity === "URHOHV") add($_("site.unfiltered_badge"), $_("site.unfiltered"));
   return badges;
 }
 
@@ -222,6 +226,9 @@ $: badges = view && mode ? badgesOf(view, mode.quantity) : [];
     white-space: nowrap;
   }
   .tilt:hover { background: var(--mc-tint-hover); }
+  /* The one tilt a quantity has: said, not offered. */
+  .tilt.fixed { padding: 0 10px; }
+  .tilt.fixed:hover { background: var(--mc-tint); }
   .tilt:has(select:focus-visible) {
     outline: 2px solid var(--mc-accent);
     outline-offset: 1px;
@@ -289,7 +296,11 @@ $: badges = view && mode ? badgesOf(view, mode.quantity) : [];
         <span class="row">
           <Segmented compact options={options} value={mode.quantity} label={$_("site.quantity.group")}
             on:change={(event) => setQuantity(event.detail)} />
-          {#if view.tilts.length}
+          {#if view.tilts.length && fixedTilt && chosenTilt}
+            <span class="tilt fixed" title={$_("site.lowest_tilt")}>
+              {tiltAngle(chosenTilt.elevation)}<span class="beam">{tiltBeam(chosenTilt.beamKmAt100)}</span>
+            </span>
+          {:else if view.tilts.length}
             <span class="tilt">
               {#if chosenTilt}
                 <span class="chosen" aria-hidden="true">

@@ -1039,7 +1039,11 @@
       "group": "Que montrer",
       "reflectivity": "Réflectivité",
       "velocity": "Vitesse",
-      "srv": "Relative à l’orage"
+      "srv": "Relative à l’orage",
+      "rhohv": "CC",
+      "zdr": "ZDR",
+      "shear": "Cisaillement",
+      "divergence": "Divergence"
     },
     "none": "Pas de balayage à cette heure",
     "failed": "Ce balayage n’a pas pu être chargé",
@@ -1049,6 +1053,9 @@
     "not_dealiased_badge": "Non dealiased",
     "srv_hint": "Choisissez un orage, ou réglez son déplacement à la main, pour le retirer de la vitesse.",
     "srv_hint_badge": "Aucun déplacement",
+    "unfiltered_badge": "Non filtré",
+    "unfiltered": "Coefficient de corrélation non filtré, dessiné seulement là où l'écho est assez fort pour être lu : vide ne veut pas dire sec.",
+    "lowest_tilt": "Mesuré uniquement à l'élévation la plus basse du radar",
     "info": {
       "button": "À propos de ce radar",
       "operator": "Exploitant",
@@ -1088,7 +1095,15 @@
     "legend": {
       "velocity": "m/s<br />vers · depuis",
       "srv": "m/s<br />relative à l’orage",
-      "hint": "Vitesse radiale : vert vers le radar, rouge en s’éloignant, violet là où elle n’a pas pu être dépliée"
+      "hint": "Vitesse radiale : vert vers le radar, rouge en s’éloignant, violet là où elle n’a pas pu être dépliée",
+      "rhohv": "CC",
+      "rhohv_hint": "Coefficient de corrélation : pluie et neige 0,97 à 1, couche de fonte 0,90 à 0,95, oiseaux, insectes, échos parasites et débris sous 0,85",
+      "zdr": "ZDR<br />dB",
+      "zdr_hint": "Réflectivité différentielle, dB : grosses gouttes 1 à 4, grêle et grésil près de 0, insectes élevée",
+      "shear": "Cisaillement<br />10⁻³/s",
+      "shear_hint": "Cisaillement azimutal de la vitesse, 1/s ; positif cyclonique",
+      "divergence": "Divergence<br />10⁻³/s",
+      "divergence_hint": "Divergence radiale de la vitesse, 1/s ; positive divergente (outflow), négative convergente"
     },
     "read": {
       "where": "{azimuth}° · {range} km · faisceau {height} km",
@@ -1098,7 +1113,17 @@
       "dbz": "{value} dBZ",
       "away": "{value} m/s en s’éloignant",
       "toward": "{value} m/s vers le radar",
-      "calm": "0 m/s"
+      "calm": "0 m/s",
+      "too_weak": "Trop faible pour être lu",
+      "no_estimate": "Pas d'estimation",
+      "masked": "Masqué : pas d'écho, ou trop faible",
+      "cc": "CC {value}",
+      "zdr": "ZDR {value} dB",
+      "cyclonic": "{value} × 10⁻³/s cyclonique",
+      "anticyclonic": "{value} × 10⁻³/s anticyclonique",
+      "divergent": "{value} × 10⁻³/s divergent",
+      "convergent": "{value} × 10⁻³/s convergent",
+      "rate_zero": "0 /s"
     }
   },
   "stations": {

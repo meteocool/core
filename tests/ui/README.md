@@ -33,7 +33,13 @@ A run never reaches a backend. `test.ts` gives every spec a page that:
   with no history (`storms.ts`). A KONRAD3D cell is rare in a recording, so
   the specs about one serve a pair kept from 2026-10-11
   (`fixtures/konrad3d/tracks.json`), moved onto the recording's clock;
-- answers `/sweeps` from every view's listing, merged (`record.ts`), and
+- answers `/sweeps` from every view's listing, merged (`record.ts`), with
+  each site's `rhohv`, `zdr`, `shear` and `divergence` added by hand until a
+  recording has them: German radars the coefficient and ZDR at their lowest
+  tilt, German and French radars shear and divergence at every dealiased
+  velocity tilt, Czech ones from 3.2 degrees; the objects themselves are
+  Borkum's real ones (`fixtures/sweeps`). A re-recording from next replaces
+  them with the real listing. And it answers
   every station's `/stations/{station}/observations` from München-Stadt's
   day (`fixtures/api/GET_stations_station_observations.json`);
 - answers the echo tops and VIL (`/v3/radar/echotop18`, `echotop45`,

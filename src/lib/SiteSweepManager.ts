@@ -10,7 +10,7 @@ import { decodeSweep, readBin, SweepGone } from "./sweep";
 import type { BinReading, Sweep } from "./sweep";
 import { binAt, fromSite, reachM, stormRelative } from "./sweepGeometry";
 import type { BinAt, SweepGeometry } from "./sweepGeometry";
-import { aheadOf, listedFor, sweepAt, tiltNear } from "./siteSweeps";
+import { aheadOf, listedFor, lowestOnly, offeredQuantities, QUANTITIES, sameMode, settledMode, sweepAt, tiltNear } from "./siteSweeps";
 import type { ListedScan, ListedSite, OfferedTilt, SiteMode, SiteSweepView } from "./siteSweeps";
 import { beamHeightKm, radarSite } from "./radarSites";
 import { motionOf } from "./stormSelection";
@@ -217,6 +217,12 @@ export default class SiteSweepManager {
     const mode = get(siteMode);
     const site = this.openSite;
     if (!mode || !site) return;
+    // What the listing cannot draw any more, or never could, as it can.
+    const settled = settledMode(site, mode);
+    if (!sameMode(settled, mode)) {
+      siteMode.set(settled);
+      return;
+    }
     const generation = ++this.generation;
     const tilts = listedFor(site, mode.quantity);
     const tilt = tiltNear(tilts, mode.elevation);
@@ -228,13 +234,13 @@ export default class SiteSweepManager {
     const view = {
       site,
       tilts: this.offered(site, mode),
-      hasVelocity: listedFor(site, "velocity").length > 0,
+      quantities: offeredQuantities(site, mode),
     };
     this.layer.setAttribution(this.credit(site.network));
     if (!scan) {
       this.showNothing();
       this.rings.clear();
-      siteSweepView.set({ ...view, ...this.motion(), status: "none", startedAt: null, scannedAt: null, nyquist: null, dealiased: null, dealiaser: null });
+      siteSweepView.set({ ...view, ...this.motion(), status: "none", startedAt: null, scannedAt: null, nyquist: null, dealiased: null, dealiaser: null, sourceQuantity: null });
       return;
     }
     if (this.shown?.scan.path !== scan.path) {
@@ -247,6 +253,7 @@ export default class SiteSweepManager {
         nyquist: current?.nyquist ?? null,
         dealiased: current?.dealiased ?? null,
         dealiaser: current?.dealiaser ?? null,
+        sourceQuantity: current?.sourceQuantity ?? null,
       }));
     }
     const loading = this.load(scan.path);
@@ -260,7 +267,7 @@ export default class SiteSweepManager {
     } catch {
       if (generation !== this.generation) return;
       this.showNothing();
-      siteSweepView.set({ ...view, ...this.motion(), status: "failed", startedAt: null, scannedAt: scan.scanned_at, nyquist: null, dealiased: null, dealiaser: null });
+      siteSweepView.set({ ...view, ...this.motion(), status: "failed", startedAt: null, scannedAt: scan.scanned_at, nyquist: null, dealiased: null, dealiaser: null, sourceQuantity: null });
       return;
     }
     if (generation !== this.generation) return;
@@ -280,6 +287,7 @@ export default class SiteSweepManager {
       nyquist: sweep.header.nyquist_m_s,
       dealiased: sweep.header.encoding === "vrad-u8" ? sweep.header.dealiased : null,
       dealiaser: sweep.header.dealiaser,
+      sourceQuantity: sweep.header.source_quantity ?? null,
     });
   }
 
@@ -293,10 +301,17 @@ export default class SiteSweepManager {
     compositeDim.set(1);
   }
 
-  /** Every tilt of what is open, lowest first, each with its beam's height 100 km out. */
+  /**
+   * Every tilt of what is open, lowest first, each with its beam's height
+   * 100 km out. Shear and divergence offer the velocity's, and fall back to
+   * it at one without them (`withTilt`); a quantity of the lowest tilt
+   * alone its one.
+   */
   private offered(site: ListedSite, mode: SiteMode): OfferedTilt[] {
     const height = this.shown?.sweep.header.height_m ?? radarSite(site.site)?.heightM ?? 0;
-    return listedFor(site, mode.quantity).map((tilt) => ({
+    const perTilt = QUANTITIES.find((entry) => entry.quantity === mode.quantity)?.tilts === "perTilt";
+    const tilts = listedFor(site, perTilt ? "velocity" : mode.quantity);
+    return (lowestOnly(mode.quantity) ? tilts.slice(0, 1) : tilts).map((tilt) => ({
       elevation: tilt.elevation_deg,
       beamKmAt100: beamHeightKm(100, tilt.elevation_deg, height),
     }));

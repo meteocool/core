@@ -1039,7 +1039,11 @@
       "group": "Co pokazać",
       "reflectivity": "Odbiciowość",
       "velocity": "Prędkość",
-      "srv": "Względem burzy"
+      "srv": "Względem burzy",
+      "rhohv": "CC",
+      "zdr": "ZDR",
+      "shear": "Ścinanie",
+      "divergence": "Dywergencja"
     },
     "none": "Brak pomiaru o tej porze",
     "failed": "Nie udało się wczytać tego pomiaru",
@@ -1049,6 +1053,9 @@
     "not_dealiased_badge": "Bez dealiasingu",
     "srv_hint": "Wybierz burzę albo ustaw jej ruch ręcznie, aby odjąć go od prędkości.",
     "srv_hint_badge": "Brak ruchu",
+    "unfiltered_badge": "Niefiltrowany",
+    "unfiltered": "Niefiltrowany współczynnik korelacji, rysowany tylko tam, gdzie echo jest dość silne, by je odczytać: puste nie znaczy suche.",
+    "lowest_tilt": "Mierzony tylko na najniższej elewacji radaru",
     "info": {
       "button": "O tym radarze",
       "operator": "Operator",
@@ -1088,7 +1095,15 @@
     "legend": {
       "velocity": "m/s<br />do · od radaru",
       "srv": "m/s<br />względem burzy",
-      "hint": "Prędkość radialna: zielony w stronę radaru, czerwony od radaru, fioletowy tam, gdzie nie dało się jej rozwinąć"
+      "hint": "Prędkość radialna: zielony w stronę radaru, czerwony od radaru, fioletowy tam, gdzie nie dało się jej rozwinąć",
+      "rhohv": "CC",
+      "rhohv_hint": "Współczynnik korelacji: deszcz i śnieg 0,97 do 1, warstwa topnienia 0,90 do 0,95, ptaki, owady, zakłócenia i szczątki poniżej 0,85",
+      "zdr": "ZDR<br />dB",
+      "zdr_hint": "Odbiciowość różnicowa, dB: duże krople 1 do 4, grad i krupa blisko 0, owady wysoko",
+      "shear": "Ścinanie<br />10⁻³/s",
+      "shear_hint": "Azymutalne ścinanie prędkości, 1/s; dodatnie cyklonalne",
+      "divergence": "Dywergencja<br />10⁻³/s",
+      "divergence_hint": "Radialna dywergencja prędkości, 1/s; dodatnia rozbieżna (wypływ), ujemna zbieżna"
     },
     "read": {
       "where": "{azimuth}° · {range} km · wiązka {height} km",
@@ -1098,7 +1113,17 @@
       "dbz": "{value} dBZ",
       "away": "{value} m/s od radaru",
       "toward": "{value} m/s do radaru",
-      "calm": "0 m/s"
+      "calm": "0 m/s",
+      "too_weak": "Zbyt słabe do odczytu",
+      "no_estimate": "Brak oszacowania",
+      "masked": "Zamaskowane: brak echa lub zbyt słabe",
+      "cc": "CC {value}",
+      "zdr": "ZDR {value} dB",
+      "cyclonic": "{value} × 10⁻³/s cyklonalne",
+      "anticyclonic": "{value} × 10⁻³/s antycyklonalne",
+      "divergent": "{value} × 10⁻³/s rozbieżne",
+      "convergent": "{value} × 10⁻³/s zbieżne",
+      "rate_zero": "0 /s"
     }
   },
   "stations": {
