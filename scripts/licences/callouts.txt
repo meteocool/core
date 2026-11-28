@@ -1,3 +1,11 @@
-The cockpit callouts in meteoair are spoken by the Piper voice
-en_US-bryce-medium by Bryce Beattie (https://brycebeattie.com/files/tts/),
-trained on the author's own recordings and dedicated to the public domain.
+The cockpit callouts in meteoair are spoken by the voice "am_fenrir" of
+Kokoro-82M by hexgrad (https://huggingface.co/hexgrad/Kokoro-82M), licensed
+under the Apache License, Version 2.0
+(https://www.apache.org/licenses/LICENSE-2.0).
+
+Kokoro-82M was trained on audio that includes:
+- Koniwa (https://github.com/koniwa/koniwa), "tnc", licensed under CC BY 3.0
+  (https://creativecommons.org/licenses/by/3.0/)
+- SIWIS French Speech Synthesis Database
+  (https://datashare.ed.ac.uk/handle/10283/2353), licensed under CC BY 4.0
+  (https://creativecommons.org/licenses/by/4.0/)

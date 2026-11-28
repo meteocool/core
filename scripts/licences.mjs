@@ -62,11 +62,11 @@ const EXTRAS = [
     text: () => readFileSync(path.join(root, "scripts/licences/meteocompare.txt"), "utf8"),
   },
   {
-    // public/audio/callout-*.mp3, rendered by scripts/callouts.py. Public
-    // domain owes no notice; it is credited all the same.
-    name: "Piper voice en_US-bryce-medium",
-    version: "",
-    license: "Public domain",
+    // public/audio/callout-*.mp3, rendered by scripts/callouts.py: the
+    // model's licence, and the CC BY audio it was trained on.
+    name: "Kokoro-82M voice am_fenrir",
+    version: "v1.0",
+    license: "Apache-2.0",
     text: () => readFileSync(path.join(root, "scripts/licences/callouts.txt"), "utf8"),
   },
   {

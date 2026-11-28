@@ -442,6 +442,20 @@
     ]
   },
   {
+    "name": "Kokoro-82M voice am_fenrir",
+    "version": "v1.0",
+    "license": "Apache-2.0",
+    "copyright": "",
+    "text": "The cockpit callouts in meteoair are spoken by the voice \"am_fenrir\" of\nKokoro-82M by hexgrad (https://huggingface.co/hexgrad/Kokoro-82M), licensed\nunder the Apache License, Version 2.0\n(https://www.apache.org/licenses/LICENSE-2.0).\n\nKokoro-82M was trained on audio that includes:\n- Koniwa (https://github.com/koniwa/koniwa), \"tnc\", licensed under CC BY 3.0\n  (https://creativecommons.org/licenses/by/3.0/)\n- SIWIS French Speech Synthesis Database\n  (https://datashare.ed.ac.uk/handle/10283/2353), licensed under CC BY 4.0\n  (https://creativecommons.org/licenses/by/4.0/)",
+    "packages": [
+      {
+        "name": "Kokoro-82M voice am_fenrir",
+        "version": "v1.0",
+        "copyright": ""
+      }
+    ]
+  },
+  {
     "name": "pbf",
     "version": "5.1.2",
     "license": "BSD-3-Clause",
@@ -452,20 +466,6 @@
         "name": "pbf",
         "version": "5.1.2",
         "copyright": "Copyright (c) 2026, Mapbox All rights reserved."
-      }
-    ]
-  },
-  {
-    "name": "Piper voice en_US-bryce-medium",
-    "version": "",
-    "license": "Public domain",
-    "copyright": "",
-    "text": "The cockpit callouts in meteoair are spoken by the Piper voice\nen_US-bryce-medium by Bryce Beattie (https://brycebeattie.com/files/tts/),\ntrained on the author's own recordings and dedicated to the public domain.",
-    "packages": [
-      {
-        "name": "Piper voice en_US-bryce-medium",
-        "version": "",
-        "copyright": ""
       }
     ]
   },
