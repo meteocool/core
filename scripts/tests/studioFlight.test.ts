@@ -356,15 +356,18 @@ test("on the ground the spoilers stand up and the brakes come on; reversers and 
     let state = land();
     let metres = 0;
     let spoilers = 0;
-    for (let t = 0; t < 120 && state.tas > 0; t += 0.05) {
+    let seconds = 0;
+    for (; seconds < 120 && state.tas > 0; seconds += 0.05) {
       state = step(state, input, 0.05, FIELD);
       metres += state.tas * 0.05;
       spoilers = Math.max(spoilers, state.spoilers);
     }
-    return { state, metres, spoilers };
+    return { state, metres, spoilers, seconds };
   };
   const plain = roll(NO_INPUT);
   assert.equal(plain.state.tas, 0);
+  // Braked all the way to a stop, from 140 kt in about 25 seconds: not crept on at a walk at idle for a minute after.
+  assert.ok(plain.seconds < 35, `stopped after ${plain.seconds.toFixed(1)} s`);
   assert.equal(plain.spoilers, 1);
   assert.equal(plain.state.pitch, 0);
   // About three metres a second each second from 140 kt: under a kilometre.

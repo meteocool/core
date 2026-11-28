@@ -1057,8 +1057,9 @@ function roll(state: AircraftState, input: ControlInput, h: number, env: Environ
   const mass = weight / G;
   const carried = Math.max(0, weight - lift);
 
-  // The brakes: held, all of them; after a landing, as much as slows it steadily, less what the reversers already do.
-  const autobrake = state.autobrake && throttle < 0.15 && !input.brake && state.tas > 1;
+  // The brakes: held, all of them; after a landing, as much as slows it steadily, less what the reversers already do,
+  // and all the way to a stop: idle thrust all but holds the rolling wheels' drag, and would creep it on for a minute.
+  const autobrake = state.autobrake && throttle < 0.15 && !input.brake && state.tas > 0;
   const most = BRAKING * carried;
   const along = thrust - drag - ROLLING * carried - weight * slope;
   const braking = input.brake ? most : autobrake ? clamp(mass * AUTOBRAKE_MS2 + along, 0, most) : 0;

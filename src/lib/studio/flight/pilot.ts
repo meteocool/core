@@ -181,6 +181,8 @@ const SLOPE_RUN_M = 40;
 /** How far either side of where it stands the ground's lie under the aircraft is measured, metres. */
 const TILT_SPAN_M = 15;
 const SLOPE_BELOW_M = 60;
+/** Throttled up this far after a landing has stopped, the pilot is taking off again. */
+const TAKING_OFF_AGAIN = 0.15;
 /** Time runs no faster than it does this near the ground, metres: a landing is flown, not skipped. */
 const WARP_ABOVE_M = 300;
 /** Gear up this low and this slow, the aircraft says so: metres, and m/s indicated. */
@@ -456,6 +458,8 @@ export class Pilot {
   private glare = 0;
   /** Until when the last bonus is said, seconds of flight. */
   private featUntil = -Infinity;
+  /** Whether the aircraft is off again after a landing it stopped from, on the ground still: no landing to show. */
+  private leavingLanding = false;
   /**
    * The flight paused when the page goes out of sight: another tab, another
    * app, the screen locked. It stays paused on coming back, for the reader
@@ -1670,6 +1674,7 @@ export class Pilot {
     const touchdown = state.touchdown;
     if (!before.onGround && touchdown) {
       telemetry.rolled = 0;
+      this.leavingLanding = false;
       this.score(landedScore(telemetry.score, touchdown.sink));
       this.sound?.touchdown(touchdown.sink, false);
     }
@@ -1677,6 +1682,12 @@ export class Pilot {
     if (!touchdown) return;
     const stopped = state.tas === 0;
     const landing = get(flightStatus).landing;
+    // Stopped, and throttled up or moving off again: that landing is over, and this is the next take-off's roll.
+    if (landing?.stopped && (!stopped || state.throttle >= TAKING_OFF_AGAIN)) this.leavingLanding = true;
+    if (this.leavingLanding) {
+      if (landing) this.status({ landing: null });
+      return;
+    }
     // Written when it touches down and when it stops; the deck reads how far it has rolled each frame meanwhile.
     if (!landing || landing.stopped !== stopped || !before.onGround) {
       this.status({ landing: { sink: touchdown.sink, speed: touchdown.tas, load: touchdown.load, rolled: telemetry.rolled, stopped } });
@@ -1740,6 +1751,7 @@ export class Pilot {
       this.telemetry.gear = 0;
       this.telemetry.flapLever = 0;
       this.telemetry.rolled = 0;
+      this.leavingLanding = false;
       this.thrustLocked = false;
       // A new flight, a new score; the last one kept if it was the best.
       this.telemetry.best = keepBest(this.telemetry.score.points);
