@@ -439,7 +439,7 @@
       "dwd": "DWD audra",
       "dwd_body": "Seka Vokietijos meteorologijos tarnyba virš Vokietijos. Turi prognozę ir žymi krušą bei sukimąsi.",
       "meteocool": "meteocool audra",
-      "meteocool_body": "Seka meteocool iš radaro visoje Europoje. Be prognozės, krušos ar sukimosi žymų.",
+      "meteocool_body": "Seka meteocool iš radaro visoje Europoje ir Jungtinėse Valstijose. Be prognozės, krušos ar sukimosi žymų.",
       "strength": "Stiprumas",
       "live": "Aktyvi",
       "live_body": "Vis dar aptinkama. Be žiedo ji paskutinį kartą matyta prieš kurį laiką.",
@@ -872,7 +872,7 @@
       "title": "Žemiausias skenavimas ar stulpelio maksimumas",
       "p1": "Radaro žemėlapis gali rodyti dviejų rūšių vaizdą. Žemiausias skenavimas rodo kiekvieno radaro žemiausią skenavimą: aidą arčiausiai žemės, taigi tai, kas labiausiai atitinka lietų, kurį iš tikrųjų pajusi. Toli nuo radaro net šis skenavimas yra aukštai, kaip rodo vaizdas iš šono aukščiau, todėl lietus iš žemų debesų gali būti nepastebėtas.",
       "p2": "Stulpelio maksimumas kiekvienam žemėlapio taškui rodo stipriausią aidą bet kuriame virš jo esančiame kampe, iki 12 km. Taip matyti, kur yra audrų branduoliai, įskaitant lietų ir krušą, kurie dar aukštai debesyje ir dar nenukrito arba pakeliui žemyn išgaruoja. Todėl tai nebūtinai lietus ant žemės: paprastai jis atrodo stipresnis ir platesnis nei žemiausias skenavimas ir gali rodyti lietų ten, kur apačioje sausa.",
-      "p3": "Stulpelio maksimumui reikia viso tūrinio skenavimo, todėl jis atsilieka vienu ar daugiau skenavimų. DMAX – tai DWD stulpelio maksimumas Vokietijai; meteocool savąjį sudaro iš visų šešiolikos tinklų. Audrų celės ir 3D debesys randami stulpelio maksimume."
+      "p3": "Stulpelio maksimumui reikia viso tūrinio skenavimo, todėl jis atsilieka vienu ar daugiau skenavimų. DMAX – tai DWD stulpelio maksimumas Vokietijai; meteocool savąjį sudaro iš visų šešiolikos tinklų. Audrų celės ir 3D debesys randami stulpelio maksimume. Jungtinėms Valstijoms savąjį skelbia NOAA MRMS."
     },
     "tops": {
       "title": "Aido viršūnės ir VIL",
@@ -933,7 +933,7 @@
     },
     "made": {
       "title": "Ką meteocool sukuria iš ko",
-      "caption": "Oranžinės linijos – 3D debesys. Stulpelio maksimumas parodo, kur yra audros: DMAX Vokietijai, meteocool savasis – kitoms šalims. Neapdoroti skenavimai užpildo kiekvienos audros dėžę.",
+      "caption": "Oranžinės linijos – 3D debesys. Stulpelio maksimumas parodo, kur yra audros: DMAX Vokietijai, NOAA MRMS – Jungtinėms Valstijoms, meteocool savasis – kitoms šalims. Neapdoroti skenavimai užpildo kiekvienos audros dėžę.",
       "col_measured": "Išmatuota",
       "col_published": "Paskelbta",
       "col_shown": "Rodoma meteocool",
@@ -964,6 +964,9 @@
       "vil": "Europos VIL",
       "vil_from": "neapdoroti skenavimai, visi kampai",
       "vil_how": "Skystas vanduo kiekviename stulpelyje, kg/m², pagal Greene ir Clark iš tų pačių kampų to paties apdorojimo metu, skaičiuojamas tik tarp žemiausio ir aukščiausio pluošto; daugiausia iš visų radarų. Kartą per ciklą, vienu ar dviem skenavimais atsilikęs. Rodomas tik pasirinkus radaro produktų sąraše.",
+      "us": "Radaro žemėlapis, JAV",
+      "us_from": "MRMS",
+      "us_how": "Pačios NOAA kompozitas, stulpelio maksimumas, 18 dBZ aido viršūnės ir VIL kas dvi minutes. meteocool supjausto juos į plyteles, nuspalvina ir iš kompozito skaičiuoja savo trumpalaikę prognozę.",
       "cells": "Audrų celės ir trajektorijos",
       "cells_from": "KONRAD3D, DMAX",
       "cells_how": "DWD celių aptikimas ir sekimas. Kiekvienai celei meteocool iš DMAX išpjauna tikrą kiekvieno stiprio kontūrą.",
@@ -971,8 +974,8 @@
       "clouds_from": "DMAX arba meteocool stulpelio maksimumas, taip pat neapdoroti skenavimai",
       "clouds_how": "Stulpelio maksimumas parodo, kur yra audros. Kiekvienai audrai meteocool užpildo dėžę visų ją pasiekiančių radarų skenavimais; senesni skenavimai turi mažesnį svorį. Audrą, kurią radarai matė pakankamai gerai, galima perpjauti.",
       "meso": "Mezociklonų žymos",
-      "meso_from": "DWD mezociklonų failas",
-      "meso_how": "Rodomos taip, kaip paskelbtos.",
+      "meso_from": "DWD mezociklonų failas, neapdorotų skenavimų greitis",
+      "meso_how": "DWD aptikimai virš Vokietijos, rodomi taip, kaip paskelbti. Šalia jų – sukimosi požymiai, kuriuos meteocool kartą per ciklą nuskaito iš radarų greičio.",
       "lightning": "Žaibai",
       "lightning_from": "Blitzortung",
       "lightning_how": "Iškrovos atkeliauja po vieną ir pasirodo iškart. Žaibų plytelės perkuriamos kas penkias minutes."
@@ -1002,6 +1005,10 @@
       "sweeps_sub": "EUMETNET saugykla, visi kampai",
       "strk": "Iškrovos",
       "strk_sub": "tiesiogiai, po vieną",
+      "us": "JAV radarai",
+      "us_sub": "NEXRAD, NOAA",
+      "mrms": "MRMS",
+      "mrms_sub": "NOAA mozaika, 1 km",
       "m_de": "Radaro žemėlapis, Vokietija",
       "m_de_sub": "plokščias, kas 5 min",
       "m_fc": "Kritulių prognozė",
@@ -1023,6 +1030,8 @@
       "m_tops_sub": "18, 45, 50 dBZ, visi kampai",
       "m_vil": "Europos VIL",
       "m_vil_sub": "vanduo stulpelyje",
+      "m_us": "Radaro žemėlapis, JAV",
+      "m_us_sub": "kompozitas, viršūnės, VIL",
       "m_lt": "Žaibai",
       "m_lt_sub": "tiesiogiai ir plytelėmis"
     },

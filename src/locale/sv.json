@@ -439,7 +439,7 @@
       "dwd": "DWD-oväder",
       "dwd_body": "Följs av tyska vädertjänsten över Tyskland. Har prognos och flaggar hagel och rotation.",
       "meteocool": "meteocool-oväder",
-      "meteocool_body": "Följs av meteocool på radarn i hela Europa. Ingen prognos, hagel- eller rotationsflagga.",
+      "meteocool_body": "Följs av meteocool på radarn i hela Europa och USA. Ingen prognos, hagel- eller rotationsflagga.",
       "strength": "Styrka",
       "live": "Aktivt",
       "live_body": "Upptäcks fortfarande. Utan ringen sågs det senast för en stund sedan.",
@@ -872,7 +872,7 @@
       "title": "Lägsta skanning eller kolumnmaximum",
       "p1": "Radarkartan kan visa två sorters bild. En lägsta skanning visar varje radars lägsta svep: ekot närmast marken, och därmed det som kommer närmast det regn du faktiskt känner. Långt från en radar ligger även det svepet högt upp, som sidovyn ovan visar, så regn från låga moln kan missas.",
       "p2": "Ett kolumnmaximum visar för varje punkt på kartan det starkaste ekot i någon vinkel ovanför, upp till 12 km. Det visar var åskvädrens kärnor finns, även regn och hagel som fortfarande är högt uppe i molnet och inte har fallit ner än, eller som avdunstar på vägen ner. Det är alltså inte nödvändigtvis regn vid marken: det ser oftast kraftigare och större ut än den lägsta skanningen och kan visa regn där det förblir torrt nedanför.",
-      "p3": "Ett kolumnmaximum behöver hela volymskanningen och ligger därför en skanning eller mer efter. DMAX är DWD:s kolumnmaximum för Tyskland; meteocool bygger ett eget från alla sexton nätverk. Åskcellerna och 3D-molnen hittas i ett kolumnmaximum."
+      "p3": "Ett kolumnmaximum behöver hela volymskanningen och ligger därför en skanning eller mer efter. DMAX är DWD:s kolumnmaximum för Tyskland; meteocool bygger ett eget från alla sexton nätverk. Åskcellerna och 3D-molnen hittas i ett kolumnmaximum. För USA publicerar NOAA:s MRMS ett eget."
     },
     "tops": {
       "title": "Ekotoppar och VIL",
@@ -933,7 +933,7 @@
     },
     "made": {
       "title": "Vad meteocool gör av vad",
-      "caption": "De orange linjerna är 3D-molnen. Ett kolumnmaximum visar var åskvädren finns: DMAX för Tyskland, meteocools eget för de andra länderna. De råa svepen fyller varje åskväders låda.",
+      "caption": "De orange linjerna är 3D-molnen. Ett kolumnmaximum visar var åskvädren finns: DMAX för Tyskland, NOAA:s MRMS för USA, meteocools eget för de andra länderna. De råa svepen fyller varje åskväders låda.",
       "col_measured": "Uppmätt",
       "col_published": "Publicerat",
       "col_shown": "Visas på meteocool",
@@ -964,6 +964,9 @@
       "vil": "Europeiskt VIL",
       "vil_from": "råa svep, alla vinklar",
       "vil_how": "Det flytande vattnet i varje kolumn, i kg/m², enligt Greene och Clark från samma vinklar i samma körning, bara räknat mellan den lägsta och den högsta strålen; det mesta från alla radarer. En gång per cykel, en eller två skanningar efter. Visas bara när det väljs i radarproduktväljaren.",
+      "us": "Radarkarta, USA",
+      "us_from": "MRMS",
+      "us_how": "NOAA:s egen komposit, kolumnmax, ekotoppar vid 18 dBZ och VIL, varannan minut. meteocool delar dem i rutor, färgar dem och räknar sin korttidsprognos på kompositen.",
       "cells": "Åskceller och banor",
       "cells_from": "KONRAD3D, DMAX",
       "cells_how": "DWD:s celldetektering och spårning. För varje cell skär meteocool ut den verkliga konturen vid varje styrka ur DMAX.",
@@ -971,8 +974,8 @@
       "clouds_from": "DMAX eller meteocools kolumnmaximum, plus råa svep",
       "clouds_how": "Kolumnmaximumet visar var åskvädren finns. För varje åskväder fyller meteocool en låda med svepen från alla radarer som når det, där äldre svep väger mindre. Ett åskväder som radarerna har sett tillräckligt väl kan skäras upp.",
       "meso": "Mesocyklonmarkeringar",
-      "meso_from": "DWD:s mesocyklonfil",
-      "meso_how": "Visas som de publiceras.",
+      "meso_from": "DWD:s mesocyklonfil, hastighet ur de råa svepen",
+      "meso_how": "DWD:s detektioner över Tyskland, visade som de publiceras. Bredvid dem rotationssignaturer som meteocool en gång per cykel läser ur radarernas hastighet.",
       "lightning": "Blixtar",
       "lightning_from": "Blitzortung",
       "lightning_how": "Nedslagen kommer ett i taget och syns direkt. Blixtplattorna byggs om var femte minut."
@@ -1002,6 +1005,10 @@
       "sweeps_sub": "EUMETNET-lagringen, alla vinklar",
       "strk": "Nedslag",
       "strk_sub": "live, ett i taget",
+      "us": "Radarer i USA",
+      "us_sub": "NEXRAD, NOAA",
+      "mrms": "MRMS",
+      "mrms_sub": "NOAA:s mosaik, 1 km",
       "m_de": "Radarkarta, Tyskland",
       "m_de_sub": "platt, var 5:e min",
       "m_fc": "Regnprognos",
@@ -1023,6 +1030,8 @@
       "m_tops_sub": "18, 45, 50 dBZ, alla vinklar",
       "m_vil": "Europeiskt VIL",
       "m_vil_sub": "vatten i kolumnen",
+      "m_us": "Radarkarta, USA",
+      "m_us_sub": "komposit, ekotoppar, VIL",
       "m_lt": "Blixtar",
       "m_lt_sub": "live och som plattor"
     },

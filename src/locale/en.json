@@ -1040,7 +1040,7 @@
       "dwd": "DWD storm",
       "dwd_body": "Tracked by the German Weather Service over Germany. Has a forecast, and flags hail and rotation.",
       "meteocool": "meteocool storm",
-      "meteocool_body": "Tracked by meteocool from the radar, all over Europe. No forecast, hail or rotation flags.",
+      "meteocool_body": "Tracked by meteocool from the radar, all over Europe and the United States. No forecast, hail or rotation flags.",
       "strength": "Strength",
       "live": "Live",
       "live_body": "Still being detected. Without the ring, it was last seen a while ago.",
@@ -1474,7 +1474,7 @@
       "title": "Lowest scan or column maximum",
       "p1": "The radar map can show two kinds of picture. A lowest scan shows each radar's lowest sweep: the echo closest to the ground, and so the nearest thing to the rain you will actually feel. Far from a radar even that sweep is high up, as the side view above shows, so rain from low clouds can be missed.",
       "p2": "A column maximum shows, for each spot on the map, the strongest echo in any tilt above it, up to 12 km. That marks where the storm cores are, including rain and hail still high in the cloud that has not come down yet, or that evaporates on the way down. So it is not necessarily rain on the ground: it usually looks stronger and wider than the lowest scan, and can show rain where it stays dry below.",
-      "p3": "A column maximum needs the whole volume scan, so it is a scan or more behind. DMAX is DWD's column maximum for Germany; meteocool builds its own from all sixteen networks. The storm cells and the 3D clouds are found in a column maximum."
+      "p3": "A column maximum needs the whole volume scan, so it is a scan or more behind. DMAX is DWD's column maximum for Germany; meteocool builds its own from all sixteen networks. The storm cells and the 3D clouds are found in a column maximum. Over the United States, NOAA's MRMS publishes its own."
     },
     "tops": {
       "title": "Echo tops and VIL",
@@ -1535,7 +1535,7 @@
     },
     "made": {
       "title": "What meteocool makes from which data",
-      "caption": "The orange lines are the 3D clouds. A column maximum says where the storms are: DMAX for Germany, meteocool's own for the other countries. The raw sweeps fill each storm's box.",
+      "caption": "The orange lines are the 3D clouds. A column maximum says where the storms are: DMAX for Germany, NOAA's MRMS for the United States, meteocool's own for the other countries. The raw sweeps fill each storm's box.",
       "col_measured": "Measured",
       "col_published": "Published",
       "col_shown": "Shown on meteocool",
@@ -1566,6 +1566,9 @@
       "vil": "Europe VIL",
       "vil_from": "raw sweeps, every tilt",
       "vil_how": "The liquid water in each column, kg/m², by Greene and Clark from the same tilts in the same pass, counting only what lies between the lowest and highest beams; the most of any radar. Once a cycle, a scan or two behind. Only shown when chosen in the radar product picker.",
+      "us": "Radar map, United States",
+      "us_from": "MRMS",
+      "us_how": "NOAA's own composite, column maximum, 18 dBZ echo tops and VIL, every two minutes. meteocool tiles and colours them and runs its nowcast on the composite.",
       "cells": "Storm cells and tracks",
       "cells_from": "KONRAD3D, DMAX",
       "cells_how": "DWD's cell detection and tracking. For each cell meteocool cuts the real outline at each strength out of DMAX.",
@@ -1573,8 +1576,8 @@
       "clouds_from": "DMAX or meteocool's column maximum, plus raw sweeps",
       "clouds_how": "The column maximum says where the storms are. For each storm meteocool fills a box with the sweeps of every radar that reaches it, older sweeps counting less. A storm the radars saw well enough can be cut open.",
       "meso": "Mesocyclone marks",
-      "meso_from": "DWD's mesocyclone file",
-      "meso_how": "Shown as they are published.",
+      "meso_from": "DWD's mesocyclone file, raw sweeps' velocity",
+      "meso_how": "DWD's detections over Germany, shown as they are published. Beside them, rotation signatures meteocool reads off the radars' velocity, once a cycle.",
       "lightning": "Lightning",
       "lightning_from": "Blitzortung",
       "lightning_how": "Strikes arrive one at a time and appear at once. The lightning tiles are rebuilt every five minutes."
@@ -1604,6 +1607,10 @@
       "sweeps_sub": "EUMETNET bucket, every tilt",
       "strk": "Strikes",
       "strk_sub": "live, one by one",
+      "us": "US radars",
+      "us_sub": "NEXRAD, NOAA",
+      "mrms": "MRMS",
+      "mrms_sub": "NOAA's mosaic, 1 km",
       "m_de": "Radar map, Germany",
       "m_de_sub": "flat, every 5 min",
       "m_fc": "Rain forecast",
@@ -1625,6 +1632,8 @@
       "m_tops_sub": "18, 45, 50 dBZ, every tilt",
       "m_vil": "Europe VIL",
       "m_vil_sub": "water in the column",
+      "m_us": "Radar map, United States",
+      "m_us_sub": "composite, tops, VIL",
       "m_lt": "Lightning",
       "m_lt_sub": "live and as tiles"
     },

@@ -306,11 +306,23 @@ $: lightningKept = shownIn($archiveWindow, "lightning");
           aria-label={$_("storm.key.show", { values: { mark: $_("storm.key.lightning") } })}
           on:change={(e) => lightningLayerVisible.set(e.currentTarget.checked)} />
       </li>
+      <!-- DWD's detections and meteocool's rotation signatures, wherever they are found; no series is kept, so a past window has none. -->
+      <li class:off={!$cycloneLayerVisible || !shownIn($archiveWindow, "mesocyclones")}>
+        <img class="swatch" src={mesocycloneIcon} alt="" />
+        <div>
+          <strong>{$_("storm.key.mesocyclone")}</strong>
+          <span>{shownIn($archiveWindow, "mesocyclones") ? $_("storm.key.mesocyclone_body") : $_("chrome.archive.no_past")}</span>
+        </div>
+        <input type="checkbox" role="switch" class="switch" checked={$cycloneLayerVisible}
+          disabled={!shownIn($archiveWindow, "mesocyclones")}
+          aria-label={$_("storm.key.show", { values: { mark: $_("storm.key.mesocyclone") } })}
+          on:change={(e) => cycloneLayerVisible.set(e.currentTarget.checked)} />
+      </li>
     </ul>
     <!-- What DWD's tracking adds, over Germany alone: after what holds everywhere. -->
+    {#if $cellLayerVisible}
     <h3 class="region">{$_("storm.key.germany_only")}</h3>
     <ul>
-      {#if $cellLayerVisible}
       <li class:off={$hiddenStormMarks.has("dwd")}>
         <svg class="swatch" viewBox="0 0 32 24" aria-hidden="true">
           <path d="M16 {12 - D} {16 + D} 12 16 {12 + D} {16 - D} 12Z" fill={STRONG} stroke="#fff" stroke-width="1.5" stroke-linejoin="round" />
@@ -356,20 +368,8 @@ $: lightningKept = shownIn($archiveWindow, "lightning");
         </div>
         {@render toggle("forecast")}
       </li>
-      {/if}
-      <!-- DWD keeps no series of them: in a past window there are none to show. -->
-      <li class:off={!$cycloneLayerVisible || !shownIn($archiveWindow, "mesocyclones")}>
-        <img class="swatch" src={mesocycloneIcon} alt="" />
-        <div>
-          <strong>{$_("storm.key.mesocyclone")}</strong>
-          <span>{shownIn($archiveWindow, "mesocyclones") ? $_("storm.key.mesocyclone_body") : $_("chrome.archive.no_past")}</span>
-        </div>
-        <input type="checkbox" role="switch" class="switch" checked={$cycloneLayerVisible}
-          disabled={!shownIn($archiveWindow, "mesocyclones")}
-          aria-label={$_("storm.key.show", { values: { mark: $_("storm.key.mesocyclone") } })}
-          on:change={(e) => cycloneLayerVisible.set(e.currentTarget.checked)} />
-      </li>
     </ul>
+    {/if}
     </div>
   </div>
 {/if}

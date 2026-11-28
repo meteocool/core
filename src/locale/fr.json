@@ -439,7 +439,7 @@
       "dwd": "Orage DWD",
       "dwd_body": "Suivi par le service météo allemand au-dessus de l'Allemagne. Avec prévision, grêle et rotation signalées.",
       "meteocool": "Orage meteocool",
-      "meteocool_body": "Suivi par meteocool à partir du radar, dans toute l'Europe. Sans prévision, ni signal de grêle ou de rotation.",
+      "meteocool_body": "Suivi par meteocool à partir du radar, dans toute l'Europe et aux États-Unis. Sans prévision, ni signal de grêle ou de rotation.",
       "strength": "Intensité",
       "live": "Actif",
       "live_body": "Toujours détecté. Sans l'anneau, il a été vu pour la dernière fois il y a un moment.",
@@ -873,7 +873,7 @@
       "title": "Balayage le plus bas ou maximum de colonne",
       "p1": "La carte radar peut montrer deux sortes d'image. Le balayage le plus bas montre le balayage le plus bas de chaque radar : l'écho le plus proche du sol, donc ce qui ressemble le plus à la pluie qu'on reçoit. Loin d'un radar, même ce balayage passe haut, comme le montre la vue de côté ci-dessus, et la pluie de nuages bas peut manquer.",
       "p2": "Un maximum de colonne montre, pour chaque point de la carte, l'écho le plus fort de tous les angles au-dessus, jusqu'à 12 km. Il indique où sont les cœurs des orages, y compris la pluie et la grêle encore haut dans le nuage, pas encore tombées ou qui s'évaporent en descendant. Ce n'est donc pas forcément de la pluie au sol : il paraît en général plus fort et plus étendu que le balayage le plus bas, et peut montrer de la pluie là où il reste sec en dessous.",
-      "p3": "Un maximum de colonne a besoin du balayage volumique complet, il a donc un balayage ou plus de retard. DMAX est le maximum de colonne du DWD pour l'Allemagne ; meteocool construit le sien à partir des seize réseaux. Les cellules orageuses et les nuages 3D sont repérés dans un maximum de colonne."
+      "p3": "Un maximum de colonne a besoin du balayage volumique complet, il a donc un balayage ou plus de retard. DMAX est le maximum de colonne du DWD pour l'Allemagne ; meteocool construit le sien à partir des seize réseaux. Les cellules orageuses et les nuages 3D sont repérés dans un maximum de colonne. Pour les États-Unis, le MRMS de la NOAA publie le sien."
     },
     "tops": {
       "title": "Sommets d'écho et VIL",
@@ -934,7 +934,7 @@
     },
     "made": {
       "title": "Ce que meteocool fait à partir de quoi",
-      "caption": "Les lignes orange sont les nuages 3D. Un maximum de colonne indique où sont les orages : DMAX pour l'Allemagne, celui de meteocool pour les autres pays. Les balayages bruts remplissent la boîte de chaque orage.",
+      "caption": "Les lignes orange sont les nuages 3D. Un maximum de colonne indique où sont les orages : DMAX pour l'Allemagne, MRMS de la NOAA pour les États-Unis, celui de meteocool pour les autres pays. Les balayages bruts remplissent la boîte de chaque orage.",
       "col_measured": "Mesuré",
       "col_published": "Publié",
       "col_shown": "Sur meteocool",
@@ -965,6 +965,9 @@
       "vil": "VIL Europe",
       "vil_from": "balayages bruts, tous les angles",
       "vil_how": "L'eau liquide de chaque colonne, en kg/m², selon Greene et Clark à partir des mêmes angles lors du même passage, en ne comptant que ce qui se trouve entre le faisceau le plus bas et le plus haut ; le plus élevé de tous les radars. Une fois par cycle, avec un ou deux balayages de retard. Affiché seulement si choisi dans le sélecteur de produit radar.",
+      "us": "Carte radar États-Unis",
+      "us_from": "MRMS",
+      "us_how": "Le composite, le maximum de colonne, les sommets d'écho à 18 dBZ et le VIL de la NOAA elle-même, toutes les deux minutes. meteocool les découpe en tuiles, les colore et calcule son nowcast sur le composite.",
       "cells": "Cellules orageuses et trajectoires",
       "cells_from": "KONRAD3D, DMAX",
       "cells_how": "La détection et le suivi des cellules du DWD. Pour chaque cellule, meteocool découpe dans DMAX le vrai contour de chaque intensité.",
@@ -972,8 +975,8 @@
       "clouds_from": "DMAX ou le maximum de colonne de meteocool, plus les balayages bruts",
       "clouds_how": "Le maximum de colonne indique où sont les orages. Pour chaque orage, meteocool remplit une boîte avec les balayages de tous les radars qui l'atteignent, les plus anciens comptant moins. Un orage assez bien vu par les radars peut être ouvert en coupe.",
       "meso": "Mésocyclones",
-      "meso_from": "fichier des mésocyclones du DWD",
-      "meso_how": "Affichés tels qu'ils sont publiés.",
+      "meso_from": "fichier des mésocyclones du DWD, vitesse des balayages bruts",
+      "meso_how": "Les détections du DWD sur l'Allemagne, affichées telles qu'elles sont publiées. À côté, les signatures de rotation que meteocool lit dans la vitesse des radars, une fois par cycle.",
       "lightning": "Foudre",
       "lightning_from": "Blitzortung",
       "lightning_how": "Les impacts arrivent un par un et s'affichent tout de suite. Les tuiles de foudre sont reconstruites toutes les cinq minutes."
@@ -1003,6 +1006,10 @@
       "sweeps_sub": "EUMETNET, chaque angle",
       "strk": "Impacts",
       "strk_sub": "en direct, un par un",
+      "us": "Radars américains",
+      "us_sub": "NEXRAD, NOAA",
+      "mrms": "MRMS",
+      "mrms_sub": "mosaïque de la NOAA, 1 km",
       "m_de": "Carte radar, Allemagne",
       "m_de_sub": "plate, toutes les 5 min",
       "m_fc": "Prévision de pluie",
@@ -1024,6 +1031,8 @@
       "m_tops_sub": "18, 45, 50 dBZ, tous les angles",
       "m_vil": "VIL Europe",
       "m_vil_sub": "l'eau de la colonne",
+      "m_us": "Carte radar, États-Unis",
+      "m_us_sub": "composite, sommets, VIL",
       "m_lt": "Foudre",
       "m_lt_sub": "en direct et en tuiles"
     },

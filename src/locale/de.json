@@ -439,7 +439,7 @@
       "dwd": "DWD-Gewitter",
       "dwd_body": "Vom Deutschen Wetterdienst über Deutschland verfolgt. Mit Vorhersage, Hagel- und Rotationshinweis.",
       "meteocool": "meteocool-Gewitter",
-      "meteocool_body": "Von meteocool aus dem Radar verfolgt, in ganz Europa. Ohne Vorhersage, Hagel- oder Rotationshinweis.",
+      "meteocool_body": "Von meteocool aus dem Radar verfolgt, in ganz Europa und den USA. Ohne Vorhersage, Hagel- oder Rotationshinweis.",
       "strength": "Stärke",
       "live": "Aktiv",
       "live_body": "Wird noch erfasst. Ohne den Ring wurde es zuletzt vor einer Weile gesehen.",
@@ -873,7 +873,7 @@
       "title": "Unterster Scan oder Säulenmaximum",
       "p1": "Die Radarkarte kann zwei Arten von Bild zeigen. Ein unterster Scan zeigt den niedrigsten Sweep jedes Radars: das Echo, das dem Boden am nächsten ist, und damit das, was dem Regen, den man spürt, am nächsten kommt. Weit weg von einem Radar ist auch dieser Sweep hoch oben, wie die Seitenansicht oben zeigt, und Regen aus tiefen Wolken kann fehlen.",
       "p2": "Ein Säulenmaximum zeigt für jeden Punkt der Karte das stärkste Echo aller Winkel darüber, bis 12 km Höhe. Es zeigt, wo die Kerne der Gewitter sind, auch Regen und Hagel, die noch hoch in der Wolke hängen oder auf dem Weg nach unten verdunsten. Es ist also nicht unbedingt Regen am Boden: Meist wirkt es stärker und größer als der unterste Scan und kann Regen zeigen, wo es unten trocken bleibt.",
-      "p3": "Ein Säulenmaximum braucht den ganzen Volumenscan und ist daher einen Scan oder mehr später dran. DMAX ist das Säulenmaximum des DWD für Deutschland; meteocool baut ein eigenes aus allen sechzehn Netzen. Gewitterzellen und 3D-Wolken werden in einem Säulenmaximum gefunden."
+      "p3": "Ein Säulenmaximum braucht den ganzen Volumenscan und ist daher einen Scan oder mehr später dran. DMAX ist das Säulenmaximum des DWD für Deutschland; meteocool baut ein eigenes aus allen sechzehn Netzen. Gewitterzellen und 3D-Wolken werden in einem Säulenmaximum gefunden. Für die USA veröffentlicht NOAAs MRMS ein eigenes."
     },
     "tops": {
       "title": "Echotops und VIL",
@@ -934,7 +934,7 @@
     },
     "made": {
       "title": "Was meteocool woraus macht",
-      "caption": "Die orangen Linien sind die 3D-Wolken. Ein Säulenmaximum sagt, wo die Gewitter sind: DMAX für Deutschland, meteocools eigenes für die anderen Länder. Die rohen Sweeps füllen die Box jedes Gewitters.",
+      "caption": "Die orangen Linien sind die 3D-Wolken. Ein Säulenmaximum sagt, wo die Gewitter sind: DMAX für Deutschland, NOAAs MRMS für die USA, meteocools eigenes für die anderen Länder. Die rohen Sweeps füllen die Box jedes Gewitters.",
       "col_measured": "Gemessen",
       "col_published": "Veröffentlicht",
       "col_shown": "Auf meteocool",
@@ -965,6 +965,9 @@
       "vil": "Europa-VIL",
       "vil_from": "rohe Sweeps, alle Winkel",
       "vil_how": "Das Flüssigwasser in jeder Säule, in kg/m², nach Greene und Clark aus denselben Winkeln im selben Durchlauf, gezählt nur zwischen dem untersten und dem obersten Strahl; das meiste aller Radare. Einmal pro Zyklus, ein bis zwei Scans später. Nur sichtbar, wenn in der Radarproduktauswahl gewählt.",
+      "us": "Radarkarte USA",
+      "us_from": "MRMS",
+      "us_how": "NOAAs eigenes Komposit, Säulenmaximum, 18-dBZ-Echotops und VIL, alle zwei Minuten. meteocool kachelt und färbt sie und rechnet seinen Nowcast auf dem Komposit.",
       "cells": "Gewitterzellen und Zugbahnen",
       "cells_from": "KONRAD3D, DMAX",
       "cells_how": "Die Zellerkennung und -verfolgung des DWD. Für jede Zelle schneidet meteocool die echten Umrisse jeder Stärke aus DMAX aus.",
@@ -972,8 +975,8 @@
       "clouds_from": "DMAX oder meteocools Säulenmaximum, dazu rohe Sweeps",
       "clouds_how": "Das Säulenmaximum sagt, wo die Gewitter sind. Für jedes Gewitter füllt meteocool eine Box mit den Sweeps aller Radare, die es erreichen; ältere Sweeps zählen weniger. Ein Gewitter, das die Radare gut genug gesehen haben, lässt sich aufschneiden.",
       "meso": "Mesozyklonen",
-      "meso_from": "Mesozyklonen-Datei des DWD",
-      "meso_how": "So angezeigt, wie sie veröffentlicht werden.",
+      "meso_from": "Mesozyklonen-Datei des DWD, Radialgeschwindigkeit der rohen Sweeps",
+      "meso_how": "Die Erkennungen des DWD über Deutschland, so angezeigt, wie sie veröffentlicht werden. Daneben Rotationssignaturen, die meteocool einmal pro Zyklus aus der Radialgeschwindigkeit der Radare liest.",
       "lightning": "Live-Blitze",
       "lightning_from": "Blitzortung",
       "lightning_how": "Einschläge kommen einzeln an und erscheinen sofort. Die Blitzkacheln werden alle fünf Minuten neu gebaut."
@@ -1003,6 +1006,10 @@
       "sweeps_sub": "EUMETNET, jeder Winkel",
       "strk": "Einschläge",
       "strk_sub": "live, einzeln",
+      "us": "US-Radare",
+      "us_sub": "NEXRAD, NOAA",
+      "mrms": "MRMS",
+      "mrms_sub": "NOAA-Mosaik, 1 km",
       "m_de": "Radarkarte Deutschland",
       "m_de_sub": "flach, alle 5 Min.",
       "m_fc": "Regenvorhersage",
@@ -1024,6 +1031,8 @@
       "m_tops_sub": "18, 45, 50 dBZ, alle Winkel",
       "m_vil": "Europa-VIL",
       "m_vil_sub": "Wasser in der Säule",
+      "m_us": "Radarkarte USA",
+      "m_us_sub": "Komposit, Echotops, VIL",
       "m_lt": "Blitze",
       "m_lt_sub": "live und als Kacheln"
     },

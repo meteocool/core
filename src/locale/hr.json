@@ -439,7 +439,7 @@
       "dwd": "DWD oluja",
       "dwd_body": "Prati je njemačka meteorološka služba iznad Njemačke. Ima prognozu i javlja tuču i rotaciju.",
       "meteocool": "meteocool oluja",
-      "meteocool_body": "Prati je meteocool s radara diljem Europe. Bez prognoze i dojava tuče ili rotacije.",
+      "meteocool_body": "Prati je meteocool s radara diljem Europe i Sjedinjenih Američkih Država. Bez prognoze i dojava tuče ili rotacije.",
       "strength": "Jačina",
       "live": "Aktivna",
       "live_body": "Još se detektira. Bez prstena zadnji put je viđena prije nekog vremena.",
@@ -872,7 +872,7 @@
       "title": "Najniži sken ili maksimum stupca",
       "p1": "Radarska karta može prikazati dvije vrste slike. Najniži sken prikazuje najniži prolaz svakog radara: odjek najbliži tlu, dakle ono što je najbliže kiši koju ćeš stvarno osjetiti. Daleko od radara čak je i taj prolaz visoko, kao što pokazuje bočni pogled iznad, pa se kiša iz niskih oblaka može propustiti.",
       "p2": "Maksimum stupca za svaku točku na karti prikazuje najjači odjek u bilo kojoj elevaciji iznad nje, do 12 km. Tako se vidi gdje su olujne jezgre, uključujući kišu i tuču koje su još visoko u oblaku i još nisu pale ili koje ispare na putu prema dolje. Zato to nije nužno kiša na tlu: obično izgleda jače i šire od najnižeg skena i može pokazivati kišu ondje gdje je ispod suho.",
-      "p3": "Maksimumu stupca treba cijeli volumni sken, pa kasni jedan sken ili više. DMAX je maksimum stupca DWD-a za Njemačku; meteocool izrađuje vlastiti iz svih šesnaest mreža. Olujne ćelije i 3D oblaci pronalaze se u maksimumu stupca."
+      "p3": "Maksimumu stupca treba cijeli volumni sken, pa kasni jedan sken ili više. DMAX je maksimum stupca DWD-a za Njemačku; meteocool izrađuje vlastiti iz svih šesnaest mreža. Olujne ćelije i 3D oblaci pronalaze se u maksimumu stupca. Za Sjedinjene Američke Države svoj objavljuje NOAA-in MRMS."
     },
     "tops": {
       "title": "Vrhovi odjeka i VIL",
@@ -933,7 +933,7 @@
     },
     "made": {
       "title": "Što meteocool izrađuje i iz čega",
-      "caption": "Narančaste linije su 3D oblaci. Maksimum stupca govori gdje su oluje: DMAX za Njemačku, meteocoolov vlastiti za ostale zemlje. Sirovi prolazi popunjavaju kutiju svake oluje.",
+      "caption": "Narančaste linije su 3D oblaci. Maksimum stupca govori gdje su oluje: DMAX za Njemačku, NOAA-in MRMS za Sjedinjene Američke Države, meteocoolov vlastiti za ostale zemlje. Sirovi prolazi popunjavaju kutiju svake oluje.",
       "col_measured": "Izmjereno",
       "col_published": "Objavljeno",
       "col_shown": "Prikazano na meteocoolu",
@@ -964,6 +964,9 @@
       "vil": "Europski VIL",
       "vil_from": "sirovi prolazi, sve elevacije",
       "vil_how": "Tekuća voda u svakom stupcu, u kg/m², po Greeneu i Clarku iz istih elevacija u istom prolazu, brojena samo između najniže i najviše zrake; najviše od svih radara. Jednom po ciklusu, jedan ili dva skena iza. Prikazuje se samo kad ga odabereš u izborniku radarskih proizvoda.",
+      "us": "Radarska karta, SAD",
+      "us_from": "MRMS",
+      "us_how": "NOAA-in vlastiti kompozit, maksimum stupca, vrhovi odjeka na 18 dBZ i VIL, svake dvije minute. meteocool ih reže na pločice, boji i na kompozitu računa svoju kratkoročnu prognozu.",
       "cells": "Olujne ćelije i putanje",
       "cells_from": "KONRAD3D, DMAX",
       "cells_how": "Otkrivanje i praćenje ćelija DWD-a. Za svaku ćeliju meteocool iz DMAX-a izrezuje stvarni obris za svaku razinu jačine.",
@@ -971,8 +974,8 @@
       "clouds_from": "DMAX ili meteocoolov maksimum stupca, plus sirovi prolazi",
       "clouds_how": "Maksimum stupca govori gdje su oluje. Za svaku oluju meteocool popunjava kutiju prolazima svih radara koji do nje dosežu, pri čemu stariji prolazi manje vrijede. Oluja koju su radari dovoljno dobro vidjeli može se rasjeći.",
       "meso": "Oznake mezociklona",
-      "meso_from": "DWD-ova datoteka mezociklona",
-      "meso_how": "Prikazuju se onako kako su objavljene.",
+      "meso_from": "DWD-ova datoteka mezociklona, brzina iz sirovih prolaza",
+      "meso_how": "DWD-ove detekcije nad Njemačkom, prikazane onako kako su objavljene. Uz njih rotacijski potpisi koje meteocool jednom po ciklusu čita iz brzine radara.",
       "lightning": "Munje",
       "lightning_from": "Blitzortung",
       "lightning_how": "Udari stižu jedan po jedan i odmah se prikazuju. Pločice munja ponovno se izrađuju svakih pet minuta."
@@ -1002,6 +1005,10 @@
       "sweeps_sub": "spremnik EUMETNET-a, sve elevacije",
       "strk": "Udari",
       "strk_sub": "uživo, jedan po jedan",
+      "us": "Radari u SAD-u",
+      "us_sub": "NEXRAD, NOAA",
+      "mrms": "MRMS",
+      "mrms_sub": "NOAA-in mozaik, 1 km",
       "m_de": "Radarska karta, Njemačka",
       "m_de_sub": "ravna, svakih 5 min",
       "m_fc": "Prognoza kiše",
@@ -1023,6 +1030,8 @@
       "m_tops_sub": "18, 45, 50 dBZ, sve elevacije",
       "m_vil": "Europski VIL",
       "m_vil_sub": "voda u stupcu",
+      "m_us": "Radarska karta, SAD",
+      "m_us_sub": "kompozit, vrhovi, VIL",
       "m_lt": "Munje",
       "m_lt_sub": "uživo i kao pločice"
     },

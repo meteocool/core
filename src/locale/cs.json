@@ -439,7 +439,7 @@
       "dwd": "Bouřka DWD",
       "dwd_body": "Sleduje ji Německá meteorologická služba nad Německem. Má předpověď a hlásí kroupy a rotaci.",
       "meteocool": "Bouřka meteocool",
-      "meteocool_body": "Sleduje ji meteocool z radaru po celé Evropě. Bez předpovědi a hlášení krup či rotace.",
+      "meteocool_body": "Sleduje ji meteocool z radaru po celé Evropě a ve Spojených státech. Bez předpovědi a hlášení krup či rotace.",
       "strength": "Síla",
       "live": "Aktivní",
       "live_body": "Stále se detekuje. Bez kroužku byla naposledy viděna před chvílí.",
@@ -873,7 +873,7 @@
       "title": "Nejnižší sken, nebo maximum sloupce",
       "p1": "Radarová mapa může ukazovat dva druhy obrazu. Nejnižší sken ukazuje nejnižší náklon každého radaru: odraz nejblíže zemi, tedy to, co se nejvíc podobá dešti, který opravdu ucítíš. Daleko od radaru je i tento náklon vysoko, jak ukazuje boční pohled výše, a déšť z nízkých mraků může chybět.",
       "p2": "Maximum sloupce ukazuje pro každé místo mapy nejsilnější odraz ze všech náklonů nad ním, až do 12 km. Ukazuje, kde jsou jádra bouřek, včetně deště a krup, které jsou ještě vysoko v oblaku nebo se cestou dolů vypaří. Není to tedy nutně déšť u země: obvykle vypadá silněji a rozsáhleji než nejnižší sken a může ukazovat déšť tam, kde dole zůstává sucho.",
-      "p3": "Maximum sloupce čeká na celý objemový sken, a proto je o sken nebo více pozadu. DMAX je maximum sloupce DWD pro Německo; meteocool staví vlastní ze všech šestnácti sítí. Bouřkové buňky a 3D oblaka se hledají v maximu sloupce."
+      "p3": "Maximum sloupce čeká na celý objemový sken, a proto je o sken nebo více pozadu. DMAX je maximum sloupce DWD pro Německo; meteocool staví vlastní ze všech šestnácti sítí. Bouřkové buňky a 3D oblaka se hledají v maximu sloupce. Pro Spojené státy zveřejňuje vlastní MRMS od NOAA."
     },
     "tops": {
       "title": "Echotopy a VIL",
@@ -934,7 +934,7 @@
     },
     "made": {
       "title": "Co meteocool dělá z čeho",
-      "caption": "Oranžové čáry jsou 3D mraky. Maximum sloupce říká, kde jsou bouřky: DMAX pro Německo, vlastní maximum meteocool pro ostatní země. Surové skeny plní box každé bouřky.",
+      "caption": "Oranžové čáry jsou 3D mraky. Maximum sloupce říká, kde jsou bouřky: DMAX pro Německo, MRMS od NOAA pro Spojené státy, vlastní maximum meteocool pro ostatní země. Surové skeny plní box každé bouřky.",
       "col_measured": "Změřeno",
       "col_published": "Zveřejněno",
       "col_shown": "V meteocool",
@@ -965,6 +965,9 @@
       "vil": "VIL Evropy",
       "vil_from": "surové skeny, všechny náklony",
       "vil_how": "Kapalná voda v každém sloupci, v kg/m², podle Greena a Clarka ze stejných náklonů ve stejném průchodu, počítaná jen mezi nejnižším a nejvyšším paprskem; nejvíc ze všech radarů. Jednou za cyklus, o jeden až dva skeny později. Zobrazí se jen po výběru ve volbě radarového produktu.",
+      "us": "Radarová mapa USA",
+      "us_from": "MRMS",
+      "us_how": "Vlastní kompozit, maximum sloupce, echotopy 18 dBZ a VIL od NOAA, každé dvě minuty. meteocool je rozřeže na dlaždice, obarví a na kompozitu počítá svůj nowcast.",
       "cells": "Bouřkové buňky a dráhy",
       "cells_from": "KONRAD3D, DMAX",
       "cells_how": "Detekce a sledování buněk od DWD. Pro každou buňku meteocool vyřízne z DMAX skutečný obrys každé síly.",
@@ -972,8 +975,8 @@
       "clouds_from": "DMAX nebo maximum sloupce meteocool, plus surové skeny",
       "clouds_how": "Maximum sloupce říká, kde jsou bouřky. Pro každou bouřku meteocool naplní box skeny všech radarů, které na ni dosáhnou; starší skeny se počítají méně. Bouřku, kterou radary viděly dost dobře, lze rozříznout.",
       "meso": "Mezocyklóny",
-      "meso_from": "soubor mezocyklón DWD",
-      "meso_how": "Zobrazují se tak, jak jsou zveřejněny.",
+      "meso_from": "soubor mezocyklón DWD, rychlost ze surových skenů",
+      "meso_how": "Detekce DWD nad Německem, zobrazené tak, jak jsou zveřejněny. Vedle nich rotační signatury, které meteocool jednou za cyklus čte z rychlosti radarů.",
       "lightning": "Blesky živě",
       "lightning_from": "Blitzortung",
       "lightning_how": "Údery přicházejí jednotlivě a hned se zobrazí. Dlaždice blesků se přestavují každých pět minut."
@@ -1003,6 +1006,10 @@
       "sweeps_sub": "EUMETNET, každý náklon",
       "strk": "Údery",
       "strk_sub": "živě, jeden po druhém",
+      "us": "Radary USA",
+      "us_sub": "NEXRAD, NOAA",
+      "mrms": "MRMS",
+      "mrms_sub": "mozaika NOAA, 1 km",
       "m_de": "Radarová mapa, Německo",
       "m_de_sub": "plochá, každých 5 min",
       "m_fc": "Předpověď srážek",
@@ -1024,6 +1031,8 @@
       "m_tops_sub": "18, 45, 50 dBZ, všechny náklony",
       "m_vil": "VIL Evropy",
       "m_vil_sub": "voda ve sloupci",
+      "m_us": "Radarová mapa, USA",
+      "m_us_sub": "kompozit, echotopy, VIL",
       "m_lt": "Blesky",
       "m_lt_sub": "živě a jako dlaždice"
     },

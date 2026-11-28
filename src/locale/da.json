@@ -439,7 +439,7 @@
       "dwd": "DWD-uvejr",
       "dwd_body": "Fulgt af den tyske vejrtjeneste over Tyskland. Har prognose og melder hagl og rotation.",
       "meteocool": "meteocool-uvejr",
-      "meteocool_body": "Fulgt af meteocool på radaren i hele Europa. Ingen prognose, hagl- eller rotationsmelding.",
+      "meteocool_body": "Fulgt af meteocool på radaren i hele Europa og USA. Ingen prognose, hagl- eller rotationsmelding.",
       "strength": "Styrke",
       "live": "Aktiv",
       "live_body": "Registreres stadig. Uden ringen blev det sidst set for et stykke tid siden.",
@@ -872,7 +872,7 @@
       "title": "Laveste scan eller søjlemaksimum",
       "p1": "Radarkortet kan vise to slags billeder. Et laveste scan viser hver radars laveste sweep: ekkoet tættest på jorden og dermed det nærmeste, man kommer den regn, du faktisk mærker. Langt fra en radar er selv det sweep højt oppe, som sidebilledet ovenfor viser, så regn fra lave skyer kan blive overset.",
       "p2": "Et søjlemaksimum viser for hvert sted på kortet det kraftigste ekko i nogen vinkel over det, op til 12 km. Det viser, hvor uvejrenes kerner er, også regn og hagl, der stadig er højt oppe i skyen og ikke er faldet ned endnu, eller som fordamper på vejen ned. Det er altså ikke nødvendigvis regn ved jorden: det ser som regel kraftigere og bredere ud end det laveste scan og kan vise regn, hvor det er tørt nedenunder.",
-      "p3": "Et søjlemaksimum kræver hele volumenscannet, så det er et scan eller mere bagud. DMAX er DWD's søjlemaksimum for Tyskland; meteocool bygger sit eget ud fra alle seksten netværk. Uvejrscellerne og 3D-skyerne findes i et søjlemaksimum."
+      "p3": "Et søjlemaksimum kræver hele volumenscannet, så det er et scan eller mere bagud. DMAX er DWD's søjlemaksimum for Tyskland; meteocool bygger sit eget ud fra alle seksten netværk. Uvejrscellerne og 3D-skyerne findes i et søjlemaksimum. For USA udgiver NOAA's MRMS sit eget."
     },
     "tops": {
       "title": "Ekkotoppe og VIL",
@@ -933,7 +933,7 @@
     },
     "made": {
       "title": "Hvad meteocool laver ud fra hvad",
-      "caption": "De orange linjer er 3D-skyerne. Et søjlemaksimum fortæller, hvor uvejrene er: DMAX for Tyskland, meteocools eget for de andre lande. De rå sweeps fylder hvert uvejrs kasse.",
+      "caption": "De orange linjer er 3D-skyerne. Et søjlemaksimum fortæller, hvor uvejrene er: DMAX for Tyskland, NOAA's MRMS for USA, meteocools eget for de andre lande. De rå sweeps fylder hvert uvejrs kasse.",
       "col_measured": "Målt",
       "col_published": "Udgivet",
       "col_shown": "Vist på meteocool",
@@ -964,6 +964,9 @@
       "vil": "Europæisk VIL",
       "vil_from": "rå sweeps, alle vinkler",
       "vil_how": "Det flydende vand i hver søjle, i kg/m², efter Greene og Clark fra de samme vinkler i samme gennemløb, kun talt mellem den laveste og den højeste stråle; det meste af alle radarer. Én gang pr. cyklus, et eller to scan bagud. Vises kun, når det er valgt i vælgeren for radarprodukt.",
+      "us": "Radarkort, USA",
+      "us_from": "MRMS",
+      "us_how": "NOAA's egen komposit, søjlemaksimum, ekkotoppe ved 18 dBZ og VIL, hvert andet minut. meteocool deler dem i fliser, farver dem og regner sin korttidsprognose på kompositten.",
       "cells": "Uvejrsceller og -baner",
       "cells_from": "KONRAD3D, DMAX",
       "cells_how": "DWD's registrering og sporing af celler. For hver celle skærer meteocool det faktiske omrids ved hver styrke ud af DMAX.",
@@ -971,8 +974,8 @@
       "clouds_from": "DMAX eller meteocools søjlemaksimum plus rå sweeps",
       "clouds_how": "Søjlemaksimummet fortæller, hvor uvejrene er. For hvert uvejr fylder meteocool en kasse med sweeps fra alle radarer, der når det, hvor ældre sweeps tæller mindre. Et uvejr, som radarerne har set godt nok, kan skæres op.",
       "meso": "Mesocyklon-markeringer",
-      "meso_from": "DWD's mesocyklonfil",
-      "meso_how": "Vises, som de udgives.",
+      "meso_from": "DWD's mesocyklonfil, hastighed fra de rå sweeps",
+      "meso_how": "DWD's detektioner over Tyskland, vist som de udgives. Ved siden af dem rotationssignaturer, som meteocool én gang pr. cyklus læser ud af radarernes hastighed.",
       "lightning": "Lyn",
       "lightning_from": "Blitzortung",
       "lightning_how": "Nedslagene kommer ét ad gangen og vises med det samme. Lynfliserne bygges igen hvert femte minut."
@@ -1002,6 +1005,10 @@
       "sweeps_sub": "EUMETNET-bucket, alle vinkler",
       "strk": "Nedslag",
       "strk_sub": "live, ét ad gangen",
+      "us": "Radarer i USA",
+      "us_sub": "NEXRAD, NOAA",
+      "mrms": "MRMS",
+      "mrms_sub": "NOAA's mosaik, 1 km",
       "m_de": "Radarkort, Tyskland",
       "m_de_sub": "fladt, hvert 5. min",
       "m_fc": "Regnprognose",
@@ -1023,6 +1030,8 @@
       "m_tops_sub": "18, 45, 50 dBZ, alle vinkler",
       "m_vil": "Europæisk VIL",
       "m_vil_sub": "vand i søjlen",
+      "m_us": "Radarkort, USA",
+      "m_us_sub": "komposit, ekkotoppe, VIL",
       "m_lt": "Lyn",
       "m_lt_sub": "live og som fliser"
     },

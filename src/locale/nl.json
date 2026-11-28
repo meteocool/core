@@ -439,7 +439,7 @@
       "dwd": "DWD-onweer",
       "dwd_body": "Gevolgd door de Duitse weerdienst boven Duitsland. Met verwachting, hagel- en rotatiemelding.",
       "meteocool": "meteocool-onweer",
-      "meteocool_body": "Door meteocool gevolgd op de radar, in heel Europa. Zonder verwachting, hagel- of rotatiemelding.",
+      "meteocool_body": "Door meteocool gevolgd op de radar, in heel Europa en de Verenigde Staten. Zonder verwachting, hagel- of rotatiemelding.",
       "strength": "Sterkte",
       "live": "Actief",
       "live_body": "Wordt nog gedetecteerd. Zonder de ring is het een tijd geleden voor het laatst gezien.",
@@ -873,7 +873,7 @@
       "title": "Laagste scan of kolommaximum",
       "p1": "De radarkaart kan twee soorten beeld tonen. Een laagste scan toont de laagste sweep van elke radar: de echo het dichtst bij de grond, en dus het dichtst bij de regen die je echt voelt. Ver van een radar zit zelfs die sweep hoog, zoals het zijaanzicht hierboven laat zien, en kan regen uit lage wolken ontbreken.",
       "p2": "Een kolommaximum toont voor elk punt op de kaart de sterkste echo van alle hoeken erboven, tot 12 km. Zo zie je waar de kernen van de buien zitten, ook regen en hagel die nog hoog in de wolk hangen of onderweg naar beneden verdampen. Het is dus niet per se regen aan de grond: het lijkt meestal sterker en groter dan de laagste scan en kan regen tonen waar het beneden droog blijft.",
-      "p3": "Een kolommaximum wacht op de hele volumescan en loopt daarom een scan of meer achter. DMAX is het kolommaximum van de DWD voor Duitsland; meteocool bouwt een eigen uit alle zestien netwerken. De onweerscellen en de 3D-wolken worden in een kolommaximum gevonden."
+      "p3": "Een kolommaximum wacht op de hele volumescan en loopt daarom een scan of meer achter. DMAX is het kolommaximum van de DWD voor Duitsland; meteocool bouwt een eigen uit alle zestien netwerken. De onweerscellen en de 3D-wolken worden in een kolommaximum gevonden. Voor de Verenigde Staten publiceert MRMS van de NOAA een eigen kolommaximum."
     },
     "tops": {
       "title": "Echotoppen en VIL",
@@ -934,7 +934,7 @@
     },
     "made": {
       "title": "Wat meteocool waarvan maakt",
-      "caption": "De oranje lijnen zijn de 3D-wolken. Een kolommaximum zegt waar de buien zijn: DMAX voor Duitsland, het eigen kolommaximum van meteocool voor de andere landen. De ruwe sweeps vullen de box van elke bui.",
+      "caption": "De oranje lijnen zijn de 3D-wolken. Een kolommaximum zegt waar de buien zijn: DMAX voor Duitsland, MRMS van de NOAA voor de Verenigde Staten, het eigen kolommaximum van meteocool voor de andere landen. De ruwe sweeps vullen de box van elke bui.",
       "col_measured": "Gemeten",
       "col_published": "Gepubliceerd",
       "col_shown": "Op meteocool",
@@ -965,6 +965,9 @@
       "vil": "Europese VIL",
       "vil_from": "ruwe sweeps, alle hoeken",
       "vil_how": "Het vloeibare water in elke kolom, in kg/m², volgens Greene en Clark uit dezelfde hoeken in dezelfde ronde, alleen geteld tussen de laagste en de hoogste bundel; het meeste van alle radars. Eén keer per cyclus, een à twee scans later. Alleen zichtbaar als je het in de radarproductkiezer kiest.",
+      "us": "Radarkaart VS",
+      "us_from": "MRMS",
+      "us_how": "De eigen composiet, het kolommaximum, de echotoppen bij 18 dBZ en de VIL van de NOAA, elke twee minuten. meteocool knipt ze in tegels, kleurt ze en rekent zijn nowcast op de composiet.",
       "cells": "Onweerscellen en banen",
       "cells_from": "KONRAD3D, DMAX",
       "cells_how": "De celherkenning en -volging van de DWD. Voor elke cel snijdt meteocool de echte omtrek van elke sterkte uit DMAX.",
@@ -972,8 +975,8 @@
       "clouds_from": "DMAX of het kolommaximum van meteocool, plus ruwe sweeps",
       "clouds_how": "Het kolommaximum zegt waar de buien zijn. Voor elke bui vult meteocool een box met de sweeps van elke radar die hem bereikt; oudere sweeps tellen minder. Een bui die de radars goed genoeg zagen, kun je openknippen.",
       "meso": "Mesocyclonen",
-      "meso_from": "mesocyclonenbestand van de DWD",
-      "meso_how": "Getoond zoals ze gepubliceerd worden.",
+      "meso_from": "mesocyclonenbestand van de DWD, snelheid uit de ruwe sweeps",
+      "meso_how": "De detecties van de DWD boven Duitsland, getoond zoals ze gepubliceerd worden. Daarnaast rotatiesignaturen die meteocool eens per cyclus uit de snelheid van de radars leest.",
       "lightning": "Bliksem",
       "lightning_from": "Blitzortung",
       "lightning_how": "Inslagen komen één voor één binnen en verschijnen meteen. De bliksemtegels worden elke vijf minuten opnieuw gebouwd."
@@ -1003,6 +1006,10 @@
       "sweeps_sub": "EUMETNET, elke hoek",
       "strk": "Inslagen",
       "strk_sub": "live, één voor één",
+      "us": "Radars in de VS",
+      "us_sub": "NEXRAD, NOAA",
+      "mrms": "MRMS",
+      "mrms_sub": "mozaïek van de NOAA, 1 km",
       "m_de": "Radarkaart Duitsland",
       "m_de_sub": "plat, elke 5 min",
       "m_fc": "Regenverwachting",
@@ -1024,6 +1031,8 @@
       "m_tops_sub": "18, 45, 50 dBZ, alle hoeken",
       "m_vil": "Europese VIL",
       "m_vil_sub": "water in de kolom",
+      "m_us": "Radarkaart, VS",
+      "m_us_sub": "composiet, echotoppen, VIL",
       "m_lt": "Bliksem",
       "m_lt_sub": "live en als tegels"
     },

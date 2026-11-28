@@ -439,7 +439,7 @@
       "dwd": "DWD:n ukkonen",
       "dwd_body": "Saksan sääpalvelu seuraa sitä Saksan yllä. Sillä on ennuste, ja se ilmoittaa rakeet ja pyörimisen.",
       "meteocool": "meteocoolin ukkonen",
-      "meteocool_body": "meteocool seuraa sitä tutkasta koko Euroopassa. Ei ennustetta eikä rae- tai pyörimisilmoitusta.",
+      "meteocool_body": "meteocool seuraa sitä tutkasta koko Euroopassa ja Yhdysvalloissa. Ei ennustetta eikä rae- tai pyörimisilmoitusta.",
       "strength": "Voimakkuus",
       "live": "Aktiivinen",
       "live_body": "Havaitaan yhä. Ilman rengasta se nähtiin viimeksi hetki sitten.",
@@ -872,7 +872,7 @@
       "title": "Alin keilaus vai pylväsmaksimi",
       "p1": "Tutkakartta voi näyttää kahdenlaista kuvaa. Alin keilaus näyttää kunkin tutkan alimman pyyhkäisyn: maanpintaa lähimmän kaiun, ja siten lähimmän vastineen sille sateelle, jonka oikeasti tunnet. Kaukana tutkasta sekin pyyhkäisy on korkealla, kuten yllä oleva sivukuva näyttää, joten matalista pilvistä satava sade voi jäädä näkymättä.",
       "p2": "Pylväsmaksimi näyttää kartan jokaisen kohdan yläpuolelta voimakkaimman kaiun millä tahansa kulmalla, 12 kilometriin asti. Se osoittaa, missä ukkospilvien ytimet ovat, mukaan lukien sateen ja rakeet, jotka ovat vielä korkealla pilvessä eivätkä ole vielä pudonneet tai jotka haihtuvat matkalla alas. Se ei siis välttämättä ole sadetta maassa: se näyttää yleensä voimakkaammalta ja laajemmalta kuin alin keilaus, ja se voi näyttää sadetta siellä, missä alhaalla pysyy kuivaa.",
-      "p3": "Pylväsmaksimi tarvitsee koko tilavuuskeilauksen, joten se on yhden keilauksen tai enemmän jäljessä. DMAX on DWD:n pylväsmaksimi Saksalle; meteocool tekee oman kaikista kuudestatoista tutkaverkosta. Ukkossolut ja 3D-pilvet etsitään pylväsmaksimista."
+      "p3": "Pylväsmaksimi tarvitsee koko tilavuuskeilauksen, joten se on yhden keilauksen tai enemmän jäljessä. DMAX on DWD:n pylväsmaksimi Saksalle; meteocool tekee oman kaikista kuudestatoista tutkaverkosta. Ukkossolut ja 3D-pilvet etsitään pylväsmaksimista. Yhdysvalloille NOAA:n MRMS julkaisee omansa."
     },
     "tops": {
       "title": "Kaikukorkeudet ja VIL",
@@ -933,7 +933,7 @@
     },
     "made": {
       "title": "Mitä meteocool tekee mistäkin",
-      "caption": "Oranssit viivat ovat 3D-pilviä. Pylväsmaksimi kertoo, missä ukkoset ovat: Saksassa DMAX, muissa maissa meteocoolin oma. Raakapyyhkäisyt täyttävät kunkin ukkosen laatikon.",
+      "caption": "Oranssit viivat ovat 3D-pilviä. Pylväsmaksimi kertoo, missä ukkoset ovat: Saksassa DMAX, Yhdysvalloissa NOAA:n MRMS, muissa maissa meteocoolin oma. Raakapyyhkäisyt täyttävät kunkin ukkosen laatikon.",
       "col_measured": "Mitattu",
       "col_published": "Julkaistu",
       "col_shown": "Näkyy meteocoolissa",
@@ -964,6 +964,9 @@
       "vil": "Euroopan VIL",
       "vil_from": "raakapyyhkäisyt, kaikki kulmat",
       "vil_how": "Nestemäinen vesi kussakin pylväässä, kg/m², Greenen ja Clarkin mukaan samoista kulmista samalla ajokerralla, laskettuna vain alimman ja ylimmän keilan väliltä; suurin kaikista tutkista. Kerran jaksossa, yhden tai kaksi keilausta jäljessä. Näkyy vain, kun se valitaan tutkatuotteen valitsimesta.",
+      "us": "Tutkakartta, Yhdysvallat",
+      "us_from": "MRMS",
+      "us_how": "NOAA:n oma yhdistelmä, pylväsmaksimi, 18 dBZ:n kaikukorkeudet ja VIL kahden minuutin välein. meteocool paloittelee ne tiiliksi, värittää ne ja laskee lähiennusteensa yhdistelmästä.",
       "cells": "Ukkossolut ja niiden reitit",
       "cells_from": "KONRAD3D, DMAX",
       "cells_how": "DWD:n solujen tunnistus ja seuranta. meteocool leikkaa jokaiselle solulle todelliset ääriviivat kullakin voimakkuudella DMAX:sta.",
@@ -971,8 +974,8 @@
       "clouds_from": "DMAX tai meteocoolin pylväsmaksimi sekä raakapyyhkäisyt",
       "clouds_how": "Pylväsmaksimi kertoo, missä ukkoset ovat. meteocool täyttää jokaiselle ukkoselle laatikon kaikkien siihen ulottuvien tutkien pyyhkäisyillä, ja vanhemmat pyyhkäisyt painavat vähemmän. Ukkosen, jonka tutkat näkivät tarpeeksi hyvin, voi leikata auki.",
       "meso": "Mesosyklonimerkinnät",
-      "meso_from": "DWD:n mesosyklonitiedosto",
-      "meso_how": "Näytetään sellaisina kuin ne julkaistaan.",
+      "meso_from": "DWD:n mesosyklonitiedosto, raakapyyhkäisyjen nopeus",
+      "meso_how": "DWD:n havainnot Saksan yllä, näytetään sellaisina kuin ne julkaistaan. Niiden rinnalla pyörteen tunnusmerkit, jotka meteocool lukee tutkien nopeudesta kerran kierrossa.",
       "lightning": "Reaaliaikaiset salamat",
       "lightning_from": "Blitzortung",
       "lightning_how": "Salamat saapuvat yksitellen ja näkyvät heti. Salamatiilet luodaan uudelleen viiden minuutin välein."
@@ -1002,6 +1005,10 @@
       "sweeps_sub": "EUMETNETin säilö, kaikki kulmat",
       "strk": "Salamat",
       "strk_sub": "reaaliaikaisesti, yksitellen",
+      "us": "Yhdysvaltain tutkat",
+      "us_sub": "NEXRAD, NOAA",
+      "mrms": "MRMS",
+      "mrms_sub": "NOAA:n mosaiikki, 1 km",
       "m_de": "Tutkakartta, Saksa",
       "m_de_sub": "tasainen, 5 min välein",
       "m_fc": "Sade-ennuste",
@@ -1023,6 +1030,8 @@
       "m_tops_sub": "18, 45, 50 dBZ, kaikki kulmat",
       "m_vil": "Euroopan VIL",
       "m_vil_sub": "vesi pylväässä",
+      "m_us": "Tutkakartta, Yhdysvallat",
+      "m_us_sub": "yhdistelmä, kaikukorkeudet, VIL",
       "m_lt": "Salamat",
       "m_lt_sub": "reaaliaikaisesti ja tiilinä"
     },

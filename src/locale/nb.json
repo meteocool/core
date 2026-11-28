@@ -439,7 +439,7 @@
       "dwd": "DWD-uvær",
       "dwd_body": "Fulgt av den tyske værtjenesten over Tyskland. Har prognose og melder hagl og rotasjon.",
       "meteocool": "meteocool-uvær",
-      "meteocool_body": "Fulgt av meteocool på radaren i hele Europa. Ingen prognose, hagl- eller rotasjonsmelding.",
+      "meteocool_body": "Fulgt av meteocool på radaren i hele Europa og USA. Ingen prognose, hagl- eller rotasjonsmelding.",
       "strength": "Styrke",
       "live": "Aktiv",
       "live_body": "Registreres fortsatt. Uten ringen ble det sist sett for en stund siden.",
@@ -872,7 +872,7 @@
       "title": "Laveste skann eller kolonnemaksimum",
       "p1": "Radarkartet kan vise to slags bilder. Et laveste skann viser hver radars laveste sveip: ekkoet nærmest bakken, og dermed det nærmeste du kommer regnet du faktisk kjenner. Langt fra en radar ligger selv dette sveipet høyt oppe, slik sidevisningen over viser, så regn fra lave skyer kan bli oversett.",
       "p2": "Et kolonnemaksimum viser for hvert punkt på kartet det sterkeste ekkoet i alle elevasjoner over det, opp til 12 km. Det viser hvor kjernene i tordenværene er, også regn og hagl som fortsatt er høyt oppe i skyen og ikke har kommet ned ennå, eller som fordamper på veien ned. Det er altså ikke nødvendigvis regn på bakken: det ser vanligvis sterkere og større ut enn det laveste skannet, og kan vise regn der det er tørt under.",
-      "p3": "Et kolonnemaksimum trenger hele volumskannet, så det ligger ett skann eller mer bak. DMAX er DWDs kolonnemaksimum for Tyskland; meteocool lager sitt eget fra alle seksten nettverkene. Tordencellene og 3D-skyene finnes i et kolonnemaksimum."
+      "p3": "Et kolonnemaksimum trenger hele volumskannet, så det ligger ett skann eller mer bak. DMAX er DWDs kolonnemaksimum for Tyskland; meteocool lager sitt eget fra alle seksten nettverkene. Tordencellene og 3D-skyene finnes i et kolonnemaksimum. For USA publiserer NOAAs MRMS sitt eget."
     },
     "tops": {
       "title": "Ekkotopper og VIL",
@@ -933,7 +933,7 @@
     },
     "made": {
       "title": "Hva meteocool lager av hva",
-      "caption": "De oransje linjene er 3D-skyene. Et kolonnemaksimum sier hvor tordenværene er: DMAX for Tyskland, meteocools eget for de andre landene. De rå sveipene fyller boksen til hvert tordenvær.",
+      "caption": "De oransje linjene er 3D-skyene. Et kolonnemaksimum sier hvor tordenværene er: DMAX for Tyskland, NOAAs MRMS for USA, meteocools eget for de andre landene. De rå sveipene fyller boksen til hvert tordenvær.",
       "col_measured": "Målt",
       "col_published": "Publisert",
       "col_shown": "Vist på meteocool",
@@ -964,6 +964,9 @@
       "vil": "Europeisk VIL",
       "vil_from": "rå sveip, alle elevasjoner",
       "vil_how": "Det flytende vannet i hver kolonne, i kg/m², etter Greene og Clark fra de samme elevasjonene i samme kjøring, bare talt mellom den laveste og den høyeste strålen; det meste fra alle radarer. Én gang per syklus, ett eller to skann bak. Vises bare når det er valgt i radarproduktvelgeren.",
+      "us": "Radarkart, USA",
+      "us_from": "MRMS",
+      "us_how": "NOAAs egen kompositt, kolonnemaks, ekkotopper ved 18 dBZ og VIL, annethvert minutt. meteocool deler dem i fliser, farger dem og regner sitt korttidsvarsel på kompositten.",
       "cells": "Tordenceller og baner",
       "cells_from": "KONRAD3D, DMAX",
       "cells_how": "DWDs deteksjon og sporing av celler. For hver celle skjærer meteocool ut det virkelige omrisset ved hver styrke fra DMAX.",
@@ -971,8 +974,8 @@
       "clouds_from": "DMAX eller meteocools kolonnemaksimum, pluss rå sveip",
       "clouds_how": "Kolonnemaksimumet sier hvor tordenværene er. For hvert tordenvær fyller meteocool en boks med sveipene fra alle radarer som når det, der eldre sveip teller mindre. Et tordenvær som radarene så godt nok, kan skjæres opp.",
       "meso": "Mesosyklonmarkeringer",
-      "meso_from": "DWDs mesosyklonfil",
-      "meso_how": "Vises slik de publiseres.",
+      "meso_from": "DWDs mesosyklonfil, hastighet fra de rå sveipene",
+      "meso_how": "DWDs deteksjoner over Tyskland, vist slik de publiseres. Ved siden av dem rotasjonssignaturer som meteocool én gang per syklus leser ut av radarenes hastighet.",
       "lightning": "Lyn",
       "lightning_from": "Blitzortung",
       "lightning_how": "Nedslagene kommer ett og ett og vises med en gang. Lynflisene bygges på nytt hvert femte minutt."
@@ -1002,6 +1005,10 @@
       "sweeps_sub": "EUMETNET-bøtta, alle elevasjoner",
       "strk": "Nedslag",
       "strk_sub": "direkte, ett og ett",
+      "us": "Radarer i USA",
+      "us_sub": "NEXRAD, NOAA",
+      "mrms": "MRMS",
+      "mrms_sub": "NOAAs mosaikk, 1 km",
       "m_de": "Radarkart, Tyskland",
       "m_de_sub": "flatt, hvert 5. min",
       "m_fc": "Nedbørvarsel",
@@ -1023,6 +1030,8 @@
       "m_tops_sub": "18, 45, 50 dBZ, alle elevasjoner",
       "m_vil": "Europeisk VIL",
       "m_vil_sub": "vann i kolonnen",
+      "m_us": "Radarkart, USA",
+      "m_us_sub": "kompositt, ekkotopper, VIL",
       "m_lt": "Lyn",
       "m_lt_sub": "direkte og som fliser"
     },
