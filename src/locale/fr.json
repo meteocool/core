@@ -93,7 +93,9 @@
     "sky": "Ciel",
     "sky_body": "Un nuage blanc tel qu'un satellite le voit, éclairé par le soleil. Coupé, il montre les couleurs du radar.",
     "tinted": "Teinté",
-    "tinted_body": "Le nuage blanc, teinté là où l'écho en altitude est fort."
+    "tinted_body": "Le nuage blanc, teinté là où l'écho en altitude est fort.",
+    "points": "Points",
+    "points_body": "Un point pour chaque mesure du champ radar, plus gros là où l'écho est plus fort."
   },
   "time_3d": {
     "choose": "Afficher les orages à une heure antérieure",

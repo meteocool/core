@@ -127,7 +127,7 @@ export const FLIGHT_FOV = 60;
 /** The storm style a flight is planned in unless the reader says otherwise: white cloud, as it is seen from an aircraft. */
 export const FLIGHT_STYLE: CloudStyle = "sky";
 /** The styles `C` steps through. */
-const STYLES: CloudStyle[] = ["sky", "tinted", "cloud", "glow"];
+const STYLES: CloudStyle[] = ["sky", "tinted", "cloud", "glow", "points"];
 
 /**
  * Where the eye looks before the mouse turns it. From the seat, a little

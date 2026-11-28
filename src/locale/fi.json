@@ -93,7 +93,9 @@
     "sky": "Taivas",
     "sky_body": "Valkoinen pilvi sellaisena kuin satelliitti sen näkee, auringon valaisemana. Leikattuna se näyttää tutkan värit.",
     "tinted": "Sävytetty",
-    "tinted_body": "Valkoinen pilvi, sävytetty siltä kohdin, missä kaiku on ylhäällä voimakas."
+    "tinted_body": "Valkoinen pilvi, sävytetty siltä kohdin, missä kaiku on ylhäällä voimakas.",
+    "points": "Pisteet",
+    "points_body": "Yksi piste jokaista tutkakentän mittausarvoa kohti, suurempi siellä, missä kaiku on voimakkaampi."
   },
   "time_3d": {
     "choose": "Näytä ukkoset aiemmalta ajalta",

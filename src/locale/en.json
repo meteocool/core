@@ -95,7 +95,9 @@
     "sky": "Sky",
     "sky_body": "A white cloud as a satellite sees it, lit by the sun. Cut it open for the radar's colours.",
     "tinted": "Tinted",
-    "tinted_body": "The white cloud, its top tinted where the echo aloft is strong."
+    "tinted_body": "The white cloud, its top tinted where the echo aloft is strong.",
+    "points": "Points",
+    "points_body": "One dot for every sample of the radar's field, larger where the echo is stronger."
   },
   "time_3d": {
     "choose": "Show the storms at an earlier time",

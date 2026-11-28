@@ -93,7 +93,9 @@
     "sky": "Dangus",
     "sky_body": "Baltas debesis, kokį jį mato palydovas, apšviestas saulės. Perpjautas jis rodo radaro spalvas.",
     "tinted": "Atspalvintas",
-    "tinted_body": "Baltas debesis, atspalvintas ten, kur aidas aukštai yra stiprus."
+    "tinted_body": "Baltas debesis, atspalvintas ten, kur aidas aukštai yra stiprus.",
+    "points": "Taškai",
+    "points_body": "Po vieną tašką kiekvienai radaro lauko reikšmei, didesnis ten, kur aidas stipresnis."
   },
   "time_3d": {
     "choose": "Rodyti audras ankstesniu laiku",

@@ -13,7 +13,7 @@ test("a style a Studio scene names is taken as it is, and anything else is the c
 });
 
 test("the styles keep their places, which Studio's scene links store, new ones at the end", () => {
-  assert.deepEqual(CLOUD_STYLES, ["cloud", "glow", "shells", "sky", "tinted"]);
+  assert.deepEqual(CLOUD_STYLES, ["cloud", "glow", "shells", "sky", "tinted", "points"]);
 });
 
 test("the map offers every style but the shells, which are Studio's", () => {

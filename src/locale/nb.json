@@ -93,7 +93,9 @@
     "sky": "Himmel",
     "sky_body": "En hvit sky slik en satellitt ser den, opplyst av solen. Skåret opp viser den radarens farger.",
     "tinted": "Tonet",
-    "tinted_body": "Den hvite skyen, tonet der ekkoet høyt oppe er kraftig."
+    "tinted_body": "Den hvite skyen, tonet der ekkoet høyt oppe er kraftig.",
+    "points": "Punkter",
+    "points_body": "Ett punkt for hver måling i radarfeltet, større der ekkoet er sterkere."
   },
   "time_3d": {
     "choose": "Vis tordenværene på et tidligere tidspunkt",

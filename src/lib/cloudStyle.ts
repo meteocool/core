@@ -1,5 +1,5 @@
 /**
- * How the 3D map draws a storm's volume: the same field, five pictures of it.
+ * How the 3D map draws a storm's volume: the same field, six pictures of it.
  *
  * - `cloud`: a lit, soft cloud of everything from light rain up. What a storm
  *   looks like from outside; its core shows once it peels or is cut.
@@ -18,6 +18,10 @@
  * - `tinted`: the same white cloud, its hull tinted by the strongest echo
  *   aloft in the column beneath each point of it (`HULL_TINT`): where the
  *   storm is strong reads from outside without the cloud ceasing to be one.
+ * - `points`: the field as the radar's own samples, one dot a voxel in its
+ *   reflectivity's colour, larger and more solid the stronger it is. Nothing
+ *   is filled in between them, so the storm is see-through as it stands and
+ *   its core is the dense knot of large dots inside the scatter.
  *
  * Kept apart from the layer, which needs a GL context, so the settings, the
  * links and the tests can name a style without it.
@@ -27,7 +31,7 @@
  * style as its place in this list, so a new one goes at the end and none is
  * ever moved.
  */
-export const CLOUD_STYLES = ["cloud", "glow", "shells", "sky", "tinted"] as const;
+export const CLOUD_STYLES = ["cloud", "glow", "shells", "sky", "tinted", "points"] as const;
 export type CloudStyle = typeof CLOUD_STYLES[number];
 
 export const DEFAULT_CLOUD_STYLE: CloudStyle = "cloud";
@@ -36,7 +40,7 @@ export const DEFAULT_CLOUD_STYLE: CloudStyle = "cloud";
  * The styles the 3D map offers outside Studio, in the order its menus list
  * them: every one but `shells`, which says nothing until it is cut.
  */
-export const MAP_STYLES: readonly CloudStyle[] = ["cloud", "sky", "tinted", "glow"];
+export const MAP_STYLES: readonly CloudStyle[] = ["cloud", "sky", "tinted", "glow", "points"];
 
 /** The style a Studio scene or a link names; the default for anything else. */
 export function cloudStyleOf(value: unknown): CloudStyle {
@@ -76,6 +80,9 @@ export const STYLE_FIELD: Record<CloudStyle, { floor: number; band: number }> = 
   // as a wall of cloud along the storm's edge.
   sky: { floor: 17, band: 13 },
   tinted: { floor: 17, band: 13 },
+  // From light rain, and growing over the whole of the palette: a dot's size
+  // is what says how strong it is from far off, so it runs up to a core's.
+  points: { floor: 15, band: 40 },
 };
 
 /**

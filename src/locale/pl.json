@@ -93,7 +93,9 @@
     "sky": "Niebo",
     "sky_body": "Biała chmura, jaką widzi satelita, oświetlona słońcem. Przecięta pokazuje kolory radaru.",
     "tinted": "Barwiona",
-    "tinted_body": "Biała chmura, zabarwiona tam, gdzie echo wysoko jest silne."
+    "tinted_body": "Biała chmura, zabarwiona tam, gdzie echo wysoko jest silne.",
+    "points": "Punkty",
+    "points_body": "Jeden punkt na każdą wartość pola radarowego, większy tam, gdzie echo jest silniejsze."
   },
   "time_3d": {
     "choose": "Pokaż burze z wcześniejszej godziny",

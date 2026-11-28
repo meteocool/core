@@ -14,10 +14,18 @@ export let style: CloudStyle;
 export let small = false;
 
 /* A storm as three nested levels, envelope to core, as the guide draws one. */
+/* The dots of `points`: where each is, and which of the three levels it is in. */
+const DOTS: Array<[number, number, 0 | 1 | 2]> = [
+  [4, 13, 0], [7.5, 8, 0], [8, 17.5, 0], [12.5, 4.5, 0], [14, 20.5, 0], [19, 4, 0], [20.5, 20, 0],
+  [24.5, 7, 0], [25.5, 16.5, 0], [28.5, 11.5, 0],
+  [9.5, 12.5, 1], [12.5, 16.5, 1], [13, 8.5, 1], [18.5, 16.5, 1], [19.5, 8.5, 1], [22.5, 12.5, 1],
+  [14, 12.5, 2], [17.8, 12.2, 2],
+];
+
 $: levels = [30, 45, 58].map((dbz) => `rgb(${dbzColour(dbz, $radarColormap).join(", ")})`);
 </script>
 
-<!-- Soft and shaded, blurred light, hard-edged shells, or a white cumulus, plain or tinted on top. -->
+<!-- Soft and shaded, blurred light, hard-edged shells, a scatter of dots, or a white cumulus, plain or tinted on top. -->
 <svg class="picture" class:small viewBox="0 0 32 24" aria-hidden="true">
   {#if style === "cloud"}
     <ellipse cx="16" cy="13" rx="13" ry="9" fill={levels[0]} opacity="0.55" />
@@ -35,6 +43,11 @@ $: levels = [30, 45, 58].map((dbz) => `rgb(${dbzColour(dbz, $radarColormap).join
       <ellipse cx="15.5" cy="12.5" rx="8.5" ry="6" fill={levels[1]} />
       <ellipse cx="15" cy="12.5" rx="4" ry="3" fill={levels[2]} />
     </g>
+  {:else if style === "points"}
+    <!-- A scatter of dots, small and faint outside, large and close at the core. -->
+    {#each DOTS as [x, y, level] (`${x} ${y}`)}
+      <circle cx={x} cy={y} r={[1, 1.5, 2.1][level]} fill={levels[level]} opacity={[0.7, 0.9, 1][level]} />
+    {/each}
   {:else}
     <!-- A cumulus: grey where it is in its own shadow, white where the sun is. -->
     <g class="sky">

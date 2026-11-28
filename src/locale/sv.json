@@ -93,7 +93,9 @@
     "sky": "Himmel",
     "sky_body": "Ett vitt moln som en satellit ser det, upplyst av solen. Uppskuret visar det radarns färger.",
     "tinted": "Tonad",
-    "tinted_body": "Det vita molnet, tonat där ekot högt upp är starkt."
+    "tinted_body": "Det vita molnet, tonat där ekot högt upp är starkt.",
+    "points": "Punkter",
+    "points_body": "En punkt för varje mätvärde i radarfältet, större där ekot är starkare."
   },
   "time_3d": {
     "choose": "Visa åskvädren vid en tidigare tidpunkt",

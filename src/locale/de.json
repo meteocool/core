@@ -93,7 +93,9 @@
     "sky": "Himmel",
     "sky_body": "Eine weiße Wolke, wie ein Satellit sie sieht, von der Sonne beleuchtet. Aufgeschnitten zeigt sie die Farben des Radars.",
     "tinted": "Getönt",
-    "tinted_body": "Die weiße Wolke, getönt, wo das Echo in der Höhe stark ist."
+    "tinted_body": "Die weiße Wolke, getönt, wo das Echo in der Höhe stark ist.",
+    "points": "Punkte",
+    "points_body": "Ein Punkt für jeden Messwert des Radarfelds, größer, wo das Echo stärker ist."
   },
   "time_3d": {
     "choose": "Gewitter zu einer früheren Zeit zeigen",

@@ -34,7 +34,7 @@ test("the tray's pill picks the style, which is kept and written into the link",
   const options = styleMenu(page).getByRole("menuitemradio");
   const option = (name: string) => styleMenu(page).getByRole("menuitemradio", { name: new RegExp(`^${name}\\b`) });
   // Every style the map offers; the shells are Studio's.
-  await expect(options).toHaveCount(4);
+  await expect(options).toHaveCount(5);
   await expect(option("Shells")).toHaveCount(0);
   await expect(option("Cloud")).toHaveAttribute("aria-checked", "true");
   await option("Tinted").click();

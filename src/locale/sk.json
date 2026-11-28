@@ -93,7 +93,9 @@
     "sky": "Obloha",
     "sky_body": "Biely mrak, ako ho vidí družica, osvetlený slnkom. Rozrezaný ukáže farby radaru.",
     "tinted": "Tónovaný",
-    "tinted_body": "Biely mrak, tónovaný tam, kde je echo vo výške silné."
+    "tinted_body": "Biely mrak, tónovaný tam, kde je echo vo výške silné.",
+    "points": "Body",
+    "points_body": "Jeden bod za každú hodnotu radarového poľa, väčší tam, kde je odraz silnejší."
   },
   "time_3d": {
     "choose": "Zobraziť búrky v skoršom čase",

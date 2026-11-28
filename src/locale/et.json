@@ -93,7 +93,9 @@
     "sky": "Taevas",
     "sky_body": "Valge pilv, nagu satelliit seda näeb, päikesest valgustatud. Läbi lõigatuna näitab see radari värve.",
     "tinted": "Toonitud",
-    "tinted_body": "Valge pilv, toonitud seal, kus kaja kõrgel on tugev."
+    "tinted_body": "Valge pilv, toonitud seal, kus kaja kõrgel on tugev.",
+    "points": "Punktid",
+    "points_body": "Üks punkt iga radarivälja mõõteväärtuse kohta, suurem seal, kus kaja on tugevam."
   },
   "time_3d": {
     "choose": "Näita äikesi varasemal ajal",

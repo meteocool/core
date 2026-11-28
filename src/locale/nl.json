@@ -93,7 +93,9 @@
     "sky": "Lucht",
     "sky_body": "Een witte wolk zoals een satelliet die ziet, verlicht door de zon. Opengesneden toont hij de kleuren van de radar.",
     "tinted": "Getint",
-    "tinted_body": "De witte wolk, getint waar de echo hoog in de lucht sterk is."
+    "tinted_body": "De witte wolk, getint waar de echo hoog in de lucht sterk is.",
+    "points": "Punten",
+    "points_body": "Eén punt voor elke meetwaarde van het radarveld, groter waar de echo sterker is."
   },
   "time_3d": {
     "choose": "Toon de buien op een eerder tijdstip",

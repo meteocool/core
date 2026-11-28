@@ -93,7 +93,9 @@
     "sky": "Himmel",
     "sky_body": "En hvid sky, som en satellit ser den, oplyst af solen. Skåret op viser den radarens farver.",
     "tinted": "Tonet",
-    "tinted_body": "Den hvide sky, tonet hvor ekkoet højt oppe er kraftigt."
+    "tinted_body": "Den hvide sky, tonet hvor ekkoet højt oppe er kraftigt.",
+    "points": "Punkter",
+    "points_body": "Ét punkt for hver måling i radarfeltet, større hvor ekkoet er stærkere."
   },
   "time_3d": {
     "choose": "Vis uvejrene på et tidligere tidspunkt",

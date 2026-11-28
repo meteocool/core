@@ -15,15 +15,17 @@
  *
  * ## Styles
  *
- * The same field can be drawn five ways (lib/cloudStyle.ts), and the reader
+ * The same field can be drawn six ways (lib/cloudStyle.ts), and the reader
  * picks: the lit cloud described above, the field as unlit see-through
- * light from its faintest echo up, a surface at every tenth dBZ, nested, or
- * a white cloud in sunlight, plain or with its hull tinted by the column
- * under it. One program draws them all: the ray, the box, the cut and the
- * depth are the same, and only what a sample along the ray adds differs.
- * The peel works on each from its own floor; the cut leaves a flat face in
- * the radar's colours on the cloud, the light and the white cloud, and
- * opens the shells hollow.
+ * light from its faintest echo up, a surface at every tenth dBZ, nested, a
+ * white cloud in sunlight, plain or with its hull tinted by the column
+ * under it, or a dot a voxel. One program draws all but the last: the ray,
+ * the box, the cut and the depth are the same, and only what a sample along
+ * the ray adds differs. The dots are not marched at all and have a program
+ * of their own (cloudPoints.ts), drawn from the same textures, boxes, peel
+ * and planes. The peel works on each from its own floor; the cut leaves a
+ * flat face in the radar's colours on the cloud, the light and the white
+ * cloud, opens the shells hollow, and takes the dots on its far side away.
  *
  * ## How a Raymarcher Gets onto a MapLibre Map
  *
@@ -112,6 +114,7 @@ import { peelLow, peelShare } from "../lib/peel";
 import { carryPlane, MAX_PLANES } from "../lib/studio/planes";
 import type { ClipPlane } from "../lib/studio/planes";
 import { VERTICAL_SCALE } from "./terrain";
+import { pointGrid, POINTS_FRAGMENT, pointStride, pointsVertex } from "./cloudPoints";
 
 /**
  * Reflectivity below this is drizzle or the fringe of the anvil: where the
@@ -128,8 +131,8 @@ const DBZ_HIGH = DBZ_LOW + STYLE_FIELD.cloud.band;
  * marched in is that much larger.
  */
 const SCENIC_REACH = { km: [6.5, 6.5, 3], dbz: 10 } as const;
-/** The styles, as the shader numbers them. */
-const STYLE_INDEX: Record<CloudStyle, number> = { cloud: 0, glow: 1, shells: 2, sky: 3, tinted: 4 };
+/** The styles, as the raymarcher numbers them; `points` is not one of its own, see cloudPoints.ts. */
+const STYLE_INDEX: Record<CloudStyle, number> = { cloud: 0, glow: 1, shells: 2, sky: 3, tinted: 4, points: 0 };
 /**
  * How opaque a shell is, the faintest and from `SHELL_SOLID_DBZ` up: the
  * outer ones are tinted glass, so a storm left whole still hints at what is
@@ -1384,6 +1387,10 @@ export function makeCloudsLayer(
   let program: WebGLProgram | null = null;
   let plainProgram: WebGLProgram | null = null;
   let scenicProgram: WebGLProgram | null = null;
+  /** The program the `points` style is drawn with, and its uniforms; see cloudPoints.ts. */
+  let pointsProgram: WebGLProgram | null = null;
+  let pointsUniforms = new Map<string, WebGLUniformLocation | null>();
+  let pointSizeMax = 64;
   /**
    * What a scenic sky brings besides its shape, made for this context while
    * the sky is drawn; see `ScenicPass`.
@@ -1707,6 +1714,21 @@ export function makeCloudsLayer(
       gl = context;
       plainProgram = link(context, SKY_PLAIN);
       useSky(context);
+      try {
+        const linked = context.createProgram()!;
+        context.attachShader(linked, compile(context, context.VERTEX_SHADER, pointsVertex(CLIP_PLANES)));
+        context.attachShader(linked, compile(context, context.FRAGMENT_SHADER, POINTS_FRAGMENT));
+        context.linkProgram(linked);
+        if (!context.getProgramParameter(linked, context.LINK_STATUS)) {
+          throw new Error(context.getProgramInfoLog(linked) ?? "points shader would not link");
+        }
+        pointsProgram = linked;
+        pointsUniforms = new Map();
+        pointSizeMax = (context.getParameter(context.ALIASED_POINT_SIZE_RANGE) as Float32Array)[1];
+      } catch (error) {
+        // Every other style is drawn all the same.
+        console.warn("The points style would not compile", error);
+      }
 
       paintRamp(context);
 
@@ -1846,6 +1868,77 @@ export function makeCloudsLayer(
         }
         if (hidden) continue;
 
+        const drawnAs = lookedAs ?? style;
+        const drawnField = lookedAs ? STYLE_FIELD[drawnAs] : field;
+        // Not the storm a reader opened, nor the clouds its cut reaches: a
+        // cut shows the envelope the peel would take away.
+        const peelsNow = !plane && cloud.peels;
+        // From the style's floor to the storm's core. The top of the ramp
+        // stays where the style has it until the peel has thinned the storm
+        // to within a cloud's band of it, so a core is never fainter peeled.
+        const low = lookedAs
+          ? peelLow(drawnField.floor, cloud.peelFloor, inspection!.peel)
+          : peelsNow ? peelLow(field.floor, cloud.peelFloor, peelNow) : field.floor;
+        const high = Math.max(drawnField.floor + drawnField.band, low + PEEL_BAND);
+
+        if (drawnAs === "points") {
+          if (!pointsProgram) continue;
+          const dot = (name: string) => {
+            let location = pointsUniforms.get(name);
+            if (location === undefined) {
+              location = context.getUniformLocation(pointsProgram!, name);
+              pointsUniforms.set(name, location);
+            }
+            return location;
+          };
+          // How far apart two voxels are on screen where the box's middle is, and where the eye is in its cube.
+          const middle = [0, 1, 2].map((axis) => (box.min[axis] + box.max[axis]) / 2) as [number, number, number];
+          const [mx, my, , mw] = apply(forward, middle[0], middle[1], middle[2]);
+          const gapPx = (dx: number, dy: number): number => {
+            const [x, y, , w] = apply(forward, middle[0] + dx, middle[1] + dy, middle[2]);
+            return mw > 0 && w > 0 ? Math.hypot((x / w - mx / mw) * width, (y / w - my / mw) * height) / 2 : 0;
+          };
+          const [ex, ey, ez, ew] = apply(inverse, 0, 0, -1);
+          const grid = pointGrid(
+            [header.nx, header.ny, header.nz], box,
+            pointStride(Math.max(gapPx(1 / header.nx, 0), gapPx(0, 1 / header.ny))),
+            ew !== 0 ? [ex / ew, ey / ew, ez / ew] : [0.5, 0.5, 2],
+          );
+          if (!grid.total) continue;
+          context.useProgram(pointsProgram);
+          // A dot at the edge of its box stands out past it.
+          context.disable(context.SCISSOR_TEST);
+          context.activeTexture(context.TEXTURE0);
+          context.bindTexture(context.TEXTURE_3D, cloud.texture);
+          context.uniform1i(dot("uVolume"), 0);
+          context.uniform1i(dot("uRamp"), 1);
+          context.uniformMatrix4fv(dot("uForward"), false, new Float32Array(forward));
+          context.uniform2f(dot("uViewport"), width, height);
+          context.uniform3i(dot("uStart"), ...grid.start);
+          context.uniform3i(dot("uCount"), ...grid.count);
+          context.uniform3i(dot("uFlip"), ...grid.flip);
+          context.uniform3i(dot("uStride"), ...grid.stride);
+          // The model's own scales, so the map's stretch upwards is counted.
+          context.uniform1f(dot("uTall"), ((model[10] / header.nz) * grid.stride[2]) / ((model[0] / header.nx) * grid.stride[0]));
+          context.uniform3f(dot("uBoxMin"), ...box.min);
+          context.uniform3f(dot("uBoxMax"), ...box.max);
+          context.uniform1f(dot("uDbzFloor"), header.dbz_floor);
+          context.uniform1f(dot("uDbzScale"), header.dbz_scale);
+          context.uniform1f(dot("uLow"), low);
+          context.uniform1f(dot("uHigh"), high);
+          context.uniform1f(dot("uDim"), cloud.dim);
+          context.uniform1f(dot("uWeight"), weight);
+          context.uniform1f(dot("uSizeMax"), pointSizeMax);
+          context.uniform1i(dot("uPlaneCount"), cuts.length);
+          if (cuts.length) {
+            context.uniform3fv(dot("uPlaneNormal"), cuts.flatMap((cut) => cut.normal));
+            context.uniform3fv(dot("uPlanePoint"), cuts.flatMap((cut) => cut.point));
+          }
+          context.drawArrays(context.POINTS, 0, grid.total);
+          context.useProgram(program);
+          continue;
+        }
+
         context.enable(context.SCISSOR_TEST);
         context.scissor(rect[0], rect[1], rect[2], rect[3]);
 
@@ -1860,8 +1953,6 @@ export function makeCloudsLayer(
         context.uniform1f(at("uSteps"), Math.max(8, Math.round(cloud.steps * detail * (apart ? 0.75 : 1))));
         context.uniform1f(at("uDbzFloor"), header.dbz_floor);
         context.uniform1f(at("uDbzScale"), header.dbz_scale);
-        const drawnAs = lookedAs ?? style;
-        const drawnField = lookedAs ? STYLE_FIELD[drawnAs] : field;
         context.uniform1i(at("uStyle"), STYLE_INDEX[drawnAs]);
         if (drawnAs === "sky" || drawnAs === "tinted") {
           // Where the cloud stands now: the billows stay put in the world
@@ -1876,22 +1967,13 @@ export function makeCloudsLayer(
           context.bindTexture(context.TEXTURE_2D, cloud.column);
         }
 
-        // Not the storm a reader opened, nor the clouds its cut reaches: a
-        // cut shows the envelope the peel would take away.
-        const peelsNow = !plane && cloud.peels;
         context.uniform1i(at("uPlaneCount"), cuts.length);
         context.uniform1f(at("uDim"), cloud.dim);
         context.uniform1f(at("uWeight"), weight);
         // Two copies whose transmittances multiply to what one stops at.
         context.uniform1f(at("uOpaque"), 1 - (1 - OPAQUE) ** weight);
-        // From the style's floor to the storm's core. The top of the ramp
-        // stays where the style has it until the peel has thinned the storm
-        // to within a cloud's band of it, so a core is never fainter peeled.
-        const low = lookedAs
-          ? peelLow(drawnField.floor, cloud.peelFloor, inspection!.peel)
-          : peelsNow ? peelLow(field.floor, cloud.peelFloor, peelNow) : field.floor;
         context.uniform1f(at("uLow"), low);
-        context.uniform1f(at("uHigh"), Math.max(drawnField.floor + drawnField.band, low + PEEL_BAND));
+        context.uniform1f(at("uHigh"), high);
         if (cuts.length) {
           context.uniform3fv(at("uPlaneNormal"), cuts.flatMap((cut) => cut.normal));
           context.uniform3fv(at("uPlanePoint"), cuts.flatMap((cut) => cut.point));
@@ -1918,6 +2000,8 @@ export function makeCloudsLayer(
       }
       if (rampTexture) context.deleteTexture(rampTexture);
       if (plainProgram) context.deleteProgram(plainProgram);
+      if (pointsProgram) context.deleteProgram(pointsProgram);
+      pointsProgram = null;
       scenicPass?.dispose();
       scenicPass = null;
       if (scenicProgram) context.deleteProgram(scenicProgram);

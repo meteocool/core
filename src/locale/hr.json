@@ -93,7 +93,9 @@
     "sky": "Nebo",
     "sky_body": "Bijeli oblak kakvim ga vidi satelit, obasjan suncem. Presječen pokazuje boje radara.",
     "tinted": "Obojeni",
-    "tinted_body": "Bijeli oblak, obojen ondje gdje je jeka u visini jaka."
+    "tinted_body": "Bijeli oblak, obojen ondje gdje je jeka u visini jaka.",
+    "points": "Točke",
+    "points_body": "Jedna točka za svaku vrijednost radarskog polja, veća ondje gdje je odjek jači."
   },
   "time_3d": {
     "choose": "Prikaži oluje u ranijem trenutku",
