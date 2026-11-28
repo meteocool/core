@@ -62,9 +62,14 @@ export interface FlightScore {
   feats: Feat[];
   /** How long each bonus's condition has held so far, s. */
   held: Partial<Record<Feat, number>>;
+  /**
+   * The board's correction, in `points` already: what the board, working
+   * the flight out again, came to more or less than the cockpit (synced).
+   */
+  synced: number;
 }
 
-export const NO_SCORE: FlightScore = { points: 0, rate: 0, feats: [], held: {} };
+export const NO_SCORE: FlightScore = { points: 0, rate: 0, feats: [], held: {}, synced: 0 };
 
 /** Points a second for an echo inside a cloud; none out of one. */
 export function rateOf(dbz: number | null, cloud: number): number {
@@ -100,7 +105,19 @@ export function scored(score: FlightScore, sample: ScoreSample, seconds: number)
       points += FEATS[feat].points;
     }
   }
-  return { score: { points, rate, feats: earned.length ? [...score.feats, ...earned] : score.feats, held }, earned };
+  return { score: { ...score, points, rate, feats: earned.length ? [...score.feats, ...earned] : score.feats, held }, earned };
+}
+
+/** The points the cockpit earned itself, the board's correction left out. */
+export function earnedPoints(score: FlightScore): number {
+  return score.points - score.synced;
+}
+
+/** The score with the board's correction `correction` in it in place of the last one; never below none. */
+export function synced(score: FlightScore, correction: number): FlightScore {
+  const earned = earnedPoints(score);
+  const corrected = Math.max(-earned, correction);
+  return corrected === score.synced ? score : { ...score, points: earned + corrected, synced: corrected };
 }
 
 /** A landing made, with how fast it came down, m/s: its bonuses, the ones not earned this flight yet. */

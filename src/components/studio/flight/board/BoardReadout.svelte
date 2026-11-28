@@ -1,8 +1,9 @@
 <script lang="ts">
 /**
- * The board's score for this flight, beside the cockpit's among the deck's
- * readouts (FlightDeck.svelte): the one that counts, with where it stands
- * today. Pressed, it brings up the day's board (BoardCard.svelte).
+ * Where this flight stands on today's board, beside the cockpit's score
+ * among the deck's readouts (FlightDeck.svelte): its rank, the score itself
+ * being the cockpit's, which takes the board's in now and then. Pressed, it
+ * brings up the day's board (BoardCard.svelte).
  */
 import { _ } from "svelte-i18n";
 import type { BoardDeck } from "./meteoairBoard";
@@ -10,13 +11,10 @@ import type { BoardDeck } from "./meteoairBoard";
 export let board: BoardDeck;
 
 const { view, open } = board;
-const points = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
 $: text = $view.phase === "unavailable"
   ? $_("studio.flight.board.off")
-  : $view.points === null
-    ? "–"
-    : `${points.format(Math.floor($view.points))}${$view.rank !== null ? ` · #${$view.rank}` : ""}`;
+  : $view.rank !== null ? `#${$view.rank}` : $_("studio.flight.board.label");
 
 function toggle(event: MouseEvent): void {
   open.update((up) => !up);
@@ -25,15 +23,13 @@ function toggle(event: MouseEvent): void {
 }
 </script>
 
-<dt title={$_("studio.flight.board.title")}>{$_("studio.flight.board.label")}</dt>
-<dd>
-  <button type="button" class="board-points" class:off={$view.phase === "unavailable"} tabindex="-1"
-    title={$_("studio.flight.board.title")} aria-expanded={$open}
-    aria-label={`${$_("studio.flight.board.title")}: ${text}`} on:click={toggle}>{text}</button>
-</dd>
+<button type="button" class="board-points" class:off={$view.phase === "unavailable"} tabindex="-1"
+  title={$_("studio.flight.board.title")} aria-expanded={$open}
+  aria-label={`${$_("studio.flight.board.title")}: ${text}`} on:click={toggle}>{text}</button>
 
 <style>
   .board-points {
+    margin-left: 6px;
     padding: 0;
     border: 0;
     background: none;

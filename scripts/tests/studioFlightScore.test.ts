@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { FEATS, landedScore, NO_SCORE, rateOf, scored } from "../../src/lib/studio/flight/score.ts";
+import { earnedPoints, FEATS, landedScore, NO_SCORE, rateOf, scored, synced } from "../../src/lib/studio/flight/score.ts";
 import type { FlightScore, ScoreSample } from "../../src/lib/studio/flight/score.ts";
 
 const CLEAR: ScoreSample = { dbz: null, cloud: 0, charge: 0, hail: 0, glare: 0, frost: 0, severity: 0, flying: true };
@@ -58,4 +58,19 @@ test("a landing scores, a butter one more, each once", () => {
   assert.deepEqual(butter.earned, ["butter"]);
   assert.equal(butter.score.points, FEATS.landed.points + FEATS.butter.points);
   assert.deepEqual(landedScore(butter.score, 0.3).earned, []);
+});
+
+test("the board's correction goes into the score in place of the last, and never takes it below none", () => {
+  const flown = { ...NO_SCORE, points: 1000 };
+  const down = synced(flown, -300);
+  assert.equal(down.points, 700);
+  assert.equal(earnedPoints(down), 1000);
+  // A later one replaces it; it does not add to it.
+  assert.equal(synced(down, -100).points, 900);
+  assert.equal(synced(down, -300), down);
+  // Points earned since are the cockpit's own, the correction carried on top.
+  const on = scored(down, { ...CLEAR, dbz: 60, cloud: 1 }, 1).score;
+  assert.equal(on.synced, -300);
+  assert.equal(earnedPoints(on), 1020);
+  assert.equal(synced(flown, -5000).points, 0);
 });

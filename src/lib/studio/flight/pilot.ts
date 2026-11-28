@@ -59,7 +59,7 @@ import { advance, BLAST_FROM, broken, harmed, intact, shown, shudder, surfacesLo
 import type { Damage, DamageEvent } from "./damage";
 import { boltPaths, FLASH_S, flicker, glare, THUNDER_M, thunderDelay } from "./lightning";
 import { chargeOf, daylightOf, wetted } from "./glass";
-import { bestScore, FEATS, keepBest, landedScore, NO_SCORE, scored } from "./score";
+import { bestScore, FEATS, keepBest, landedScore, NO_SCORE, scored, synced } from "./score";
 import { Sharpness } from "./sharpness";
 import type { Feat, FlightScore } from "./score";
 import type { Bolt } from "../../../layers/weatherPass";
@@ -460,6 +460,8 @@ export class Pilot {
   private featUntil = -Infinity;
   /** Whether the aircraft is off again after a landing it stopped from, on the ground still: no landing to show. */
   private leavingLanding = false;
+  /** The best score flown here before this flight: what this one's has to beat. */
+  private bestBefore = bestScore();
   /**
    * The flight paused when the page goes out of sight: another tab, another
    * app, the screen locked. It stays paused on coming back, for the reader
@@ -799,6 +801,17 @@ export class Pilot {
     this.status({ leaving: false });
     // The frame it resumes on is not as long as the question took.
     this.last = null;
+  }
+
+  /**
+   * The board's correction to flight `flight`'s score, from the board
+   * working it out again (board/view.ts): in the score from now on, in
+   * place of the last. One for a flight that is over is let go of.
+   */
+  syncScore(flight: number, correction: number): void {
+    if (flight !== this.telemetry.flight) return;
+    const score = synced(this.telemetry.score, correction);
+    if (score !== this.telemetry.score) this.score({ score, earned: [] });
   }
 
   /** Be told after every frame, with the telemetry; returns how to stop. */
@@ -1276,7 +1289,7 @@ export class Pilot {
   /** The score as it now stands, and the last bonus earned said for a moment. */
   private score({ score, earned }: { score: FlightScore; earned: Feat[] }): void {
     this.telemetry.score = score;
-    this.telemetry.best = Math.max(this.telemetry.best, score.points);
+    this.telemetry.best = Math.max(this.bestBefore, score.points);
     const feat = earned.at(-1);
     if (!feat) return;
     this.featUntil = this.telemetry.time + FEAT_SHOWN_S;
@@ -1754,7 +1767,8 @@ export class Pilot {
       this.leavingLanding = false;
       this.thrustLocked = false;
       // A new flight, a new score; the last one kept if it was the best.
-      this.telemetry.best = keepBest(this.telemetry.score.points);
+      this.bestBefore = keepBest(this.telemetry.score.points);
+      this.telemetry.best = this.bestBefore;
       this.telemetry.score = NO_SCORE;
       this.featUntil = -Infinity;
       this.status({ feat: null });

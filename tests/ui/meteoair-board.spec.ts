@@ -6,7 +6,8 @@ import { airspaceHeard, boardAsked, scriptBoard, STAND_IN_CALLSIGN, STAND_IN_FLI
 
 /**
  * meteoair's board: a live flight goes on today's board, the cockpit shows
- * the board's score beside its own and the day's top twenty, and the board
+ * one score, the board's correction taken into it, where it stands and the
+ * day's top twenty, and the board
  * failing never holds the flight up. And nothing of the board, Turnstile's
  * script included, is loaded or asked for before a flight goes on it.
  *
@@ -16,7 +17,7 @@ const VIEW = "latLonZ=50.50000,9.50000,6.00";
 const FLIGHT = `/meteoair.html?${VIEW}&fly=50.4000,9.6000&hdg=090&alt=FL120&spd=280kt&view=outside`;
 
 const deck = (page: Page) => page.getByRole("region", { name: "Flight deck" });
-const boardReadout = (page: Page) => deck(page).getByRole("button", { name: /^This flight on today's board/ });
+const boardReadout = (page: Page) => deck(page).getByRole("button", { name: /^Where this flight stands on today's board/ });
 const boardCard = (page: Page) => page.getByRole("region", { name: "Today's board" });
 const asked = (page: Page) => boardAsked(page).map((request) => `${request.method} ${request.path.replace(/\/flights\/[0-9a-f]+\//, "/flights/{id}/")}`);
 const flown = (page: Page) => page.evaluate(() => (window as any).flightPilot?.telemetry.time as number | undefined);
@@ -90,7 +91,7 @@ test.describe("in flight, on a desktop", () => {
     await serveArchive(page);
   });
 
-  test("a live flight goes on the board: a pilot made, a flight started, its track sent, the board's score beside the cockpit's", async ({ page }) => {
+  test("a live flight goes on the board: a pilot made, a flight started, its track sent, its rank beside the one score", async ({ page }) => {
     await page.goto(FLIGHT);
     await expect(deck(page)).toBeVisible({ timeout: 150_000 });
     await curtainUp(page);
@@ -120,8 +121,11 @@ test.describe("in flight, on a desktop", () => {
     expect(samples[0][2]).toBeGreaterThan(50);
     expect(batch.authorization).toBe(`Bearer ${STAND_IN_PILOT}`);
 
-    // The board's score and rank beside the cockpit's; pressed, the day's board, the pilot's own entry marked.
-    await expect(boardReadout(page)).toHaveText("1,234 · #2");
+    // Its rank beside the cockpit's score, which takes the board's in: pressed, the day's board, the pilot's own entry marked.
+    await expect(boardReadout(page)).toHaveText("#2");
+    // The one score takes the board's in: its 1,234, and whatever the cockpit has earned since.
+    const score = deck(page).locator(".readouts span.score");
+    await expect.poll(async () => Number((await score.textContent())?.split(" ")[0].replace(/,/g, "")), { timeout: 10_000 }).toBeGreaterThanOrEqual(1234);
     await boardReadout(page).click();
     await expect(boardCard(page)).toBeVisible();
     await expect(boardCard(page)).toContainText(STAND_IN_CALLSIGN);
@@ -147,7 +151,8 @@ test.describe("in flight, on a desktop", () => {
     await expect.poll(() => asked(page), { timeout: 30_000 }).toContain("POST /pilots");
     const before = (await flown(page)) ?? 0;
     await expect.poll(async () => (await flown(page)) ?? 0, { timeout: 30_000 }).toBeGreaterThan(before + 2);
-    await expect(boardReadout(page)).toHaveText("–");
+    // No rank to say: the board, to be opened.
+    await expect(boardReadout(page)).toHaveText("Board");
     await boardReadout(page).click();
     await expect(boardCard(page)).toContainText("Can't reach the board just now");
     expect(asked(page)).not.toContain("POST /flights");
@@ -207,7 +212,10 @@ test.describe("in flight, on a desktop", () => {
     await curtainUp(page);
     await expect(deck(page).getByText("The board stopped counting this flight: track refused"))
       .toBeVisible({ timeout: 45_000 });
-    await expect(boardReadout(page)).toHaveText("300");
+    // Unranked, and the one score takes in the board's 300 for what it counted.
+    await expect(boardReadout(page)).toHaveText("Board");
+    const score = deck(page).locator(".readouts span.score");
+    await expect.poll(async () => Number((await score.textContent())?.split(" ")[0].replace(/,/g, "")), { timeout: 10_000 }).toBeGreaterThanOrEqual(300);
   });
 
   test("a flight on the board joins its airspace, and the aircraft heard there are drawn and charted", async ({ page }) => {
@@ -277,7 +285,7 @@ test.describe("in flight, on a desktop", () => {
     await curtainUp(page);
     await expect.poll(() => airspaceHeard(page).urls.length, { timeout: 45_000 }).toBeGreaterThan(0);
     await expect.poll(() => asked(page), { timeout: 45_000 }).toContain("POST /flights/{id}/track");
-    await expect(boardReadout(page)).toHaveText("1,234 · #2");
+    await expect(boardReadout(page)).toHaveText("#2");
     const before = (await flown(page)) ?? 0;
     await expect.poll(async () => (await flown(page)) ?? 0, { timeout: 30_000 }).toBeGreaterThan(before + 2);
     // Tried again after thirty seconds, not at once and again and again.

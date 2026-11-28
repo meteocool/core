@@ -5,7 +5,9 @@
  *
  * `joinBoard` puts the pilot's flight on the board (the session in
  * lib/studio/flight/board/session.ts) and hands the deck what it draws of
- * it: the board's score beside the cockpit's (BoardReadout), its notices
+ * it: where the flight stands, beside the cockpit's score (BoardReadout;
+ * the score takes the board's correction in now and then, so there is one
+ * and it ends where the board's does), its notices
  * (BoardNote), the card with the day's top twenty (BoardCard) and the card
  * for the check the board may ask of the reader (BoardCheck).
  *
@@ -26,6 +28,7 @@ import { frameOf } from "../../../../lib/studio/flight/board/frame";
 import { socketUrl } from "../../../../lib/studio/flight/board/socketPlan";
 import { turnstileTokens } from "../../../../lib/studio/flight/board/turnstile";
 import type { TurnstileSource } from "../../../../lib/studio/flight/board/turnstile";
+import { boardCorrection, syncDue } from "../../../../lib/studio/flight/board/view";
 import type { BoardView } from "../../../../lib/studio/flight/board/view";
 import BoardReadout from "./BoardReadout.svelte";
 import BoardNote from "./BoardNote.svelte";
@@ -137,7 +140,24 @@ export function joinBoard(pilot: Pilot, sitekey: string): BoardDeck {
       console.warn("The other aircraft cannot be drawn", error);
     });
   };
+  // The cockpit's flight now, and the one the board's view is of: a correction is taken in only for the same.
+  let flying = pilot.telemetry.flight;
+  let viewed = flying;
+  let syncedAt = -Infinity;
+  const stopSync = session.view.subscribe((view) => {
+    if (view.points === null) {
+      viewed = flying;
+      return;
+    }
+    const correction = boardCorrection(view);
+    if (correction === null || viewed !== flying) return;
+    const now = performance.now();
+    if (!syncDue(correction, pilot.telemetry.score.synced, now - syncedAt)) return;
+    syncedAt = now;
+    pilot.syncScore(flying, correction);
+  });
   const stopFrames = pilot.onFrame((telemetry) => {
+    flying = telemetry.flight;
     session.frame(frameOf(telemetry));
     writeOwn(own, telemetry, status, pilot.airframe);
     ownWritten = true;
@@ -181,6 +201,7 @@ export function joinBoard(pilot: Pilot, sitekey: string): BoardDeck {
     leave() {
       left = true;
       stopFrames();
+      stopSync();
       stopStatus();
       stopSynthetic?.();
       airspace.leave();

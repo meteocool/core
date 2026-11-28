@@ -4,6 +4,7 @@
  * decides by.
  */
 import type { Telemetry } from "../pilot";
+import { earnedPoints } from "../score";
 import type { FlightFrame } from "./session";
 
 export function frameOf(telemetry: Pick<Telemetry, "state" | "score" | "flight" | "flown">): FlightFrame {
@@ -20,7 +21,8 @@ export function frameOf(telemetry: Pick<Telemetry, "state" | "score" | "flight" 
     touchdownSink: state.onGround && state.touchdown ? state.touchdown.sink : null,
     // As the cockpit says a landing has stopped: on its wheels, touched down, and still.
     stopped: state.onGround && state.touchdown !== null && state.tas === 0 && !crashed,
-    points: score.points,
+    // What the cockpit earned itself: the board's own correction is not the cockpit's to claim.
+    points: earnedPoints(score),
     feats: score.feats,
   };
 }

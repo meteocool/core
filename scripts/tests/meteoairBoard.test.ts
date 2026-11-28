@@ -5,7 +5,7 @@ import { backoffMs, retryAfterOf, stepFor } from "../../src/lib/studio/flight/bo
 import type { Answer } from "../../src/lib/studio/flight/board/answers.ts";
 import { afterClose, DAY_OVER, FRESH_SOCKET, socketUrl } from "../../src/lib/studio/flight/board/socketPlan.ts";
 import { bodyOf, gather, newClaims, nextBatch, nextSampleAt, NOTHING, sampleAt, sampleDue, splitOf } from "../../src/lib/studio/flight/board/track.ts";
-import { featStanding, isOwn, NO_BOARD, scoresDiffer, stoppedBy, withFlight, withState, withTop } from "../../src/lib/studio/flight/board/view.ts";
+import { boardCorrection, featStanding, isOwn, NO_BOARD, stoppedBy, SYNC_EVERY_MS, syncDue, withFlight, withState, withTop } from "../../src/lib/studio/flight/board/view.ts";
 import { forgetPilot, keepPilot, PILOT_KEY, readPilot } from "../../src/lib/studio/flight/board/pilotStore.ts";
 import { frameOf } from "../../src/lib/studio/flight/board/frame.ts";
 import { DEFAULT_LIMITS } from "../../src/lib/studio/flight/board/wire.ts";
@@ -246,11 +246,22 @@ test("the board's top twenty are kept, and no more", () => {
   assert.equal(view.day, "2026-11-26");
 });
 
-test("the scores are said to differ only by more than fifty points and a twentieth", () => {
-  assert.equal(scoresDiffer(1000, 980), false);
-  assert.equal(scoresDiffer(1000, 900), true);
-  assert.equal(scoresDiffer(40, 0), false);
-  assert.equal(scoresDiffer(1000, null), false);
+test("the board's correction is its score less the cockpit's as of the same position, for a flight it counts", () => {
+  const flying = { phase: "flying" as const, points: 1200, cockpitThen: 1300 };
+  assert.equal(boardCorrection(flying), -100);
+  assert.equal(boardCorrection({ ...flying, phase: "over" }), -100);
+  assert.equal(boardCorrection({ ...flying, phase: "joining" }), null);
+  assert.equal(boardCorrection({ ...flying, phase: "unavailable" }), null);
+  assert.equal(boardCorrection({ ...flying, points: null }), null);
+  assert.equal(boardCorrection({ ...flying, cockpitThen: null }), null);
+});
+
+test("a correction is taken in at once where a feat's points are in it, otherwise now and then", () => {
+  assert.equal(syncDue(-1000, 0, 0), true);
+  assert.equal(syncDue(-10, 0, 1000), false);
+  assert.equal(syncDue(-10, 0, SYNC_EVERY_MS), true);
+  assert.equal(syncDue(-10, -10, SYNC_EVERY_MS), false);
+  assert.equal(syncDue(-10.4, -10, SYNC_EVERY_MS), false);
 });
 
 /* The pilot kept. */
@@ -288,7 +299,7 @@ test("what does not read as a pilot is none", () => {
 test("a frame says the touchdown's sink only on the ground, and a stop only for a landing come to rest", () => {
   const base = {
     flight: 2, flown: 30,
-    score: { points: 10, rate: 0, feats: ["core" as const], held: {} },
+    score: { points: 10, rate: 0, feats: ["core" as const], held: {}, synced: 0 },
   };
   const air = { lon: 1, lat: 2, altitude: 3000, onGround: false, touchdown: null, crash: null, tas: 120 };
   const rolling = { ...air, onGround: true, touchdown: { sink: 0.4 }, tas: 40 };
@@ -299,4 +310,6 @@ test("a frame says the touchdown's sink only on the ground, and a stop only for 
   assert.equal(frame({ ...rolling, tas: 0 }).stopped, true);
   assert.equal(frame({ ...rolling, tas: 0, crash: "impact" }).stopped, false);
   assert.equal(frame({ ...air, crash: "impact" }).crashed, true);
+  // The cockpit's own points go to the board, not the correction it took from it.
+  assert.equal(frameOf({ ...base, score: { ...base.score, points: 60, synced: 50 }, state: air } as never).points, 10);
 });

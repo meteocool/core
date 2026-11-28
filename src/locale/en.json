@@ -418,13 +418,12 @@
       },
       "board": {
         "label": "Board",
-        "title": "This flight on today's board: the score that counts",
+        "title": "Where this flight stands on today's board",
         "off": "Off",
         "heading": "Today's board",
         "close": "Close today's board",
         "callsign": "You fly as",
-        "counts": "Board · counts",
-        "cockpit": "Cockpit",
+        "score": "This flight",
         "joining": "Getting this flight on the board…",
         "unreachable": "Can't reach the board just now. Trying again; the flight goes on.",
         "unranked": "Not in today's top hundred yet.",
@@ -441,7 +440,6 @@
           "idle": "idle",
           "replaced": "replaced"
         },
-        "differ": "The board works the score out again from the same radar, so it can come out a little different from the cockpit's.",
         "feats": "This flight's feats",
         "feat_board": "On the board",
         "feat_cockpit": "Cockpit only",

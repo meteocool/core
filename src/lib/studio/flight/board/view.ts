@@ -96,12 +96,24 @@ export function stoppedBy(view: Pick<BoardView, "ended">): Exclude<EndReason, "e
 }
 
 /**
- * Whether the two scores differ by enough to say so: by more than fifty
- * points and more than a twentieth. The board's batches arrive behind the
- * cockpit, so a few seconds' points apart is not a difference.
+ * What the board came to more or less than the cockpit, for the flight it
+ * has answered for: its score less the cockpit's as of the same position.
+ * The cockpit's shown score takes it in now and then (`syncDue`), so there
+ * is one score on the deck and it ends where the board's does. Null while
+ * the board has not said, or for a flight it is not counting.
  */
-export function scoresDiffer(cockpit: number, board: number | null): boolean {
-  if (board === null) return false;
-  const gap = Math.abs(cockpit - board);
-  return gap > 50 && gap > 0.05 * Math.max(cockpit, board);
+export function boardCorrection(view: Pick<BoardView, "phase" | "points" | "cockpitThen">): number | null {
+  if ((view.phase !== "flying" && view.phase !== "over") || view.points === null || view.cockpitThen === null) return null;
+  return view.points - view.cockpitThen;
+}
+
+/** How often the board's correction is taken in, ms, where it has not moved by much. */
+export const SYNC_EVERY_MS = 20_000;
+/** A correction to be taken in at once: a feat granted or refused, not a few seconds' points. */
+const SYNC_AT_ONCE = 50;
+
+/** Whether a correction `correction` is to be taken in, the score having `synced` in it now, `sinceMs` after the last was. */
+export function syncDue(correction: number, synced: number, sinceMs: number): boolean {
+  const gap = Math.abs(correction - synced);
+  return gap >= SYNC_AT_ONCE || (gap >= 1 && sinceMs >= SYNC_EVERY_MS);
 }

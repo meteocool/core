@@ -586,14 +586,12 @@ const WARNINGS = {
       <svelte:component this={board.Labels} {board} {pilot} keepClear={KEEP_CLEAR} />
     {/if}
     <dl class="readouts">
-      <div class="corner-nw" class:boarded={board !== null} bind:clientWidth={nwWidth} bind:clientHeight={nwHeight}>
+      <div class="corner-nw" bind:clientWidth={nwWidth} bind:clientHeight={nwHeight}>
         <dt>{$_("studio.flight.readout.speed")}</dt><dd bind:this={readouts.speed}></dd>
         <!-- The score: earned in a storm's cloud, faster the stronger its echo, and lit while it is; and the best flown here. -->
-        <dt class="score">{$_("studio.flight.readout.score")}</dt><dd class="score" bind:this={readouts.score}></dd>
-        {#if board}
-          <!-- Beside it, the board's, which counts. -->
-          <svelte:component this={board.Readout} {board} />
-        {/if}
+        <!-- On the board, the one score, and where it stands there. -->
+        <dt class="score">{$_("studio.flight.readout.score")}</dt>
+        <dd class="score"><span class="score" bind:this={readouts.score}></span>{#if board}<svelte:component this={board.Readout} {board} />{/if}</dd>
         <dt class="best">{$_("studio.flight.readout.best")}</dt><dd class="best" bind:this={readouts.best}></dd>
       </div>
       <div class="corner-ne" class:beside-screen={canFullscreen} bind:clientWidth={neWidth} bind:clientHeight={neHeight}>
@@ -1594,8 +1592,6 @@ const WARNINGS = {
     .flight-deck.touch .readouts > div { gap: 1px 8px; padding: 5px 9px; }
     .flight-deck.touch .readouts :global(dt) { font-size: 10px; }
     .flight-deck.touch .readouts :global(dd) { font-size: 13px; }
-    /* With the board's score among them, it takes the place of the best flown here. */
-    .flight-deck.touch .corner-nw.boarded .best { display: none; }
     /* The heading stays; the air outside and the frames a second are a desk's to read. */
     .flight-deck.touch .corner-sw :is(dt, dd):nth-of-type(n + 2) { display: none; }
     .flight-deck.touch .corner-sw { left: calc(var(--deck-left) + 160px); }
@@ -1607,12 +1603,6 @@ const WARNINGS = {
     /* The map and the horizon under the readouts on the left, not over them, and clear of the lever under both:
        the best score is the desk's to read, and the two a little smaller. */
     .flight-deck.touch .corner-nw .best { display: none; }
-    /* And a board's row in place of another, so the map clears them: its score in place of the cockpit's,
-       or none where the flight has no board (its note says so) and the cockpit's is the only one. */
-    .flight-deck.touch .corner-nw.boarded:not(:has(.board-points.off)) .score { display: none; }
-    .flight-deck.touch .corner-nw.boarded :global(:is(dt:has(+ dd .board-points.off), dd:has(.board-points.off))) {
-      display: none;
-    }
     .flight-deck.touch { --flight-minimap-size: 88px; --flight-horizon-size: 68px; }
     .flight-deck.touch > :global(:is(.flight-minimap, .flight-horizon)) { top: calc(var(--deck-top) + 48px); }
     .flight-deck.touch .warning { padding: 5px 12px; font-size: 16px; }

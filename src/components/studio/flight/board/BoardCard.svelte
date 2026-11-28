@@ -1,19 +1,18 @@
 <script lang="ts">
 /**
  * The day's board, on a card under the deck's readouts: the pilot's
- * callsign, this flight's score on the board (the one that counts) beside
- * the cockpit's, where it stands, which of the cockpit's feats the board
- * granted, and the top twenty, the pilot's own entry marked.
+ * callsign, this flight's score and where it stands, which of the cockpit's
+ * feats the board granted, and the top twenty, the pilot's own entry marked.
  *
  * The board works the score out again from where the aircraft was, reading
- * the same radar, but it cannot see everything the cockpit does; where the
- * two differ, the card says why.
+ * the same radar; the cockpit's takes its correction in now and then
+ * (meteoairBoard.ts), so the card shows the one score.
  */
 import { faXmark } from "@fortawesome/free-solid-svg-icons/faXmark";
 import { faPlane } from "@fortawesome/free-solid-svg-icons/faPlane";
 import { _ } from "svelte-i18n";
 import Icon from "../../../Icon.svelte";
-import { featStanding, isOwn, scoresDiffer, stoppedBy } from "../../../../lib/studio/flight/board/view";
+import { featStanding, isOwn, stoppedBy } from "../../../../lib/studio/flight/board/view";
 import type { BoardDeck } from "./meteoairBoard";
 
 export let board: BoardDeck;
@@ -22,7 +21,6 @@ const { view, cockpit, open } = board;
 const points = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
 $: stopped = stoppedBy($view);
-$: differ = $view.cockpitThen !== null && scoresDiffer($view.cockpitThen, $view.points);
 
 function close(event: MouseEvent): void {
   open.set(false);
@@ -42,15 +40,11 @@ function close(event: MouseEvent): void {
     {/if}
     <dl class="scores">
       <div class="counts">
-        <dt>{$_("studio.flight.board.counts")}</dt>
-        <dd aria-label={$_("studio.flight.board.counts")}>
-          {$view.points === null ? "–" : points.format(Math.floor($view.points))}
+        <dt>{$_("studio.flight.board.score")}</dt>
+        <dd aria-label={$_("studio.flight.board.score")}>
+          {points.format(Math.floor($cockpit.points))}
           {#if $view.rank !== null}<span class="rank">#{$view.rank}</span>{/if}
         </dd>
-      </div>
-      <div>
-        <dt>{$_("studio.flight.board.cockpit")}</dt>
-        <dd aria-label={$_("studio.flight.board.cockpit")}>{points.format(Math.floor($cockpit.points))}</dd>
       </div>
     </dl>
     {#if $view.phase === "unavailable"}
@@ -63,9 +57,6 @@ function close(event: MouseEvent): void {
       <p class="say">{$_("studio.flight.board.joining")}</p>
     {:else if $view.points !== null && $view.rank === null}
       <p class="say">{$_("studio.flight.board.unranked")}</p>
-    {/if}
-    {#if differ}
-      <p class="say why">{$_("studio.flight.board.differ")}</p>
     {/if}
     {#if $cockpit.feats.length}
       <ul class="feats" aria-label={$_("studio.flight.board.feats")}>
@@ -149,12 +140,7 @@ function close(event: MouseEvent): void {
   }
   .callsign { margin: 0 0 8px; color: var(--mc-text-2); }
   .callsign b { color: var(--mc-text); letter-spacing: 0.04em; }
-  .scores {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-    margin: 0 0 8px;
-  }
+  .scores { margin: 0 0 8px; }
   .scores dt { color: var(--mc-text-2); font: 600 11px/1.4 var(--mc-font); text-transform: uppercase; letter-spacing: 0.05em; }
   .scores dd { margin: 0; font: 700 18px/1.2 var(--mc-font); }
   .scores .counts dd { color: #9fe0b8; }
