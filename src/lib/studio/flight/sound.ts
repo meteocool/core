@@ -18,12 +18,12 @@
  * What it plays is the mix's (soundMix.ts) made audible by the graph
  * (soundGraph.ts); what the reader has silenced (alarms.ts) the mix leaves
  * out. The cockpit's callouts ("bank angle", "pull up",
- * "retard", the heights) are spoken with the browser's own voice, where it
- * has one: one at a time, in the order the mix's queue gives them, a
- * warning cutting a lesser callout off. Where it has none, each is a short
- * tone instead. The browser's voice is not part of the graph, so a
- * recording of the flight carries the tones and the whoops but not the
- * words.
+ * "retard", the heights) are recordings played through the graph
+ * (calloutClips.ts): one at a time, in the order the mix's queue gives
+ * them, a warning cutting a lesser callout off. One whose recording has not
+ * arrived is a short tone instead. Never the browser's own voice: on iOS it
+ * takes the page's sound away, and the flight could stay silent after a
+ * callout. A recording of the flight carries the words.
  */
 import { get } from "svelte/store";
 import type { FlightStatus } from "../store";
@@ -31,6 +31,7 @@ import type { FlightAction } from "./controls";
 import type { Telemetry } from "./pilot";
 import { MUSIC_LEAVE_S, SoundGraph } from "./soundGraph";
 import type { SoundCue } from "./soundGraph";
+import { CalloutClips } from "./calloutClips";
 import { CalloutQueue, initialMemory, mixSound, VOLUME } from "./soundMix";
 import type { Callout, SoundInput, SoundMemory, Spoken } from "./soundMix";
 import { flightMuted, musicAvailable, pageAudio, plugMusic, setFlightMuted, wantMusic } from "./soundtrack";
@@ -62,8 +63,6 @@ const CUES: Partial<Record<FlightAction, SoundCue>> = {
 
 /** How long a tone in place of a callout takes, ms: the voice's turn passes on after it. */
 const TONE_MS = 450;
-/** The ways a browser's voice fails that are not its being cut off: after one of them it is not asked again. */
-const INTERRUPTED = ["interrupted", "canceled"];
 
 /** Now, in seconds: the clock the callouts' turns are kept on. */
 const seconds = () => performance.now() / 1000;
@@ -82,17 +81,15 @@ export class FlightSound {
   /** The thunder's recordings, streamed from the flight's start; null where there can be none. */
   private clips: ThunderClips | null = null;
   private suspendTimer: ReturnType<typeof setTimeout> | null = null;
-  /** The cockpit's voice: whose turn it is, what the browser is saying for it now, and whether the browser cannot speak after all. */
+  /** The cockpit's voice: whose turn it is, its recordings, and what cuts off the one playing now. */
   private readonly voice = new CalloutQueue();
-  private utterance: SpeechSynthesisUtterance | null = null;
+  private calls: CalloutClips | null = null;
+  private hush: (() => void) | null = null;
   /** Whether the voice, or a tone in its place, is saying a callout now: the music goes down under it. */
   private saying = false;
   /** Takes the soundtrack out of the graph again. */
   private unplug: (() => void) | null = null;
   private unlevel: (() => void) | null = null;
-  /** How loud the calls are said, of their own loudness: the reader's level for the flight's sounds. */
-  private voiceVolume = 1;
-  private voiceless = typeof speechSynthesis === "undefined";
   private readonly listeners: Array<[EventTarget, string, EventListener, boolean]> = [];
 
   constructor() {
@@ -108,7 +105,6 @@ export class FlightSound {
       const graph = this.graph;
       this.unlevel = flightSettings.subscribe(({ musicVolume, soundVolume }) => {
         graph.setUserLevels(musicVolume, soundVolume);
-        this.voiceVolume = soundVolume;
       });
     } catch {
       this.out?.disconnect();
@@ -122,6 +118,11 @@ export class FlightSound {
       this.clips = null;
     }
     this.graph.useRecordedThunder(this.clips);
+    try {
+      this.calls = new CalloutClips(this.context);
+    } catch {
+      this.calls = null;
+    }
     // A key or a click is what lets a page play; any of them may be the one.
     const wake = (event: Event) => {
       if (event.type !== "visibilitychange") this.clips?.unlock();
@@ -134,7 +135,6 @@ export class FlightSound {
     );
     for (const [target, type, listener, capture] of this.listeners) target.addEventListener(type, listener, capture);
     this.sync();
-    this.prime();
     this.clips?.unlock();
     // Heard as soon as the context runs, which may be a moment after it is made.
     if (this.wanted()) this.graph.cue("takeoff");
@@ -284,6 +284,8 @@ export class FlightSound {
       this.unplug = null;
       this.clips?.dispose();
       this.clips = null;
+      this.calls?.dispose();
+      this.calls = null;
       graph.dispose();
       out.disconnect();
       this.tap?.disconnect();
@@ -328,33 +330,13 @@ export class FlightSound {
     }, SUSPEND_MS);
   }
 
-  /**
-   * Have the browser's voice say nothing, now, while the take-off's click
-   * or key is still being handled: Safari lets a page speak only once it
-   * has from one, and the first words are slow to come there.
-   */
-  private prime(): void {
-    // Only Safari's is so strict; elsewhere, on a Mac, a voice that speaks opens its own stream, and its opening clicks.
-    if (this.voiceless || !/Apple/.test(navigator.vendor ?? "")) return;
-    try {
-      const utterance = new SpeechSynthesisUtterance(" ");
-      utterance.volume = 0;
-      speechSynthesis.speak(utterance);
-    } catch {
-      this.voiceless = true;
-    }
-  }
-
   /** Do as the callouts' queue says: stop what is being said, and say the next. */
   private speak({ cut, say }: Spoken): void {
     if (cut) this.stopSpeaking();
     if (say) this.utter(say);
   }
 
-  /**
-   * Say a callout in whatever voice the browser has, and pass the turn on
-   * when it is over; a tone through the graph where it has none.
-   */
+  /** Say a callout from its recording, and pass the turn on when it is over; a tone where it has none yet. */
   private utter(callout: Callout): void {
     this.saying = true;
     const over = () => {
@@ -365,47 +347,26 @@ export class FlightSound {
       if (this.playing()) this.speak(next);
       else this.silence();
     };
-    if (!this.voiceless) {
-      try {
-        const utterance = new SpeechSynthesisUtterance(callout.words);
-        utterance.lang = "en-US";
-        utterance.rate = 1.2;
-        utterance.pitch = 0.8;
-        utterance.volume = 0.6 * this.voiceVolume;
-        utterance.onend = () => {
-          if (this.utterance !== utterance) return;
-          this.utterance = null;
-          over();
-        };
-        utterance.onerror = (event) => {
-          if (!INTERRUPTED.includes(event.error)) this.voiceless = true;
-          if (this.utterance !== utterance) return;
-          this.utterance = null;
-          over();
-        };
-        // Held on to until it ends: a browser may drop one nothing refers to, and never say it ended.
-        this.utterance = utterance;
-        speechSynthesis.speak(utterance);
-        return;
-      } catch {
-        this.utterance = null;
-        this.voiceless = true;
-      }
+    const recording = this.calls?.get(callout.words);
+    if (recording && this.graph) {
+      const hush = this.graph.say(recording, () => {
+        if (this.hush !== hush) return;
+        this.hush = null;
+        over();
+      });
+      this.hush = hush;
+      return;
     }
     this.graph?.play({ kind: "attention", rank: callout.rank });
     setTimeout(over, TONE_MS);
   }
 
-  /** Stop the browser's voice, if it is one of ours it is saying. */
+  /** Cut off the callout being said, if one is. */
   private stopSpeaking(): void {
     this.saying = false;
-    if (!this.utterance) return;
-    this.utterance = null;
-    try {
-      speechSynthesis.cancel();
-    } catch {
-      // Nothing to stop.
-    }
+    const hush = this.hush;
+    this.hush = null;
+    hush?.();
   }
 
   /** Nothing more is said: what is being said is cut off, and what waited is forgotten. */

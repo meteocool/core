@@ -62,6 +62,14 @@ const EXTRAS = [
     text: () => readFileSync(path.join(root, "scripts/licences/meteocompare.txt"), "utf8"),
   },
   {
+    // public/audio/callout-*.mp3, rendered by scripts/callouts.py. Public
+    // domain owes no notice; it is credited all the same.
+    name: "Piper voice en_US-bryce-medium",
+    version: "",
+    license: "Public domain",
+    text: () => readFileSync(path.join(root, "scripts/licences/callouts.txt"), "utf8"),
+  },
+  {
     // vite.config.ts copies Shoelace's icon set next to the bundle.
     name: "Bootstrap Icons",
     version: `via @shoelace-style/shoelace ${readPackage(path.join(root, "node_modules/@shoelace-style/shoelace")).version}`,

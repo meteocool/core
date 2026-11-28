@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
+import { existsSync, readFileSync } from "node:fs";
 import test from "node:test";
+import { CALLOUT_WORDS, calloutFile } from "../../src/lib/studio/flight/calloutClips.ts";
 import {
   BANK_AGAIN_S, CALLOUT_LONGEST_S, CalloutQueue, DETENTS, HEIGHT_CALLS, IDLE_LEVER, IDLE_N1, initialMemory, LIGHT_TURBULENCE, mixSound,
   PULL_UP_CYCLE_S, PULL_UP_WORDS_S, pullUpBelow, RETARD_AGAIN_S, RETARD_GROUND_S, RETARD_M, ROUGH_TURBULENCE, SPOOL_DOWN_S, SPOOL_UP_S,
@@ -658,4 +660,21 @@ test("Q, the gamepad's middle button and the master lights silence", () => {
   assert.equal(actionOf("KeyQ"), "silence");
   const buttons = Array.from({ length: 17 }, (_unused, index) => ({ pressed: index === 16 }));
   assert.deepEqual(gamepadActions(buttons, []), ["silence"]);
+});
+
+test("every callout the mix can say has its recording, at the file its words name", () => {
+  const source = readFileSync(new URL("../../src/lib/studio/flight/soundMix.ts", import.meta.url), "utf8");
+  const cautions = /const CAUTIONS[^\n]*/.exec(source)?.[0] ?? "";
+  const said = new Set([
+    ...HEIGHT_CALLS.map(([, words]) => words),
+    ...[...source.matchAll(/callout\("\w+", "([^"]+)"\)/g)].map((match) => match[1]),
+    ...[...cautions.matchAll(/\["\w+", "([^"]+)"\]/g)].map((match) => match[1]),
+  ]);
+  assert.ok(said.size >= 11, `only ${said.size} callouts found in soundMix.ts`);
+  assert.deepEqual([...said].sort(), [...CALLOUT_WORDS].sort());
+  assert.equal(calloutFile("Bank angle, bank angle"), "callout-bank-angle-bank-angle.mp3");
+  for (const words of CALLOUT_WORDS) {
+    const file = new URL(`../../public/audio/${calloutFile(words)}`, import.meta.url);
+    assert.ok(existsSync(file), `no recording for "${words}": run scripts/callouts.py`);
+  }
 });

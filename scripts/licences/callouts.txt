@@ -1,0 +1,3 @@
+The cockpit callouts in meteoair are spoken by the Piper voice
+en_US-bryce-medium by Bryce Beattie (https://brycebeattie.com/files/tts/),
+trained on the author's own recordings and dedicated to the public domain.

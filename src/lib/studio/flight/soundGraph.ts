@@ -60,6 +60,8 @@ const TRIM = {
   wind: 0.55, brake: 0.55, roar: 0.5, turbulence: 0.9,
   rain: 0.22, patter: 0.32, hail: 0.5,
   thunder: 1.1, thump: 0.9, cabin: 0.8, alerts: 0.5, ui: 0.32, warp: 4, crash: 1,
+  // The callouts' recordings (calloutClips.ts) peak at full scale: this puts them over the cockpit's sounds, under the limiter's pumping.
+  voice: 0.4,
   // Mastered loud: at its fullest a little over the cruise's own sounds, the engines' drone in the cockpit too.
   music: 0.85,
 };
@@ -427,7 +429,7 @@ export class SoundGraph {
   private readonly userMusic: GainNode;
   private readonly scene: GainNode;
   private readonly ui: GainNode;
-  private readonly busses: Record<"engine" | "wind" | "thunder" | "thump" | "cabin" | "alerts" | "hail" | "crash", GainNode>;
+  private readonly busses: Record<"engine" | "wind" | "thunder" | "thump" | "cabin" | "alerts" | "hail" | "crash" | "voice", GainNode>;
   private readonly filters: Record<"engine" | "wind" | "thunder", BiquadFilterNode>;
   private readonly engine: {
     rumble: GainNode; rumbleFilter: BiquadFilterNode; whine: GainNode; whineFilter: BiquadFilterNode;
@@ -542,6 +544,7 @@ export class SoundGraph {
       cabin: gain(0, this.scene),
       alerts: gain(0, this.scene),
       hail: gain(0, this.scene),
+      voice: gain(TRIM.voice, this.scene),
       // The end of the flight is no view's own, and is not lost in the cut to black that follows it: past the scene, as the clicks are.
       crash: gain(TRIM.crash, limiter),
     };
@@ -709,6 +712,38 @@ export class SoundGraph {
   /** The thunder's recordings, to play a thunder before the graph's own does; null for the graph's own always. */
   useRecordedThunder(recorded: { play(distance: number, strength: number, deep: boolean): boolean } | null): void {
     this.recorded = recorded;
+  }
+
+  /**
+   * Say a callout's recording through the cockpit's speaker, and call
+   * `ended` once it is over. What it returns cuts it off, quickly but
+   * without a click; `ended` is not called then.
+   */
+  say(buffer: AudioBuffer, ended: () => void, time = this.context.currentTime): () => void {
+    const source = this.context.createBufferSource();
+    source.buffer = buffer;
+    const gain = this.context.createGain();
+    source.connect(gain).connect(this.busses.voice);
+    let over = false;
+    source.onended = () => {
+      source.disconnect();
+      gain.disconnect();
+      if (over) return;
+      over = true;
+      ended();
+    };
+    source.start(time + LEAD_S);
+    return () => {
+      if (over) return;
+      over = true;
+      const now = this.context.currentTime;
+      gain.gain.setTargetAtTime(0, now, 0.01);
+      try {
+        source.stop(now + 0.06);
+      } catch {
+        // Already over.
+      }
+    };
   }
 
   /** A pause: the music on, lower and darker, as a game's under its pause; or as it was. */
@@ -898,7 +933,7 @@ export class SoundGraph {
   }
 
   /**
-   * A tone where the cockpit would speak and the browser cannot: a tick for
+   * A tone where the cockpit would speak and its recording is not there: a tick for
    * a height or the levers, two beeps for a bank, and two of two notes for
    * a warning. The pull-up warning has its whoops.
    */
