@@ -10,6 +10,18 @@
  */
 import { fromSite } from "./sweepGeometry";
 
+/**
+ * DWD's detections in a `mesocyclones` list, which also carries meteocool's
+ * own rotation signatures, told apart by `source`. A signature is a radar's
+ * velocity rotating at two tilts or more, no more is claimed, and it is never
+ * drawn as a mesocyclone. An entry with no `source` is DWD's, as every one
+ * was before there were signatures. Anything but a list is no detections.
+ */
+export function dwdDetections<T extends { source?: string | null }>(list: unknown): T[] {
+  if (!Array.isArray(list)) return [];
+  return (list as T[]).filter((entry) => entry && typeof entry === "object" && (entry.source ?? "dwd") === "dwd");
+}
+
 /** The mark's size class by intensity, in the units the layer scales its icon by. */
 export function mesoSize(intensity: number): number {
   if (intensity > 4) return 55;

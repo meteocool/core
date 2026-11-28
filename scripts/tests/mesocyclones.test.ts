@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { MESO_STORM_M, mesoRadiusPx, stormAtMesocyclone } from "../../src/lib/mesocyclones.ts";
+import { dwdDetections, MESO_STORM_M, mesoRadiusPx, stormAtMesocyclone } from "../../src/lib/mesocyclones.ts";
 
 /**
  * A tap on a mesocyclone opens the storm it turns in: the tracked one
@@ -28,4 +28,17 @@ test("a mesocyclone no storm is near belongs to none", () => {
 test("a stronger mesocyclone is a larger ring to tap", () => {
   assert.ok(mesoRadiusPx(5) > mesoRadiusPx(1));
   assert.ok(mesoRadiusPx(1) >= 10);
+});
+
+test("only DWD's detections are drawn as mesocyclones, never a rotation signature", () => {
+  const list = [
+    { time: 1, source: "dwd", intensity: 2 },
+    { time: 2, source: "meteocool", shear_max: 5e-3 },
+    // Before there were signatures, no source: DWD's.
+    { time: 3, intensity: 1 },
+    { time: 4, source: "someone else" },
+  ];
+  assert.deepEqual(dwdDetections<{ time: number }>(list).map((entry) => entry.time), [1, 3]);
+  assert.deepEqual(dwdDetections({ detail: "error" }), []);
+  assert.deepEqual(dwdDetections([null, 7]), []);
 });

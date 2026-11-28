@@ -91,7 +91,7 @@ import { offerVolumes, startStormResolver } from "./lib/stormResolver";
 import { existedBy, isResolution, selectionKey, withStorm } from "./lib/stormSelection";
 
 import makeMesocycloneLayer from "./layers/mesocyclones";
-import { mesoRadiusPx } from "./lib/mesocyclones";
+import { dwdDetections, mesoRadiusPx } from "./lib/mesocyclones";
 import type Point from "ol/geom/Point";
 import makeCellLayer from "./layers/cells";
 import makeStormGroupLayer from "./layers/stormGroups";
@@ -909,7 +909,7 @@ window.ll = lightningLayer;
 radarSocketIO.on("mesocyclones", (data) => {
   if (!Array.isArray(data) || get(archiveWindow)) return;
   mesocyclonemgr.clearAll();
-  data.forEach((elem) => mesocyclonemgr.addCyclone(elem));
+  dwdDetections(data).forEach((elem) => mesocyclonemgr.addCyclone(elem));
 });
 
 // Both managers cap themselves by count, but nothing ever dropped features for
@@ -1439,7 +1439,7 @@ async function reloadCyclones() {
   const detections = await fetchMesocyclones(nb).catch(() => null);
   if (!Array.isArray(detections)) return;
   mesocyclonemgr.clearAll();
-  detections.forEach((detection) => mesocyclonemgr.addCyclone(detection));
+  dwdDetections(detections).forEach((detection) => mesocyclonemgr.addCyclone(detection));
 }
 
 /**
