@@ -200,9 +200,17 @@ function drawBeams(telemetry: Telemetry): void {
 /** Whether the browser puts a page over the whole screen: the disc beside the way out. */
 const canFullscreen = fullscreenSupported();
 
-let readouts: Record<"speed" | "altitude" | "heading" | "target" | "air" | "frames" | "radio" | "rolled" | "score" | "best", HTMLElement | null> = {
-  speed: null, altitude: null, heading: null, target: null, air: null, frames: null, radio: null, rolled: null, score: null, best: null,
+let readouts: Record<
+  "speed" | "altitude" | "heading" | "target" | "airport" | "air" | "frames" | "radio" | "rolled" | "score" | "best", HTMLElement | null
+> = {
+  speed: null, altitude: null, heading: null, target: null, airport: null, air: null, frames: null, radio: null, rolled: null, score: null, best: null,
 };
+/** Whether an airport is known near enough to read out. */
+let airportKnown = false;
+/** Further off than this, metres, the nearest airport is not read out. */
+const AIRPORT_READ_M = 75_000;
+/** An airport's name cut to what fits a readout. */
+const shortName = (name: string) => (name.length > 18 ? `${name.slice(0, 17).trimEnd()}…` : name);
 const points = new Intl.NumberFormat("en-US", { maximumFractionDigits: 0 });
 
 /** How a landing went, by how fast it came down, m/s: up to 120, 300 and 600 ft a minute, and harder. */
@@ -372,6 +380,14 @@ function frame(telemetry: Telemetry): void {
   const minutes = target && target.seconds < 6 * 3600
     ? ` · ${Math.floor(target.seconds / 60)}:${String(Math.floor(target.seconds % 60)).padStart(2, "0")}` : "";
   write(readouts.target, target ? `${(target.distance / 1852).toFixed(0)} NM${minutes}` : "–");
+  // The nearest airport by its code or its name, the runway to land on, and the way to its start.
+  const fix = telemetry.airport && telemetry.airport.distance < AIRPORT_READ_M ? telemetry.airport : null;
+  if (airportKnown !== (fix !== null)) airportKnown = fix !== null;
+  if (fix) {
+    const miles = fix.distance / 1852;
+    const named = fix.airport.iata ?? (fix.airport.name ? shortName(fix.airport.name) : "RWY");
+    write(readouts.airport, `${named} ${fix.name} · ${miles < 10 ? miles.toFixed(1) : miles.toFixed(0)} NM · ${String(Math.round(fix.bearing) % 360).padStart(3, "0")}°`);
+  }
   // The air outside, and what it is doing: its temperature, and how fast it is carrying the aircraft up or down.
   const draft = Math.round((telemetry.draft * 196.85) / 100) * 100;
   write(readouts.air, `${Math.round(telemetry.temperature)} °C${Math.abs(draft) >= 300 ? ` · ${draft > 0 ? "↑" : "↓"} ${Math.abs(draft)} fpm` : ""}`);
@@ -607,6 +623,9 @@ const WARNINGS = {
       </div>
       <div class="corner-se">
         <dt>{$_("studio.flight.readout.target")}</dt><dd bind:this={readouts.target}></dd>
+        <!-- The nearest airport and the runway to land on: how far, and which way. Hidden, not gone, as the height over the ground is. -->
+        <dt hidden={!airportKnown}>{$_("studio.flight.readout.airport")}</dt>
+        <dd hidden={!airportKnown} bind:this={readouts.airport}></dd>
         <dt>THR</dt><dd><output class="throttle" bind:this={throttle} aria-label={$_("studio.flight.throttle")}>0%</output></dd>
         {#if status.reverse}
           <dt>{$_("studio.flight.reverse")}</dt><dd class="surface out">REV</dd>
@@ -650,6 +669,9 @@ const WARNINGS = {
         <b>{status.landing.load.toFixed(1)} g</b>
         <span>{$_("studio.flight.landing.rolled")} <b bind:this={readouts.rolled}></b></span>
       </p>
+      {#if status.landing.runway}
+        <p class="runway">{$_("studio.flight.landing.runway", { values: { name: status.landing.runway.name } })}{status.landing.runway.airport ? ` · ${status.landing.runway.airport}` : ""}</p>
+      {/if}
       {#if status.landing.stopped}
         <p class="again">{$_($touchControls ? "studio.flight.touch.again" : "studio.flight.landing.again")}</p>
       {/if}
@@ -965,6 +987,7 @@ const WARNINGS = {
   .landing h2 { margin: 0 0 6px; font: var(--mc-type-heading); }
   .landing p { display: flex; gap: 14px; justify-content: center; margin: 0; font: 600 13px/1.3 var(--mc-font); }
   .landing .again { margin-top: 8px; color: var(--mc-text-2); font-weight: 500; }
+  .landing .runway { margin-top: 6px; }
   .grade {
     margin-left: 8px;
     padding: 2px 8px;

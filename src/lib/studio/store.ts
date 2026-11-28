@@ -135,7 +135,9 @@ export type FlightAlarm = FlightWarning | `lost.${LostSurface}`;
 /**
  * A landing as it was made: how fast it came down, m/s, and how fast it was
  * going, m/s; what the gear felt, g; how far it has rolled since, metres;
- * and whether it has come to a stop.
+ * whether it has come to a stop; and the runway it came down on, with its
+ * airport's code or name where the map has one, or null for a landing on
+ * no runway.
  */
 export interface FlightLanding {
   sink: number;
@@ -143,6 +145,7 @@ export interface FlightLanding {
   load: number;
   rolled: number;
   stopped: boolean;
+  runway: { name: string; airport: string | null } | null;
 }
 
 /**

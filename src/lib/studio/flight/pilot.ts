@@ -41,6 +41,9 @@ import { EXHAUSTS, SEAT, SUN, throughWindows, WHEELS_BELOW_M } from "./cockpit";
 import { FLIGHT_SUPPORT } from "./support";
 import { coresOf, echoTop, flatOffset, MARK_APART_KM, MARK_REACH_KM, markAltitude, marksNear, MARKS_SHOWN } from "./marks";
 import { bearingDeg, destination, distanceM } from "./geo";
+import { nearestAirport, runwayAt } from "./airports";
+import type { AirportFix, Runway } from "./airports";
+import { airportWorld } from "./airportWorld";
 import { CUT_PUSH_STEP, CUT_TURN_STEP, cutThrough, facingFrom, moved, UNSET_CUT } from "./cut";
 import type { CutSetting } from "./cut";
 import { INSPECTION_KEY, markFor, readInspection } from "./inspection";
@@ -121,6 +124,10 @@ const FALL_M_S = 7;
 const MARK_ROOM: [number, number] = [120, 46];
 /** A mark this near the middle of the storm system flown at is that system's, m. */
 const MARK_TARGET_M = 45_000;
+/** How often the airports round the aircraft are looked for, and the nearest found again, seconds flown. */
+const AIRPORTS_EVERY_S = 1;
+/** The runways the flight deck sends an airliner to, where there is one near: the long, lit ones. */
+const forAirliner = (runway: Runway) => runway.lighting === "full";
 
 /** The lens from the cockpit, degrees: a wide one, as a windshield is. */
 export const FLIGHT_FOV = 60;
@@ -269,6 +276,8 @@ export interface Telemetry {
   radarAltitude: number | null;
   /** The storm system flown at: which way, how far (m), how long at this speed (s); null with none. */
   target: { bearing: number; distance: number; seconds: number; peakDbz: number } | null;
+  /** The nearest airport and the runway of it to land on from here (airports.ts), looked for once a second; null with none known near. */
+  airport: AirportFix | null;
   /** The reflectivity where the aircraft is, and what it makes of the view: cloud, rain, rough air, 0 to 1. */
   dbz: number | null;
   cloud: number;
@@ -462,6 +471,8 @@ export class Pilot {
   private leavingLanding = false;
   /** The best score flown here before this flight: what this one's has to beat. */
   private bestBefore = bestScore();
+  /** When the airports round the aircraft were last looked for, seconds of the flight's clock. */
+  private airportsAt = -Infinity;
   /**
    * The flight paused when the page goes out of sight: another tab, another
    * app, the screen locked. It stays paused on coming back, for the reader
@@ -567,7 +578,7 @@ export class Pilot {
     this.approach = approachOf(flightPlan);
     this.tas = flightPlan.tas;
     this.telemetry = {
-      state: this.startState(), ias: 0, mach: 0, ground: null, radarAltitude: null, target: null, dbz: null,
+      state: this.startState(), ias: 0, mach: 0, ground: null, radarAltitude: null, target: null, airport: null, dbz: null,
       cloud: 0, rain: 0, turbulence: 0, severity: 0, hail: 0, ice: 0, frost: 0, wet: 0, charge: 0, sun: 1, sky: 1, draft: 0, temperature: 0, fps: 60, quality: 1,
       storms: stage.stormTiles(), marks: [], rays: null, cut: null, chart: { storms: [], target: null }, section: null, fade: 0, flash: 0, brake: false, time: 0,
       gear: 0, flapLever: 0, rolled: 0, score: NO_SCORE, best: bestScore(), flight: 1, flown: 0,
@@ -1463,6 +1474,11 @@ export class Pilot {
     } else {
       telemetry.target = null;
     }
+    if (Math.abs(telemetry.time - this.airportsAt) >= AIRPORTS_EVERY_S) {
+      this.airportsAt = telemetry.time;
+      airportWorld.look(state.lon, state.lat);
+      telemetry.airport = nearestAirport(airportWorld.airports, state.lon, state.lat, forAirliner);
+    }
     const warnings: FlightWarning[] = [];
     const coming = telemetry.radarAltitude < LOW_M && state.verticalSpeed < -SINK_WARNING_MS;
     // The ground ahead is no surprise to an aircraft with its wheels down for it; coming down too fast still is.
@@ -1703,7 +1719,10 @@ export class Pilot {
     }
     // Written when it touches down and when it stops; the deck reads how far it has rolled each frame meanwhile.
     if (!landing || landing.stopped !== stopped || !before.onGround) {
-      this.status({ landing: { sink: touchdown.sink, speed: touchdown.tas, load: touchdown.load, rolled: telemetry.rolled, stopped } });
+      // The runway it came down on, as it was then: by the time it stops it may have run off the end.
+      const on = before.onGround ? null : runwayAt(airportWorld.airports, state.lon, state.lat, state.heading);
+      const runway = before.onGround ? landing?.runway ?? null : on && { name: on.name, airport: on.airport.iata ?? on.airport.name };
+      this.status({ landing: { sink: touchdown.sink, speed: touchdown.tas, load: touchdown.load, rolled: telemetry.rolled, stopped, runway } });
     }
   }
 

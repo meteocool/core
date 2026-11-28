@@ -385,6 +385,7 @@
         "air": "Outside",
         "frames": "Frames",
         "target": "Storm",
+        "airport": "Airport",
         "radio": "Above ground",
         "score": "Score",
         "best": "Best"
@@ -660,6 +661,7 @@
         "firm": "Firm",
         "hard": "Hard",
         "rolled": "Roll",
+        "runway": "Runway {name}",
         "again": "Press W to take off again · ⌫ to fly the approach again"
       },
       "leave_ask": {

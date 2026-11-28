@@ -325,7 +325,7 @@ export interface WaterLayer extends CustomLayerInterface {
   setQuality(share: number): void;
 }
 
-type CoverageIndex = NonNullable<ReturnType<NonNullable<GlMap["terrain"]>["getCoverageIndex"]>>;
+export type CoverageIndex = NonNullable<ReturnType<NonNullable<GlMap["terrain"]>["getCoverageIndex"]>>;
 
 /** The terrain tile the map draws the ground at a point from, Mercator's units: its key and where in it the point is. */
 function drawnTile(index: CoverageIndex, wrap: number, x: number, y: number) {
@@ -345,7 +345,7 @@ function drawnTile(index: CoverageIndex, wrap: number, x: number, y: number) {
  * off it draws the ground from coarser tiles of them, and water measured on
  * finer ones than were drawn lay under the ground drawn, a tile at a time.
  */
-function drawnGround(index: CoverageIndex, exaggeration: number, wrap: number, x: number, y: number): number | null {
+export function drawnGround(index: CoverageIndex, exaggeration: number, wrap: number, x: number, y: number): number | null {
   const found = drawnTile(index, wrap, x, y);
   if (!found?.sampler) return null;
   // 1 as the extent: the point's place in its tile, 0 to 1.

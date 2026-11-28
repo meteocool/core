@@ -104,6 +104,8 @@ export interface FlightSupport {
   peaks: typeof import("./flight/peaks").peaks;
   /** Lakes, rivers and the sea drawn as water, with the sky and the sun in them; see flight/water.ts. */
   water: typeof import("./flight/water").water;
+  /** The airports under the flight: their runways lit, and the larger ones named; see flight/airportLayer.ts. */
+  airports: typeof import("./flight/airportLayer").airports;
 }
 
 /** A listed volume, as the flight aims at and charts one. */

@@ -51,6 +51,11 @@ const PALETTES: Record<"light" | "dark" | "satellite", ChartPalette> = {
   satellite: { ink: "#f4f6f8", halo: "rgba(10, 12, 16, 0.8)", haloPx: 1.6 },
 };
 
+/** The ink and halo for what the map is drawn over: the peaks', and the airports' names beside them. */
+export function chartPalette(look: ChartLook): ChartPalette {
+  return PALETTES[look.satellite ? "satellite" : look.dark ? "dark" : "light"];
+}
+
 /**
  * Which peaks get a name. The tiles carry no prominence, only the height,
  * and the Alps have a few hundred named summits to a tile at zoom 10, so the
@@ -135,7 +140,7 @@ function remove(gl: GlMap): void {
  */
 function add(gl: GlMap, look: ChartLook, before?: string): void {
   remove(gl);
-  const palette = PALETTES[look.satellite ? "satellite" : look.dark ? "dark" : "light"];
+  const palette = chartPalette(look);
   gl.addSource(SOURCE, {
     type: "vector",
     tiles: ["https://tiles.versatiles.org/tiles/osm-vector/{z}/{x}/{y}"],

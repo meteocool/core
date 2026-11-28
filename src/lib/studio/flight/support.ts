@@ -10,6 +10,7 @@
 import { makeAircraftLayer } from "../../../layers/aircraftLayer";
 import { makeScenicPass } from "../../../layers/scenicPass";
 import type { FlightSupport } from "../director";
+import { airports } from "./airportLayer";
 import { cloudscape } from "./cloudscape";
 import { AIRCRAFT_FILES } from "./cockpit";
 import { destination, distanceM } from "./geo";
@@ -24,4 +25,5 @@ export const FLIGHT_SUPPORT: FlightSupport = {
   destination, distanceM, cloudscape, makeScenicPass, trackSection,
   peaks,
   water,
+  airports,
 };
