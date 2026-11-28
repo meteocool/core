@@ -70,8 +70,9 @@ const COCKPIT_EVERY_MS = 400;
 /** The most aircraft a synthetic sky (`?traffic=`) is filled with. */
 const SYNTHETIC_MOST = 1000;
 
-/** How many aircraft the page asks its sky be filled with, for measuring: `?traffic=300`; none without. */
+/** How many aircraft the page asks its sky be filled with, for measuring: `?traffic=300`; none without, and never on the production site. */
 function syntheticCount(): number {
+  if (import.meta.env.MODE === "production") return 0;
   const asked = Number(new URLSearchParams(window.location.search).get("traffic"));
   return Number.isInteger(asked) && asked > 0 ? Math.min(asked, SYNTHETIC_MOST) : 0;
 }

@@ -3,7 +3,7 @@
  *
  * The board is the meteoair board API under the environment's API origin
  * (src/urls.ts), each environment its own board with its own Turnstile
- * widget. Production has none configured, so it has no board: its flights
+ * widget. A build of a mode with none configured has no board: its flights
  * keep the cockpit's score alone.
  *
  * Small and free of the board's own code: Studio asks it before it loads
@@ -18,6 +18,7 @@
 export const BOARD_SITEKEYS: Readonly<Record<string, string>> = {
   next: "0x4AAAAAAGUggVX593a_DbQd",
   demo: "0x4AAAAAAGUggCSU7Oj-kdHz",
+  production: "0x4AAAAAAGUgglgtUH4D7O31",
 };
 export const TEST_SITEKEY = "1x00000000000000000000AA";
 

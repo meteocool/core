@@ -18,11 +18,13 @@ const state = (patch: Partial<FlightState> = {}): FlightState => ({
 
 /* Which board, and for which flights. */
 
-test("next and demo fly on their own board's widget, a dev server on the test key, and production on none", () => {
+test("each site flies on its own board's widget, a dev server on the test key, and a build of no known site on none", () => {
   assert.equal(boardSitekey({ mode: "next", dev: false, demoWeather: false }), BOARD_SITEKEYS.next);
   assert.equal(boardSitekey({ mode: "demo", dev: false, demoWeather: false }), BOARD_SITEKEYS.demo);
   assert.equal(boardSitekey({ mode: "development", dev: true, demoWeather: false }), TEST_SITEKEY);
-  assert.equal(boardSitekey({ mode: "production", dev: false, demoWeather: false }), null);
+  assert.equal(boardSitekey({ mode: "production", dev: false, demoWeather: false }), BOARD_SITEKEYS.production);
+  assert.equal(new Set(Object.values(BOARD_SITEKEYS)).size, 3);
+  assert.equal(boardSitekey({ mode: "localstack", dev: false, demoWeather: false }), null);
 });
 
 test("a live site flying the demo's storm in place of its own weather has no board", () => {
