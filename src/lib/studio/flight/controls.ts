@@ -20,7 +20,7 @@ import type { ControlInput } from "./physics";
 
 /** What a press does, once. */
 export type FlightAction =
-  | "autopilot" | "next" | "restart" | "view" | "style" | "inspect" | "record" | "pause" | "mute" | "help" | "leave"
+  | "autopilot" | "next" | "restart" | "view" | "style" | "inspect" | "section" | "record" | "pause" | "mute" | "help" | "leave"
   /** The cut through a storm being cut open turned anticlockwise or clockwise, pushed out towards the eye or deeper in; a peeled storm peeled less or more. */
   | "cutLeft" | "cutRight" | "cutNearer" | "cutDeeper"
   | "gear" | "fullscreen" | "flapsOut" | "flapsIn" | "speedbrake" | "radar" | "confirm" | "autobrake" | "parkingBrake"
@@ -44,6 +44,8 @@ const ACTIONS: Record<string, FlightAction> = {
   KeyP: "pause",
   KeyM: "mute",
   KeyI: "inspect",
+  // T for the track it stands along.
+  KeyT: "section",
   // Beside each other under the right hand, as < and > are, and [ and ].
   Comma: "cutLeft",
   Period: "cutRight",

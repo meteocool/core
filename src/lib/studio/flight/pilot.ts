@@ -45,6 +45,7 @@ import { CUT_PUSH_STEP, CUT_TURN_STEP, cutThrough, facingFrom, moved, UNSET_CUT 
 import type { CutSetting } from "./cut";
 import { INSPECTION_KEY, markFor, readInspection } from "./inspection";
 import type { SharedInspection } from "./inspection";
+import type { RouteSection } from "./routeSection";
 import type { StormMark } from "./marks";
 import { radarsOf, rayRuns } from "./radarRays";
 import { flightSettings } from "./settings";
@@ -318,6 +319,8 @@ export interface Telemetry {
    * system flown at, its middle and how far it reaches, km.
    */
   chart: { storms: StormMark[]; target: { lon: number; lat: number; radiusKm: number } | null };
+  /** The section along the track, while it is up (`Stage.sectionAhead`): the flight deck's profile of the weather ahead. */
+  section: RouteSection | null;
   /** A cut to black and back, 0 to 1; a lightning flash, 0 to 1. */
   fade: number;
   flash: number;
@@ -525,6 +528,8 @@ export class Pilot {
   private unsubscribeSettings: (() => void) | null = null;
   /** Where the cut through it stands, once it has been cut open; see cut.ts. */
   private cutSetting: CutSetting = UNSET_CUT;
+  /** Whether the profile of the weather along the track is up; see `applySection`. */
+  private sectioning = false;
   /** How far a storm looked into is peeled, 0 to 1: the reader's for the rest of the flight once they have moved it. */
   private peelSetting = INSPECT_PEEL;
   /** The storm a link shared in flight had looked into, until it is marked here and looked into again; see `resume`. */
@@ -558,7 +563,7 @@ export class Pilot {
     this.telemetry = {
       state: this.startState(), ias: 0, mach: 0, ground: null, radarAltitude: null, target: null, dbz: null,
       cloud: 0, rain: 0, turbulence: 0, severity: 0, hail: 0, ice: 0, frost: 0, wet: 0, charge: 0, sun: 1, sky: 1, draft: 0, temperature: 0, fps: 60, quality: 1,
-      storms: stage.stormTiles(), marks: [], rays: null, cut: null, chart: { storms: [], target: null }, fade: 0, flash: 0, brake: false, time: 0,
+      storms: stage.stormTiles(), marks: [], rays: null, cut: null, chart: { storms: [], target: null }, section: null, fade: 0, flash: 0, brake: false, time: 0,
       gear: 0, flapLever: 0, rolled: 0, score: NO_SCORE, best: bestScore(), flight: 1, flown: 0,
     };
   }
@@ -684,6 +689,8 @@ export class Pilot {
       target: target ? { lon: target.lon, lat: target.lat, peakDbz: target.peakDbz } : null,
       // The storm looked into, and how: seen through, cut open where the cut stood, or peeled so far.
       [INSPECTION_KEY]: inspect,
+      // Whether the profile of the weather along the track was up.
+      section: this.sectioning,
     }) as FlightSnapshot;
   }
 
@@ -727,6 +734,8 @@ export class Pilot {
     this.speedbrake = flag(snapshot.speedbrake, false);
     this.autobrake = flag(snapshot.autobrake, true);
     this.parkingBrake = flag(snapshot.parkingBrake, false);
+    // Read on the next slow tick, once the storms it is read from are in.
+    this.sectioning = flag(snapshot.section, false);
     this.autopilot = finite(snapshot.autopilot) && !this.telemetry.state.onGround ? snapshot.autopilot : null;
     const saved = snapshotPart(snapshot, "damage");
     if (Object.keys(saved).length) this.damage = { ...intact(finite(saved.seed) ? saved.seed : 1), ...saved } as Damage;
@@ -745,7 +754,7 @@ export class Pilot {
     const view = views.find((one) => one === snapshot.view) ?? this.flightPlan.view;
     const { gear, flapLever } = this.telemetry;
     this.status({
-      view, autopilot: this.autopilot !== null, lost: [...surfacesLost(this.damage)], flaps: flapLever,
+      view, autopilot: this.autopilot !== null, section: this.sectioning, lost: [...surfacesLost(this.damage)], flaps: flapLever,
       gear: gear <= 0 ? "up" : gear >= 1 ? "down" : "moving", onGround: this.telemetry.state.onGround,
     });
   }
@@ -878,6 +887,11 @@ export class Pilot {
       case "inspect":
         this.inspectNext();
         break;
+      case "section":
+        this.sectioning = !this.sectioning;
+        this.status({ section: this.sectioning });
+        this.applySection();
+        break;
       case "cutLeft":
       case "cutRight":
         this.moveCut({ turnDeg: action === "cutLeft" ? -CUT_TURN_STEP : CUT_TURN_STEP });
@@ -1005,6 +1019,16 @@ export class Pilot {
       cut: cut && { facingDeg: Math.round(cut.facingDeg) % 360, pushKm: setting.pushKm },
       peel: looked && peeling ? { level: this.peelSetting, coreDbz: Math.round(looked.mark.peakDbz) } : null,
     });
+  }
+
+  /**
+   * Read the section along the aircraft's track from where it is now, for
+   * the flight deck's profile, or let go of it. Read again every slow tick
+   * while it is up, so it turns with the aircraft and has the newest scan.
+   */
+  private applySection(): void {
+    const { lon, lat, track, altitude } = this.telemetry.state;
+    this.telemetry.section = this.sectioning ? this.stage.sectionAhead({ lon, lat, track, altitude }) : null;
   }
 
   /** Peel the storm being peeled this far, 0 to 1; or by so much more, for `by`. */
@@ -1784,6 +1808,7 @@ export class Pilot {
       this.rayRadars = radarsOf(looked.mark, telemetry.storms);
       this.applyInspection();
     }
+    if (this.sectioning) this.applySection();
     this.lookForLightning();
   }
 

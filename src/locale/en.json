@@ -286,6 +286,7 @@
       },
       "aria": "Flight deck",
       "look_title": "Drag to look around · double-click to look ahead again",
+      "profile": "Weather along your track: distance ahead across, height up",
       "mark": {
         "hail": "hail",
         "tops": "tops"
@@ -465,6 +466,7 @@
         "look": "Look around / look ahead again",
         "style": "Cloud style",
         "inspect": "Look into the storm ahead: X-ray, cut, peeled",
+        "section": "Section along your track: what lies ahead, ground to cloud top",
         "cut_turn": "Cut open: turn the cut",
         "cut_push": "Cut open: push the cut out / deeper · peeled: peel less / more",
         "record": "Record a video / stop",
@@ -588,6 +590,7 @@
         "pause": "Pause",
         "resume": "Resume",
         "inspect": "Inspect",
+        "section": "Ahead",
         "sound": "Music",
         "tilt": "Tilt",
         "tilt_title": "Fly by tilting your phone. The way you hold it now counts as level.",

@@ -14,13 +14,14 @@ import { cloudscape } from "./cloudscape";
 import { AIRCRAFT_FILES } from "./cockpit";
 import { destination, distanceM } from "./geo";
 import { peaks } from "./peaks";
+import { trackSection } from "./routeSection";
 import { flightFine, flightWanted, nearEnoughForFine, withinHold } from "./selection";
 import { water } from "./water";
 import { reflectivityAt } from "./weather";
 
 export const FLIGHT_SUPPORT: FlightSupport = {
   flightWanted, flightFine, nearEnoughForFine, withinHold, reflectivityAt, makeAircraftLayer, aircraftFiles: AIRCRAFT_FILES,
-  destination, distanceM, cloudscape, makeScenicPass,
+  destination, distanceM, cloudscape, makeScenicPass, trackSection,
   peaks,
   water,
 };

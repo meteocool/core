@@ -36,6 +36,7 @@ import FlightSettings from "./FlightSettings.svelte";
 import TouchControls from "./TouchControls.svelte";
 import FlightMinimap from "./FlightMinimap.svelte";
 import FlightHorizon from "./FlightHorizon.svelte";
+import FlightProfile from "./FlightProfile.svelte";
 import CloseDisc from "../../CloseDisc.svelte";
 import Segmented from "../../Segmented.svelte";
 import type { InspectMode } from "../../../lib/studio/director";
@@ -78,6 +79,7 @@ let fade: HTMLDivElement | null = null;
 let minimap: FlightMinimap | null = null;
 /* Which way is up, from outside, beside the map: the seat has its own on the panel. */
 let horizon: FlightHorizon | null = null;
+let profile: FlightProfile | null = null;
 let throttle: HTMLOutputElement | null = null;
 /* The storms marked in the view (lib/studio/flight/marks.ts): as many labels
    as the view ever carries, each put where its storm is every frame, and
@@ -90,7 +92,7 @@ const MARKS = Array.from({ length: MARKS_SHOWN }, (_unused, index) => index);
  */
 const KEEP_CLEAR = [
   ".readouts > div", ".corner > *", ".muted", ".inspect", ".popups > *", ".landing", ".credits", ".rec",
-  ":scope > .flight-minimap", ":scope > .flight-horizon", ".touch .left > *", ".touch .stick", ".touch .strip", ".touch .handle", ".touch .said",
+  ":scope > .flight-minimap", ":scope > .flight-horizon", ":scope > .flight-profile", ".touch .left > *", ".touch .stick", ".touch .strip", ".touch .handle", ".touch .said",
 ].join(", ");
 let marks: Array<HTMLElement | null> = MARKS.map(() => null);
 /* The beams from the radars that saw the storm looked into (./rays.ts), and a label at each radar's end. */
@@ -379,6 +381,7 @@ function frame(telemetry: Telemetry): void {
   drawBeams(telemetry);
   minimap?.draw(telemetry);
   horizon?.draw(telemetry);
+  profile?.draw(telemetry);
 }
 
 /* The mouse turns the eye: a drag anywhere on the view, the head in its
@@ -635,6 +638,9 @@ const WARNINGS = {
     <FlightHorizon bind:this={horizon} />
   {/if}
 
+  {#if status.section && status.view !== "clean" && !status.landing}
+    <FlightProfile bind:this={profile} />
+  {/if}
   {#if status.landing && status.view !== "clean"}
     <!-- A landing, as it was made: how hard, how fast, and how far it has rolled. -->
     <section class="landing glass glass-tray" aria-label={$_("studio.flight.landing.title")}>
@@ -990,6 +996,44 @@ const WARNINGS = {
     position: absolute;
     left: 16px;
     bottom: calc(124px + var(--flight-minimap-size) + 12px);
+  }
+  /* The weather along the track: low in the middle, between the readouts in the corners. */
+  .flight-deck > :global(.flight-profile) {
+    position: absolute;
+    left: 50%;
+    bottom: 32px;
+    width: min(760px, calc(100% - 352px));
+    height: 116px;
+    transform: translateX(-50%);
+  }
+  /* A narrow window has no room between its corners: over them, the width of the window, and beside the chart from outside. */
+  @container mc-frame (max-width: 900px) {
+    .flight-deck > :global(.flight-profile) {
+      left: 16px;
+      right: 16px;
+      bottom: 124px;
+      width: auto;
+      transform: none;
+    }
+    .flight-deck.view-outside > :global(.flight-profile) { left: calc(16px + var(--flight-minimap-size) + 12px); }
+  }
+  /* Under a finger the bottom is the controls': up beside the chart and the horizon, short of the readouts on the right. */
+  .flight-deck.touch > :global(.flight-profile) {
+    top: calc(var(--deck-top) + 46px);
+    bottom: auto;
+    left: calc(var(--deck-left) + var(--flight-minimap-size) + var(--flight-horizon-size) + 20px);
+    right: calc(var(--deck-right) + 176px);
+    width: auto;
+    height: 84px;
+    transform: none;
+  }
+  /* Held upright there is no room beside them: under them, the width of the screen. */
+  @container mc-frame (orientation: portrait) {
+    .flight-deck.touch > :global(.flight-profile) {
+      top: calc(var(--deck-top) + 112px + var(--flight-minimap-size) + 8px);
+      left: var(--deck-left);
+      right: var(--deck-right);
+    }
   }
   /* A low window has less room between its corners. */
   @container mc-frame (max-height: 560px) {

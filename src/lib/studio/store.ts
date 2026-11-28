@@ -165,6 +165,8 @@ export interface FlightStatus {
   low: boolean;
   /** How the storm being looked into is opened (`Stage.inspectStorm`); null when none is. */
   inspecting: "cut" | "peel" | "xray" | null;
+  /** Whether the profile of the weather along the aircraft's track is up (FlightProfile.svelte). */
+  section: boolean;
   /**
    * Where the cut through it stands while it is cut open: the compass
    * direction of the side taken away, and how far past its middle, km.
@@ -218,7 +220,7 @@ export interface FlightStatus {
 
 export const INITIAL_FLIGHT_STATUS: FlightStatus = {
   view: "cockpit", warnings: [], paused: false, recording: false, keys: true, autopilot: false, warp: false,
-  clearSky: false, low: false, inspecting: null, cut: null, peel: null, gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false,
+  clearSky: false, low: false, inspecting: null, section: false, cut: null, peel: null, gear: "up", flaps: 0, flapsMoving: false, spoilers: "in", onGround: false,
   reverse: false, alphaFloor: false, thrustLocked: false, speedHint: null, landing: null, crash: null, lost: [], alarms: [], silenced: [], feat: null,
   radarOnGround: false, leaving: false, asking: null,
 };

@@ -43,6 +43,7 @@ const ROWS: Array<[string[], string]> = [
   [["C"], "style"],
   [["O"], "radar"],
   [["I"], "inspect"],
+  [["T"], "section"],
   [[",", "."], "cut_turn"],
   [["[", "]"], "cut_push"],
   [["R"], "record"],

@@ -85,6 +85,7 @@ import type { Motion } from "../lib/cloudMotion";
 import type { Placed } from "../lib/volumeHandover";
 import { FetchRetries } from "../lib/fetchRetries";
 import type { StudioPlanesLayer } from "../layers/studioPlanesLayer";
+import type { RouteSection } from "../lib/studio/flight/routeSection";
 import { DEFAULT_FOV, STUDIO_MAX_PITCH } from "../lib/studio/scene";
 import type { StudioCamera } from "../lib/studio/scene";
 import { studioFlying, studioFov, studioOpen, studioPlanes, studioSelectedPlane } from "../lib/studio/store";
@@ -3445,6 +3446,12 @@ export default class Cells3DCapability extends Capability {
       } : null;
     this.applyCut();
     return found !== null;
+  }
+
+  sectionAhead(from: { lon: number; lat: number; track: number; altitude: number }): RouteSection | null {
+    const support = this.flightSupport;
+    if (!this.flight || !support) return null;
+    return support.trackSection([...this.cutaways.values()].map(({ cutaway }) => cutaway), from);
   }
 
   trackedCells(): StormMark[] {

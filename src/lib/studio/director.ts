@@ -40,6 +40,8 @@ export interface FlightPose {
   roll: number;
 }
 
+type RouteSection = import("./flight/routeSection").RouteSection;
+
 /** The ways a flight looks into a storm; see `Stage.inspectStorm`. */
 export type InspectMode = "cut" | "peel" | "xray";
 
@@ -87,6 +89,8 @@ export interface FlightSupport {
   nearEnoughForFine: typeof import("./flight/selection").nearEnoughForFine;
   withinHold: typeof import("./flight/selection").withinHold;
   reflectivityAt: typeof import("./flight/weather").reflectivityAt;
+  /** The section along the aircraft's track; see flight/routeSection.ts. */
+  trackSection: typeof import("./flight/routeSection").trackSection;
   makeAircraftLayer: typeof import("../../layers/aircraftLayer").makeAircraftLayer;
   /** Where the aircraft's model and textures are served from. */
   aircraftFiles: string;
@@ -176,6 +180,12 @@ export interface Stage {
    * Whether there is a storm drawn there to look into.
    */
   inspectStorm(target: { lon: number; lat: number; mode: InspectMode; cut: FlightCut | null; peel?: number } | null): boolean;
+  /**
+   * The section along a track, read from the volumes held now
+   * (flight/routeSection.ts): from a little behind `from` to far ahead of
+   * it, with its height marked. Null outside a flight.
+   */
+  sectionAhead(from: { lon: number; lat: number; track: number; altitude: number }): RouteSection | null;
   /** The storm cells the radar network tracks, as marks for the view (flight/marks.ts); none where it tracks none. */
   trackedCells(): StormMark[];
   /** Draw the aircraft as this camera sees it, or not at all for null (layers/aircraftLayer.ts). */

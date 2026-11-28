@@ -43,6 +43,7 @@ import { faCloudBolt } from "@fortawesome/free-solid-svg-icons/faCloudBolt";
 import { faEye } from "@fortawesome/free-solid-svg-icons/faEye";
 import { faForward } from "@fortawesome/free-solid-svg-icons/faForward";
 import { faLayerGroup } from "@fortawesome/free-solid-svg-icons/faLayerGroup";
+import { faChartArea } from "@fortawesome/free-solid-svg-icons/faChartArea";
 import { faMobileScreen } from "@fortawesome/free-solid-svg-icons/faMobileScreen";
 import { faPause } from "@fortawesome/free-solid-svg-icons/faPause";
 import { faPlay } from "@fortawesome/free-solid-svg-icons/faPlay";
@@ -597,6 +598,9 @@ onDestroy(() => {
             </button>
             <button type="button" class="key" class:lit={status.inspecting !== null} tabindex="-1" on:click={act("inspect")}>
               <Icon icon={faLayerGroup} /><span>{$_("studio.flight.touch.inspect")}</span>
+            </button>
+            <button type="button" class="key" class:lit={status.section} tabindex="-1" aria-pressed={status.section} on:click={act("section")}>
+              <Icon icon={faChartArea} /><span>{$_("studio.flight.touch.section")}</span>
             </button>
             <button type="button" class="key" class:lit={tilting} tabindex="-1" aria-pressed={tilting}
               title={$_("studio.flight.touch.tilt_title")} on:click={toggleTilt}>

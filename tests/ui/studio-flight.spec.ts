@@ -153,6 +153,12 @@ test.describe("on a desktop", () => {
     // V stands the eye outside, level whatever the aircraft does.
     await page.keyboard.press("v");
     await expect(deck(page)).toHaveClass(/view-outside/);
+    // T lays the weather along the track out on the flight deck, and takes it away again.
+    const profile = deck(page).getByRole("img", { name: /^Weather along your track/ });
+    await page.keyboard.press("t");
+    await expect(profile).toBeVisible();
+    await page.keyboard.press("t");
+    await expect(profile).toBeHidden();
     // Studio's own keys do nothing meanwhile: Space is the speed brake, not play.
     await page.keyboard.press("k");
     await expect(deck(page)).toBeVisible();
